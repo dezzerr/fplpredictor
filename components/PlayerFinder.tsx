@@ -1,23 +1,200 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { getRealisticExpPoints } from "@/lib/data";
 import type { Player } from "@/lib/data";
 import { useFilters, MIN_PRICE, MAX_PRICE } from "@/store/filters";
 import { useSquadStore } from "@/store/squad";
 import { Input } from "@/components/ui/input";
-import { Slider } from "@/components/ui/slider";
-import { Switch } from "@/components/ui/switch";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog";
+import { TeamShirt } from "@/components/TeamShirt";
 import { PlayerRow } from "@/components/PlayerRow";
+import { getFPLDisplayName } from "@/lib/utils";
+import { Search, RotateCcw, Info } from "lucide-react";
 import { toast } from "sonner";
+
+function PlayerModal({ player }: { player: Player }) {
+  const [activeTab, setActiveTab] = useState<'history' | 'fixtures'>('history');
+
+  return (
+    <div className="space-y-4">
+      {/* Player Header */}
+      <div className="bg-gradient-to-r from-cyan-400 to-purple-500 text-white rounded-lg p-4">
+        <div className="flex items-center gap-3">
+          <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center">
+            <TeamShirt team={player.team} className="w-12 h-12" />
+          </div>
+          <div>
+            <div className="text-sm opacity-90">{player.position}</div>
+            <div className="text-xl font-bold">{getFPLDisplayName(player.name)}</div>
+            <div className="text-sm opacity-90">{player.team}</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Stats Grid */}
+      <div className="grid grid-cols-4 gap-4 py-2">
+        <div className="text-center">
+          <div className="text-xs text-gray-500 mb-1">Price</div>
+          <div className="font-bold text-lg">£{player.price.toFixed(1)}m</div>
+        </div>
+        <div className="text-center">
+          <div className="text-xs text-gray-500 mb-1">Form</div>
+          <div className="font-bold text-lg">{player.form?.toFixed(1) || '-'}</div>
+        </div>
+        <div className="text-center">
+          <div className="text-xs text-gray-500 mb-1">Expected Pts</div>
+          <div className="font-bold text-lg">{getRealisticExpPoints(player).toFixed(1)}</div>
+        </div>
+        <div className="text-center">
+          <div className="text-xs text-gray-500 mb-1">Ownership</div>
+          <div className="font-bold text-lg">{player.ownership?.toFixed(1) || '-'}%</div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-3 gap-4 py-2">
+        <div className="text-center">
+          <div className="text-xs text-gray-500 mb-1">EO</div>
+          <div className="font-bold text-lg">{player.eo?.toFixed(1) || '-'}%</div>
+        </div>
+        <div className="text-center">
+          <div className="text-xs text-gray-500 mb-1">EO Risk</div>
+          <div className="font-bold text-lg">{player.eoRisk?.toFixed(1) || '-'}</div>
+        </div>
+        <div className="text-center">
+          <div className="text-xs text-gray-500 mb-1">Status</div>
+          <div className="font-bold text-lg">
+            {player.status === 'fit' ? '✓' : player.status === 'flag' ? '!' : '✗'}
+          </div>
+        </div>
+      </div>
+
+      {/* Fixtures Preview */}
+      <div>
+        <h3 className="font-bold text-black mb-3">Next Fixtures</h3>
+        <div className="flex gap-3">
+          {player.nextFixtures.slice(0, 3).map((fixture, i) => (
+            <div key={i} className="text-center">
+              <div className="text-xs text-gray-500 mb-1">
+                {fixture.event ? `GW${fixture.event}` : `GW+${i + 1}`}
+              </div>
+              <TeamShirt team={fixture.opp} className="w-10 h-10 mx-auto mb-1" />
+              <div className="text-xs font-medium">{fixture.opp} ({fixture.H ? 'H' : 'A'})</div>
+              <div className="text-sm font-bold">Diff: {fixture.diff}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="border-t pt-4">
+        <div className="flex gap-4 border-b">
+          <button 
+            onClick={() => setActiveTab('history')}
+            className={`pb-2 ${activeTab === 'history' ? 'border-b-2 border-blue-500 text-blue-500' : 'text-gray-500'} font-medium`}
+          >
+            History
+          </button>
+          <button 
+            onClick={() => setActiveTab('fixtures')}
+            className={`pb-2 ${activeTab === 'fixtures' ? 'border-b-2 border-blue-500 text-blue-500' : 'text-gray-500'} font-medium`}
+          >
+            Fixtures
+          </button>
+        </div>
+        
+        <div className="mt-4">
+          {activeTab === 'history' ? (
+            <div>
+              <div className="font-bold text-black mb-3">Player Summary</div>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <div className="text-gray-500">Expected Points</div>
+                  <div className="font-bold">{getRealisticExpPoints(player).toFixed(1)} pts</div>
+                </div>
+                <div>
+                  <div className="text-gray-500">Price</div>
+                  <div className="font-bold">£{player.price.toFixed(1)}m</div>
+                </div>
+                {player.form && (
+                  <div>
+                    <div className="text-gray-500">Form</div>
+                    <div className="font-bold">{player.form.toFixed(1)}</div>
+                  </div>
+                )}
+                {player.ownership && (
+                  <div>
+                    <div className="text-gray-500">Ownership</div>
+                    <div className="font-bold">{player.ownership.toFixed(1)}%</div>
+                  </div>
+                )}
+                {player.eo && (
+                  <div>
+                    <div className="text-gray-500">Effective Ownership</div>
+                    <div className="font-bold">{player.eo.toFixed(1)}%</div>
+                  </div>
+                )}
+                <div>
+                  <div className="text-gray-500">Status</div>
+                  <div className="font-bold capitalize">{player.status}</div>
+                </div>
+              </div>
+              
+              {player.expExplain && (
+                <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+                  <div className="font-bold text-sm mb-2">Expected Points Breakdown</div>
+                  <div className="text-xs space-y-1">
+                    <div>Base: {player.expExplain.base.toFixed(1)} pts</div>
+                    <div>Minutes Probability: {(player.expExplain.minutesProb * 100).toFixed(0)}%</div>
+                    <div>Form Factor: {player.expExplain.formFactor.toFixed(2)}</div>
+                    <div>Fixture Factor: {player.expExplain.blendedFixtureFactor.toFixed(2)}</div>
+                    <div>Final: {player.expExplain.final.toFixed(1)} pts</div>
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div>
+              <div className="font-bold text-black mb-3">Upcoming Fixtures</div>
+              <div className="space-y-3">
+                {player.nextFixtures.map((fixture, i) => (
+                  <div key={i} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <div className="text-sm font-medium">
+                        {fixture.event ? `GW${fixture.event}` : `GW+${i + 1}`}
+                      </div>
+                      <TeamShirt team={fixture.opp} className="w-8 h-8" />
+                      <div>
+                        <div className="font-medium">{fixture.opp}</div>
+                        <div className="text-xs text-gray-500">{fixture.H ? 'Home' : 'Away'}</div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-sm font-bold">Difficulty: {fixture.diff}</div>
+                      <div className="text-xs text-gray-500">
+                        {fixture.diff <= 2 ? 'Easy' : fixture.diff <= 3 ? 'Medium' : 'Hard'}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export function PlayerFinder() {
   const [players, setPlayers] = useState<Player[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [teamFilter, setTeamFilter] = useState<string>("all");
 
   useEffect(() => {
     let cancelled = false;
@@ -65,6 +242,7 @@ export function PlayerFinder() {
   const filtered = useMemo(() => {
     let list = players.filter(p => p.price >= price[0] && p.price <= price[1]);
     if (position !== "ALL") list = list.filter(p => p.position === position);
+    if (teamFilter !== "all") list = list.filter(p => p.team === teamFilter);
     if (search.trim()) {
       const q = search.toLowerCase();
       list = list.filter(p => p.name.toLowerCase().includes(q) || p.team.toLowerCase().includes(q));
@@ -84,13 +262,21 @@ export function PlayerFinder() {
         return avg; // lower = easier
       };
       list = list.slice().sort((a, b) => ease(a) - ease(b));
+    } else if (sort === "FORM") {
+      list = list.slice().sort((a, b) => (b.form ?? 0) - (a.form ?? 0));
+    } else if (sort === "OWNERSHIP") {
+      list = list.slice().sort((a, b) => (b.ownership ?? 0) - (a.ownership ?? 0));
     } else {
-      // EXP_POINTS default
-      list = list.slice().sort((a, b) => (b.expPoints ?? 0) - (a.expPoints ?? 0));
+      // EXP_POINTS default - use realistic expected points with minutes probability
+      list = list.slice().sort((a, b) => {
+        const aExp = getRealisticExpPoints(a);
+        const bExp = getRealisticExpPoints(b);
+        return bExp - aExp;
+      });
     }
 
     return list;
-  }, [players, search, price, auto, inSquad, position, sort]);
+  }, [players, search, price, auto, inSquad, position, sort, teamFilter]);
 
   const handleAdd = (p: Player) => {
     const res = addPlayer(p);
@@ -98,65 +284,210 @@ export function PlayerFinder() {
     else toast.success(`Added ${p.name}`);
   };
 
-  return (
-    <Card className="flex h-full flex-col gap-3 p-3">
-      <div className="flex items-center justify-between gap-2">
-        <div className="text-base font-semibold">Players</div>
-        <label className="hidden items-center gap-2 text-xs text-muted-foreground sm:flex">
-          <span>Auto-filter</span>
-          <Switch checked={auto} onCheckedChange={setAuto} aria-label="Auto filter out owned" />
-        </label>
-      </div>
+  const teams = useMemo(() => Array.from(new Set(players.map(p => p.team))), [players]);
 
-      {/* Position tabs + Sort */}
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-col gap-1">
-          <div className="text-xs text-muted-foreground">Position</div>
-          <Tabs value={position} onValueChange={(v)=> setPosition(v as any)}>
-            <TabsList>
-              <TabsTrigger value="ALL">All</TabsTrigger>
-              <TabsTrigger value="GK">GK</TabsTrigger>
-              <TabsTrigger value="DEF">DEF</TabsTrigger>
-              <TabsTrigger value="MID">MID</TabsTrigger>
-              <TabsTrigger value="FWD">FWD</TabsTrigger>
-            </TabsList>
-          </Tabs>
+  const resetFilters = () => {
+    setSearch("");
+    setPosition("ALL");
+    setSort("EXP_POINTS");
+    setPrice([MIN_PRICE, MAX_PRICE]);
+    setTeamFilter("all");
+    setAuto(false);
+  };
+
+  const groupedPlayers = useMemo(() => {
+    const groups = {
+      GK: filtered.filter(p => p.position === 'GK'),
+      DEF: filtered.filter(p => p.position === 'DEF'),
+      MID: filtered.filter(p => p.position === 'MID'),
+      FWD: filtered.filter(p => p.position === 'FWD'),
+    };
+    return groups;
+  }, [filtered]);
+
+  const positionNames = {
+    GK: 'Goalkeepers',
+    DEF: 'Defenders', 
+    MID: 'Midfielders',
+    FWD: 'Forwards'
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Find a player section */}
+      <div className="space-y-4">
+        <h2 className="text-lg font-semibold text-gray-900">Find a player</h2>
+        
+        {/* Search bar */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+          <Input
+            placeholder="Search by name"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-10 h-12 text-base"
+          />
         </div>
-        <div className="flex w-full flex-col gap-1 sm:w-56">
-          <div className="text-xs text-muted-foreground">Sort By</div>
-          <Select value={sort} onValueChange={(v)=> setSort(v as any)}>
-            <SelectTrigger>
-              <SelectValue placeholder="Sort" />
+
+        {/* Filter row */}
+        <div className="flex gap-3 items-center">
+          <Select value={position === "ALL" ? "all" : position} onValueChange={(value) => setPosition(value === "all" ? "ALL" : value as any)}>
+            <SelectTrigger className="w-32">
+              <SelectValue placeholder="All players" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="PRICE">Price</SelectItem>
-              <SelectItem value="EXP_POINTS">Expected Points</SelectItem>
-              <SelectItem value="FIXTURE_EASE">Fixture Ease</SelectItem>
+              <SelectItem value="all">All players</SelectItem>
+              <SelectItem value="GK">Goalkeepers</SelectItem>
+              <SelectItem value="DEF">Defenders</SelectItem>
+              <SelectItem value="MID">Midfielders</SelectItem>
+              <SelectItem value="FWD">Forwards</SelectItem>
             </SelectContent>
           </Select>
+
+          <Select value={sort} onValueChange={setSort}>
+            <SelectTrigger className="w-32">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="EXP_POINTS">Total points</SelectItem>
+              <SelectItem value="PRICE">Price</SelectItem>
+              <SelectItem value="OWNERSHIP">Ownership</SelectItem>
+              <SelectItem value="FORM">Form</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select value={`£${price[1]}m`} onValueChange={(value) => {
+            const maxPrice = parseFloat(value.replace('£', '').replace('m', ''));
+            setPrice([MIN_PRICE, maxPrice]);
+          }}>
+            <SelectTrigger className="w-20">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="£15.0m">£15.0m</SelectItem>
+              <SelectItem value="£12.0m">£12.0m</SelectItem>
+              <SelectItem value="£10.0m">£10.0m</SelectItem>
+              <SelectItem value="£8.0m">£8.0m</SelectItem>
+              <SelectItem value="£6.0m">£6.0m</SelectItem>
+              <SelectItem value="£4.0m">£4.0m</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Button variant="outline" onClick={resetFilters} className="gap-2">
+            <RotateCcw className="h-4 w-4" />
+            Reset
+          </Button>
         </div>
       </div>
 
-      <Input value={search} onChange={(e)=>setSearch(e.target.value)} placeholder="Search name or team" aria-label="Search players" />
-      <div className="px-1 text-xs text-muted-foreground">
-        Price: £{price[0].toFixed(1)}m – £{price[1].toFixed(1)}m
+      {/* Players count banner */}
+      <div className="bg-gradient-to-r from-cyan-400 to-blue-500 text-white text-center py-3 rounded-lg font-medium">
+        {filtered.length} players shown
       </div>
-      <Slider value={[price[0], price[1]]} onValueChange={(v)=> setPrice([v[0] ?? MIN_PRICE, v[1] ?? MAX_PRICE])} min={MIN_PRICE} max={MAX_PRICE} step={0.5} />
 
-      <ScrollArea className="max-h-[70vh]">
-        <div className="space-y-2 py-1">
-          {loading && players.length === 0 ? (
-            <div className="p-2 text-xs text-muted-foreground">Loading players...</div>
-          ) : error && players.length === 0 ? (
-            <div className="p-2 text-xs text-rose-600">Failed to load players: {error}</div>
-          ) : (
-            filtered.map(p => (
-              <PlayerRow key={p.id} player={p} onAdd={handleAdd} />
-            ))
-          )}
+      {/* Position tabs */}
+      <Tabs value="all" className="w-full">
+        <TabsList className="grid w-full grid-cols-2 bg-gray-100">
+          <TabsTrigger value="all" className="text-gray-900">All players</TabsTrigger>
+          <TabsTrigger value="watchlist" className="text-gray-500">Watchlist</TabsTrigger>
+        </TabsList>
+      </Tabs>
+
+      {/* Position filter tabs */}
+      <div className="space-y-1">
+        <h3 className="text-sm font-medium text-gray-600 mb-2">Position</h3>
+        <div className="grid grid-cols-4 gap-2">
+          {(['GK', 'DEF', 'MID', 'FWD'] as const).map((pos) => (
+            <Button
+              key={pos}
+              variant={position === pos ? "default" : "outline"}
+              onClick={() => setPosition(pos)}
+              className="text-sm"
+            >
+              {positionNames[pos]}
+            </Button>
+          ))}
         </div>
-      </ScrollArea>
-    </Card>
+      </div>
+
+      {/* Teams filter */}
+      <div className="space-y-3">
+        <h3 className="text-sm font-medium text-gray-600">Teams</h3>
+        <div className="grid grid-cols-4 gap-3">
+          {teams.slice(0, 20).map((team) => (
+            <Button
+              key={team}
+              variant={teamFilter === team ? "default" : "ghost"}
+              onClick={() => setTeamFilter(teamFilter === team ? "all" : team)}
+              className="justify-start gap-2 h-auto p-2"
+            >
+              <TeamShirt team={team} className="w-5 h-5" />
+              <span className="text-xs">{team}</span>
+            </Button>
+          ))}
+        </div>
+      </div>
+
+      {/* Player lists by position */}
+      <div className="space-y-8">
+        {loading && players.length === 0 ? (
+          <div className="text-center py-8 text-gray-500">Loading players...</div>
+        ) : error && players.length === 0 ? (
+          <div className="text-center py-8 text-red-500">Failed to load players: {error}</div>
+        ) : (
+          Object.entries(groupedPlayers).map(([pos, posPlayers]) => {
+            if (position !== "ALL" && position !== pos) return null;
+            if (posPlayers.length === 0) return null;
+            
+            return (
+              <div key={pos} className="space-y-3">
+                <div className="flex items-center justify-between border-b border-gray-200 pb-2">
+                  <h3 className="text-lg font-semibold text-gray-900">{positionNames[pos as keyof typeof positionNames]}</h3>
+                  <div className="flex gap-8 text-sm font-medium text-gray-500">
+                    <span>Price</span>
+                    <span>TP</span>
+                  </div>
+                </div>
+                
+                <div className="space-y-1">
+                  {posPlayers.map((player) => (
+                    <div key={player.id} className="flex items-center gap-2">
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="w-8 h-8 p-0 bg-blue-100 hover:bg-blue-200 rounded-full"
+                          >
+                            <Info className="h-4 w-4 text-blue-600" />
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-2xl">
+                          <DialogTitle className="sr-only">
+                            {getFPLDisplayName(player.name)} - Player Details
+                          </DialogTitle>
+                          <DialogDescription className="sr-only">
+                            Detailed statistics and information for {getFPLDisplayName(player.name)}
+                          </DialogDescription>
+                          <PlayerModal player={player} />
+                        </DialogContent>
+                      </Dialog>
+                      
+                      <div className="flex-1">
+                        <PlayerRow
+                          key={player.id}
+                          player={player}
+                          onAdd={handleAdd}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+    </div>
   );
 }
-

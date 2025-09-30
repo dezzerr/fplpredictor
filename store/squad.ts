@@ -11,6 +11,7 @@ export type SquadState = {
   error: string | null;
   lastImport: { entryId: string; preset?: string } | null;
   initialize: (args: { entryId: string; preset?: string }) => Promise<{ ok: true } | { ok: false; error: string }>;
+  refresh: () => Promise<{ ok: true } | { ok: false; error: string }>;
   addPlayer: (p: Player) => { ok: boolean; reason?: string };
   addPlayerToBench: (p: Player) => { ok: boolean; reason?: string };
   removePlayer: (id: string) => void;
@@ -104,7 +105,9 @@ export const useSquadStore = create<SquadState>()(persist((set, get) => ({
   initialize: async ({ entryId, preset }) => {
     set({ loading: true, error: null });
     try {
-      const res = await fetch(`/api/squad?entryId=${encodeURIComponent(entryId)}${preset ? `&preset=${encodeURIComponent(preset)}` : ""}`);
+      // Add cache busting parameter to force fresh data
+      const cacheBuster = Date.now();
+      const res = await fetch(`/api/squad?entryId=${encodeURIComponent(entryId)}${preset ? `&preset=${encodeURIComponent(preset)}` : ""}&_t=${cacheBuster}`);
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || "Failed to load squad");
       set({ squad: data as Squad, loading: false, error: null, lastImport: { entryId, preset } });
@@ -114,6 +117,12 @@ export const useSquadStore = create<SquadState>()(persist((set, get) => ({
       set({ loading: false, error: msg });
       return { ok: false, error: msg } as const;
     }
+  },
+
+  refresh: async () => {
+    const lastImport = get().lastImport;
+    if (!lastImport) return { ok: false, error: "No previous import to refresh" };
+    return get().initialize(lastImport);
   },
 
   counts: () => {
@@ -341,11 +350,18 @@ export const useSquadStore = create<SquadState>()(persist((set, get) => ({
       ...s.starters.MID,
       ...s.starters.FWD,
     ];
-    let total = starters.reduce((acc, p) => acc + (p.expPoints ?? 0), 0);
-    // Captain double only if captain is a starter
+    // Apply minutes probability to get realistic expected points
+    let total = starters.reduce((acc, p) => {
+      const adjustedPoints = (p.expPoints ?? 0) * (p.minutesProb ?? 0.8);
+      return acc + adjustedPoints;
+    }, 0);
+    // Captain double only if captain is a starter (also apply minutesProb)
     if (s.captainId) {
       const cap = starters.find(p => p.id === s.captainId);
-      if (cap) total += (cap.expPoints ?? 0);
+      if (cap) {
+        const capBonus = (cap.expPoints ?? 0) * (cap.minutesProb ?? 0.8);
+        total += capBonus;
+      }
     }
     return precision2(total);
   },
@@ -395,7 +411,7 @@ export const useSquadStore = create<SquadState>()(persist((set, get) => ({
   },
 
   gwRating: () => {
-    // heuristic: weight fixture difficulty by minutes probability
+    // heuristic: rate gameweek based on realistic expected points per starter
     const s = get().squad;
     const starters = [
       ...s.starters.GK,
@@ -403,16 +419,20 @@ export const useSquadStore = create<SquadState>()(persist((set, get) => ({
       ...s.starters.MID,
       ...s.starters.FWD,
     ];
-    let sumW = 0;
-    let sumD = 0;
-    for (const p of starters) {
-      const d = p.nextFixtures?.[0]?.diff ?? 3;
-      const w = (p.minutesProb ?? 1);
-      sumW += w;
-      sumD += d * w;
-    }
-    const avgDiff = sumW > 0 ? sumD / sumW : 3;
-    return clamp(Math.round((6 - avgDiff) / 5 * 100));
+    
+    if (starters.length === 0) return 0;
+    
+    // Calculate average realistic expected points per starter (with minutesProb)
+    const totalExp = starters.reduce((acc, p) => {
+      const adjustedPoints = (p.expPoints ?? 0) * (p.minutesProb ?? 0.8);
+      return acc + adjustedPoints;
+    }, 0);
+    const avgExpPerStarter = totalExp / starters.length;
+    
+    // Scale to percentage: assume 5+ points per starter is excellent (100%)
+    // 3-5 points is good (60-100%), below 3 is poor (0-60%)
+    const rating = Math.min(100, Math.max(0, (avgExpPerStarter / 5) * 100));
+    return Math.round(rating);
   },
 
 }), { name: "fpl-copilot-squad-v2" }));

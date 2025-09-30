@@ -19,9 +19,20 @@ function mapStatus(s: string): Player["status"] {
 
 export async function fetchFplPlayers(preset?: CalPresetName | string | null): Promise<Player[]> {
   // Fetch bootstrap strictly (must succeed)
-  const bootstrapRes = await fetch("https://fantasy.premierleague.com/api/bootstrap-static/", { next: { revalidate: 900 } });
+  // Add timestamp to bust FPL API cache
+  const timestamp = Date.now();
+  const bootstrapRes = await fetch(`https://fantasy.premierleague.com/api/bootstrap-static/?t=${timestamp}`, { 
+    cache: 'no-store',
+    headers: {
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0'
+    }
+  });
   if (!bootstrapRes.ok) throw new Error("Failed to load FPL bootstrap");
   const bootstrap = await bootstrapRes.json();
+  
+  console.log('[FPL] Fetching player data...');
 
   // Fetch fixtures best-effort (tolerate failures by using empty list)
   let fixtures: any[] = [];
@@ -47,6 +58,9 @@ export async function fetchFplPlayers(preset?: CalPresetName | string | null): P
   const events: Array<any> = bootstrap.events || [];
   const nextEvent = events.find((e) => e.is_next) || events.find((e) => e.is_current) || events.find((e) => !e.finished);
   const nextEventId: number | undefined = nextEvent?.id;
+  
+  console.log('[FPL] Current/Next Event ID:', nextEventId, 'Total events:', events.length);
+  console.log('[FPL] Next event details:', nextEvent ? { id: nextEvent.id, name: nextEvent.name, deadline: nextEvent.deadline_time } : 'None');
 
   // Pre-compute fixtures by team (upcoming only, sorted by event/kickoff)
   const teamFixtures: Record<number, any[]> = {};
@@ -85,11 +99,47 @@ export async function fetchFplPlayers(preset?: CalPresetName | string | null): P
     const formVal = parseFloat(el.form ?? "0") || 0;
     const statusCode: string = el.status || "u";
     const chance: number | null = typeof el.chance_of_playing_next_round === "number" ? el.chance_of_playing_next_round : null;
-    // Default minutes probability: be mildly optimistic for 'u', cautious for 'd'
-    const minutesProb = chance !== null ? Math.max(0, Math.min(1, chance / 100)) : (
-      statusCode === 'a' ? 0.95 : statusCode === 'd' ? 0.7 : statusCode === 'u' ? 0.85 : 0.4
-    );
-    const ownership = parseFloat(el.selected_by_percent ?? "0") || undefined;
+    
+    // Enhanced minutes probability calculation accounting for current form and playing time
+    let minutesProb: number;
+    
+    // Start with base probability from FPL chance or status
+    let baseProb: number;
+    if (chance !== null) {
+      baseProb = Math.max(0, Math.min(1, chance / 100));
+    } else {
+      baseProb = statusCode === 'a' ? 0.95 : statusCode === 'd' ? 0.7 : statusCode === 'u' ? 0.85 : 0.4;
+    }
+    
+    // Apply rotation risk adjustments regardless of FPL chance value
+    const recentMinutes = parseInt(el.minutes ?? "0") || 0;
+    const ownPct = parseFloat(el.selected_by_percent ?? "0") || 0;
+    
+    // Check for loan/transfer news first (overrides everything)
+    const news = (el.news ?? "").toLowerCase();
+    if (news.includes('loan') || news.includes('transfer') || news.includes('joined')) {
+      minutesProb = 0.05; // Essentially unavailable if on loan/transferred
+    } else {
+      // Players with very low minutes likely not first choice (even if FPL says 100%)
+      if (recentMinutes < 45) {
+        baseProb = Math.min(baseProb, 0.6); // Cap at 60% for very low minutes
+      } else if (recentMinutes < 90) {
+        baseProb = Math.min(baseProb, 0.75); // Cap at 75% for low minutes
+      }
+      
+      // Form factor - poor form suggests rotation risk
+      if (formVal < 2.0 && recentMinutes < 90) {
+        baseProb *= 0.85; // Reduce probability for poor form + low minutes
+      }
+      
+      // Very low ownership often indicates the player is out of favor
+      if (ownPct < 1.0 && recentMinutes < 60) {
+        baseProb *= 0.8; // Reduce for very low ownership + minutes
+      }
+      
+      minutesProb = Math.max(0.05, Math.min(0.95, baseProb));
+    }
+    const ownership = ownPct || undefined;
 
     // Build nextFixtures: take first three upcoming for the player's team, compute opp and diff for that team side
     const tf = (teamFixtures[teamId] || []).slice(0, 3);
@@ -98,7 +148,8 @@ export async function fetchFplPlayers(preset?: CalPresetName | string | null): P
       const oppId = isHome ? fx.team_a : fx.team_h;
       const opp = teamShort[oppId] || "UNK";
       const diff = isHome ? fx.team_h_difficulty : fx.team_a_difficulty;
-      return { opp, H: !!isHome, diff: typeof diff === "number" ? diff : 3 };
+      const event = typeof fx.event === "number" ? fx.event : undefined;
+      return { opp, H: !!isHome, diff: typeof diff === "number" ? diff : 3, event };
     });
 
     // Multi-fixture horizon (blend next up to 3 fixtures with decaying weights)
@@ -185,12 +236,14 @@ export async function fetchFplPlayers(preset?: CalPresetName | string | null): P
       baseExp * positionFactor * calib.CAL * 10
     ) / 10);
 
-    const name = `${(el.first_name || "").slice(0, 1)}. ${el.second_name || el.web_name || ""}`.trim();
+    // Use web_name from FPL API - this is the official display name shown in the game
+    // web_name matches exactly what appears on fantasy.premierleague.com
+    const name = el.web_name || el.second_name || `${el.first_name || ""} ${el.second_name || ""}`.trim();
     const photo = el.code ? `https://resources.premierleague.com/premierleague/photos/players/110x140/p${el.code}.png` : undefined;
 
     // EO risk (differential impact)
-    const ownPct = typeof ownership === 'number' ? Math.max(0, Math.min(100, ownership)) : undefined;
-    const eoRisk = typeof ownPct === 'number' ? Math.round(refined * (1 - ownPct / 100) * 10) / 10 : undefined;
+    const ownPctClamped = typeof ownership === 'number' ? Math.max(0, Math.min(100, ownership)) : undefined;
+    const eoRisk = typeof ownPctClamped === 'number' ? Math.round(refined * (1 - ownPctClamped / 100) * 10) / 10 : undefined;
 
     const p: Player = {
       id: String(el.id),

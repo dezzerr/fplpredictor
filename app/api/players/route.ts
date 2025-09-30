@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { fetchPlayersWithMarket } from "@/lib/market";
 import { players as demoPlayers } from "@/lib/data";
 
-export const revalidate = 900; // seconds
+export const revalidate = 900; // Re-enable caching for production (15 minutes)
 
 export async function GET(req: Request) {
   const url = new URL(req.url);

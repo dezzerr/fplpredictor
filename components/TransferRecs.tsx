@@ -8,7 +8,7 @@ import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
-import { Player, players as mockPlayers } from "@/lib/data";
+import { Player, SEED_PLAYERS } from "@/lib/data";
 import type { CalPresetName } from "@/lib/calibration";
 import { useSquadStore } from "@/store/squad";
 import { recommendTransfers, recommendChips, weeklyExp, totalHorizonPoints, simulatePlannedHorizon, type PlanWeekMap, pickXIForWeek } from "@/lib/optimizer";
@@ -47,7 +47,7 @@ export default function TransferRecs() {
         console.error("Failed to load live players", e);
         if (!cancelled) {
           setError(e?.message || "Failed to load players");
-          setPlayers(mockPlayers);
+          setPlayers(SEED_PLAYERS); // Fallback to seed data only if API fails
         }
       } finally {
         if (!cancelled) setLoading(false);

@@ -1,22 +1,22 @@
 "use client";
 
 import { HeaderKpis } from "@/components/HeaderKpis";
-import TransferRecs from "@/components/TransferRecs";
-import PlanEditor from "@/components/PlanEditor";
+import { AutoTeamOptimizer } from "@/components/AutoTeamOptimizer";
+import { TeamOfTheWeek } from "@/components/TeamOfTheWeek";
 
 export default function OptimizePage() {
   return (
     <div className="min-h-dvh">
       <HeaderKpis />
-      <main className="container py-4">
-        <div className="mb-3 text-lg font-semibold">Optimize</div>
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_380px]">
-          <div className="min-w-0">
-            <TransferRecs />
-          </div>
-          <div className="min-w-0">
-            <PlanEditor />
-          </div>
+      <main className="container py-6">
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold">Optimize</h1>
+          <p className="text-muted-foreground">Automatically optimize your squad and discover top performers</p>
+        </div>
+        
+        <div className="grid gap-6 xl:grid-cols-2">
+          <AutoTeamOptimizer />
+          <TeamOfTheWeek />
         </div>
       </main>
     </div>

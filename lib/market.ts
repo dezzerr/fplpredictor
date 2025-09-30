@@ -57,7 +57,7 @@ export async function fetchPlayersWithMarket(preset?: CalPresetName | string | n
     }));
   }
 
-  // Helper: get all team fixtures for a given event that involve the team
+  // Helper: get ONLY the next fixture for a team in a given event (FPL teams play once per gameweek)
   function teamFixturesForEvent(event: number, team: string): Array<{ o: TeamOdds; teamIsHome: boolean } > {
     const arr = teamOddsByEvent[event] || [];
     const out: Array<{ o: TeamOdds; teamIsHome: boolean }> = [];
@@ -65,7 +65,8 @@ export async function fetchPlayersWithMarket(preset?: CalPresetName | string | n
       if (o.fixture.home === team) out.push({ o, teamIsHome: true });
       else if (o.fixture.away === team) out.push({ o, teamIsHome: false });
     }
-    return out;
+    // Return only the first fixture to avoid double-counting
+    return out.slice(0, 1);
   }
 
   const goalPtsByPos: Record<Position, number> = { GK: 6, DEF: 6, MID: 5, FWD: 4 };
@@ -77,9 +78,8 @@ export async function fetchPlayersWithMarket(preset?: CalPresetName | string | n
   const clamp01 = (x: number) => Math.max(0, Math.min(1, x));
 
   const enriched: Player[] = fplPlayers.map((p) => {
-    const p60Base = typeof p.expExplain?.minutesProb === 'number'
-      ? clamp01(p.expExplain.minutesProb)
-      : clamp01(typeof p.minutesProb === 'number' ? p.minutesProb : 0.8);
+    // Use the enhanced minutes probability from FPL processing (accounts for form, minutes, loans)
+    const p60Base = typeof p.minutesProb === 'number' ? clamp01(p.minutesProb) : 0.8;
 
     const eventEP: number[] = [];
     const lambdaGArr: number[] = [];
@@ -140,7 +140,7 @@ export async function fetchPlayersWithMarket(preset?: CalPresetName | string | n
       expPoints: nextEp ?? p.expPoints,
       expExplain: {
         base: ex?.base ?? p.baseExp ?? p.expPoints,
-        minutesProb: ex?.minutesProb ?? (typeof p.minutesProb === 'number' ? p.minutesProb : p60Base),
+        minutesProb: typeof p.minutesProb === 'number' ? p.minutesProb : p60Base,
         minutesFactor: ex?.minutesFactor ?? 1,
         injuryPenalty: ex?.injuryPenalty ?? 1,
         form: ex?.form ?? (typeof p.form === 'number' ? p.form : 1),

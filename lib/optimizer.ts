@@ -69,7 +69,8 @@ export function weeklyExp(p: Player, weekOffset: number): number {
     }
     // For week 0, align with calibrated next-GW EP (DGW-aware) from fetchFplPlayers
     if (weekOffset === 0 && typeof p.expPoints === 'number') {
-      return precision1(nonNeg(p.expPoints));
+      // Apply minutes probability for realistic expectation
+      return precision1(nonNeg(p.expPoints * (p.minutesProb ?? 0.8)));
     }
     const ex = p.expExplain;
     const base = nonNeg(ex.base);
@@ -140,8 +141,8 @@ export function weeklyExp(p: Player, weekOffset: number): number {
     return precision1(nonNeg(val));
   }
 
-  // Fallback using current expPoints and fixture difficulty scaling, if available
-  const base = typeof p.expPoints === 'number' ? nonNeg(p.expPoints) : 0;
+  // Fallback using realistic expected points and fixture difficulty scaling, if available
+  const base = typeof p.expPoints === 'number' ? nonNeg(p.expPoints * (p.minutesProb ?? 0.8)) : 0;
   const currentF = p.nextFixtures?.[0];
   const targetF = p.nextFixtures?.[weekOffset];
   const factor = (f: any) => {

@@ -8,12 +8,12 @@ export type FiltersState = {
   price: [number, number];
   auto: boolean;
   position: Position | "ALL";
-  sort: "PRICE" | "EXP_POINTS" | "FIXTURE_EASE";
+  sort: "PRICE" | "EXP_POINTS" | "FIXTURE_EASE" | "FORM" | "OWNERSHIP";
   setSearch: (v: string) => void;
   setPrice: (v: [number, number]) => void;
   setAuto: (v: boolean) => void;
   setPosition: (v: Position | "ALL") => void;
-  setSort: (v: "PRICE" | "EXP_POINTS" | "FIXTURE_EASE") => void;
+  setSort: (v: "PRICE" | "EXP_POINTS" | "FIXTURE_EASE" | "FORM" | "OWNERSHIP") => void;
 };
 
 export const MIN_PRICE = 4.0;

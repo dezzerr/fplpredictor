@@ -34,7 +34,7 @@ export function BenchRail({ onPlayerClick, weekOffset }: { onPlayerClick: (id: s
 
   return (
     <div ref={drop as any}>
-      <Card className="relative overflow-hidden border-dashed bg-muted/40 p-3">
+      <Card className="relative overflow-hidden border-dashed bg-green-100/80 border-green-300 p-3">
         <div className="mb-2 text-xs font-semibold text-muted-foreground">Bench</div>
         {/* Labels row */}
         <div className="mb-2 hidden justify-center gap-3 sm:gap-4 text-[10px] text-muted-foreground sm:flex">
