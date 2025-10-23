@@ -138,7 +138,7 @@ export async function fetchPlayersWithMarket(preset?: CalPresetName | string | n
     return {
       ...p,
       expPoints: nextEp ?? p.expPoints,
-      expExplain: {
+      expExplain: ({
         base: ex?.base ?? p.baseExp ?? p.expPoints,
         minutesProb: typeof p.minutesProb === 'number' ? p.minutesProb : p60Base,
         minutesFactor: ex?.minutesFactor ?? 1,
@@ -146,6 +146,15 @@ export async function fetchPlayersWithMarket(preset?: CalPresetName | string | n
         form: ex?.form ?? (typeof p.form === 'number' ? p.form : 1),
         formFactor: ex?.formFactor ?? 1,
         positionFactor: ex?.positionFactor ?? 1,
+        // Preserve penalty metadata when present
+        penaltyBoost: (ex as any)?.penaltyBoost,
+        penaltyTakerRank: (ex as any)?.penaltyTakerRank,
+        calibration: (ex as any)?.calibration,
+        // Preserve status metadata when present
+        rawStatus: (ex as any)?.rawStatus,
+        chance: (ex as any)?.chance,
+        news: (ex as any)?.news,
+        newsAdded: (ex as any)?.newsAdded,
         fixtureWeights: ex?.fixtureWeights ?? [],
         blendedFixtureFactor: ex?.blendedFixtureFactor ?? 1,
         // Market-first additions
@@ -160,7 +169,7 @@ export async function fetchPlayersWithMarket(preset?: CalPresetName | string | n
         eventFactors: ex?.eventFactors,
         eventFixtureCounts: ex?.eventFixtureCounts,
         nextEventFixtureCount: ex?.nextEventFixtureCount,
-      },
+      } as any),
     };
   });
 

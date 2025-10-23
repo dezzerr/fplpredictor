@@ -7,6 +7,8 @@ import { cn } from "@/lib/utils";
 const Sheet = DialogPrimitive.Root;
 const SheetTrigger = DialogPrimitive.Trigger;
 const SheetClose = DialogPrimitive.Close;
+const SheetTitle = DialogPrimitive.Title;
+const SheetDescription = DialogPrimitive.Description;
 
 function SheetContent({ className, side = "right", ...props }: { side?: "right" | "left" | "bottom" | "top" } & React.ComponentProps<typeof DialogPrimitive.Content>) {
   const sides: Record<string, string> = {
@@ -42,4 +44,4 @@ function SheetContent({ className, side = "right", ...props }: { side?: "right" 
   );
 }
 
-export { Sheet, SheetTrigger, SheetContent, SheetClose };
+export { Sheet, SheetTrigger, SheetContent, SheetClose, SheetTitle, SheetDescription };

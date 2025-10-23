@@ -7,15 +7,23 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { pickBestXIFromPool, weeklyExp } from "@/lib/optimizer";
 import { Player } from "@/lib/data";
-import { ChevronLeft, ChevronRight, Trophy, TrendingUp, Users, Star, Crown, Zap, Target } from "lucide-react";
+import { ChevronLeft, ChevronRight, Trophy, TrendingUp, Users, Star, Crown, Zap, Target, Download, ArrowRightLeft } from "lucide-react";
 import { toast } from "sonner";
 import { useSquadStore } from "@/store/squad";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 export function TeamOfTheWeek() {
   const [selectedWeek, setSelectedWeek] = useState(0);
   const [players, setPlayers] = useState<Player[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showDiffDialog, setShowDiffDialog] = useState(false);
   
   const addPlayer = useSquadStore((s) => s.addPlayer);
   const squadPlayers = useSquadStore((s) => [
@@ -76,6 +84,44 @@ export function TeamOfTheWeek() {
     }
   };
 
+  // Calculate diff between optimal team and current squad
+  const squadDiff = useMemo(() => {
+    if (!teamOfTheWeek) return { missing: [], total: 0 };
+    const missing = teamOfTheWeek.xi.filter(p => !ownedPlayerIds.has(p.id));
+    return { missing, total: teamOfTheWeek.xi.length };
+  }, [teamOfTheWeek, ownedPlayerIds]);
+
+  const handleBulkApply = () => {
+    if (!squadDiff.missing.length) {
+      toast.info("You already own all players from this team!");
+      return;
+    }
+    setShowDiffDialog(true);
+  };
+
+  const confirmBulkApply = () => {
+    let successCount = 0;
+    let failedPlayers: string[] = [];
+
+    squadDiff.missing.forEach(player => {
+      const result = addPlayer(player);
+      if (result.ok) {
+        successCount++;
+      } else {
+        failedPlayers.push(player.name);
+      }
+    });
+
+    setShowDiffDialog(false);
+
+    if (successCount > 0) {
+      toast.success(`Added ${successCount} player${successCount > 1 ? 's' : ''} to your squad!`);
+    }
+    if (failedPlayers.length > 0) {
+      toast.error(`Failed to add: ${failedPlayers.join(', ')}. Check squad constraints.`);
+    }
+  };
+
   if (loading) {
     return (
       <div className="bg-gradient-to-br from-emerald-50 via-blue-50 to-purple-50 rounded-xl border border-emerald-200/60 shadow-lg">
@@ -132,7 +178,7 @@ export function TeamOfTheWeek() {
     <div className="bg-gradient-to-br from-emerald-50 via-blue-50 to-purple-50 rounded-xl border border-emerald-200/60 shadow-lg overflow-hidden">
       {/* Header Section */}
       <div className="bg-gradient-to-r from-emerald-600 via-blue-600 to-purple-600 p-6 text-white">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-4">
           <div className="flex items-center gap-4">
             <div className="p-3 bg-white/20 backdrop-blur-sm rounded-xl">
               <Crown className="h-6 w-6" />
@@ -142,9 +188,21 @@ export function TeamOfTheWeek() {
               <div className="text-sm text-white/80">Elite XI • Highest Expected Returns</div>
             </div>
           </div>
-          <div className="text-right">
-            <div className="text-2xl font-bold">{formatExpectedPoints(teamOfTheWeek.points)}</div>
-            <div className="text-xs text-white/80">Expected Points</div>
+          <div className="flex items-center gap-4">
+            <div className="text-right">
+              <div className="text-2xl font-bold">{formatExpectedPoints(teamOfTheWeek.points)}</div>
+              <div className="text-xs text-white/80">Expected Points</div>
+            </div>
+            {squadDiff.missing.length > 0 && (
+              <Button
+                onClick={handleBulkApply}
+                className="bg-white text-emerald-600 hover:bg-white/90 shadow-lg font-semibold"
+                size="sm"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Apply to Squad ({squadDiff.missing.length})
+              </Button>
+            )}
           </div>
         </div>
       </div>
@@ -270,9 +328,82 @@ export function TeamOfTheWeek() {
       {/* Footer */}
       <div className="px-6 pb-6">
         <div className="text-xs text-muted-foreground bg-white/60 p-3 rounded-lg border border-white/80">
-          💡 <strong>Pro Tip:</strong> This optimal XI is calculated from all Premier League players based on expected points for the selected gameweek. Click "Add Player" to bring them into your squad.
+          💡 <strong>Pro Tip:</strong> This optimal XI is calculated from all Premier League players based on expected points for the selected gameweek. Use "Apply to Squad" to bulk add missing players.
         </div>
       </div>
+
+      {/* Confirmation Dialog */}
+      <Dialog open={showDiffDialog} onOpenChange={setShowDiffDialog}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ArrowRightLeft className="h-5 w-5 text-emerald-600" />
+              Apply Team to Your Squad
+            </DialogTitle>
+            <DialogDescription>
+              Review the players that will be added to your squad. Note: This doesn't remove existing players.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="py-4">
+            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="flex items-center justify-between text-sm">
+                <span className="font-medium">Players to add:</span>
+                <Badge className="bg-blue-600 text-white">{squadDiff.missing.length}</Badge>
+              </div>
+            </div>
+
+            <ScrollArea className="h-[300px] pr-4">
+              <div className="space-y-2">
+                {squadDiff.missing.map((player) => (
+                  <div
+                    key={player.id}
+                    className="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg hover:border-emerald-300 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <Badge className={`text-xs ${getPositionColor(player.position)}`}>
+                        {player.position}
+                      </Badge>
+                      <div>
+                        <div className="font-medium text-sm">{player.name}</div>
+                        <div className="text-xs text-muted-foreground">{player.team} • £{player.price.toFixed(1)}m</div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-sm font-semibold text-emerald-600">
+                        {formatExpectedPoints(weeklyExp(player, selectedWeek))} pts
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </ScrollArea>
+
+            <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+              <p className="text-xs text-amber-800">
+                ⚠️ <strong>Important:</strong> Players will only be added if squad constraints allow (max 3 per club, valid formations, etc.).
+              </p>
+            </div>
+          </div>
+
+          <div className="flex gap-3">
+            <Button
+              variant="outline"
+              onClick={() => setShowDiffDialog(false)}
+              className="flex-1"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={confirmBulkApply}
+              className="flex-1 bg-gradient-to-r from-emerald-500 to-blue-500 hover:from-emerald-600 hover:to-blue-600 text-white"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Add {squadDiff.missing.length} Player{squadDiff.missing.length > 1 ? 's' : ''}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

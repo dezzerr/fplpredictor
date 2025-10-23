@@ -1,11 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { useDrag } from "react-dnd";
 import { Plus } from "lucide-react";
 import { Player, getRealisticExpPoints } from "@/lib/data";
 import { cn, getFPLDisplayName } from "@/lib/utils";
-import { DND_ITEM } from "@/components/PlayerTile";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
@@ -14,21 +12,14 @@ import { useSquadStore } from "@/store/squad";
 
 export function PlayerRow({ player, onAdd }: { player: Player; onAdd: (p: Player) => void }) {
   const [hover, setHover] = useState(false);
-  const [{ isDragging }, drag] = useDrag(() => ({
-    type: DND_ITEM.PLAYER,
-    item: { player },
-    collect: (monitor: any) => ({ isDragging: monitor.isDragging() }),
-  }), [player]);
 
   return (
     <div
-      ref={drag as any}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       className={cn(
-        "group relative flex cursor-grab items-center gap-4 rounded-xl border border-border/60 bg-card p-4 shadow-sm",
-        "hover:shadow-lg-soft transition-shadow",
-        isDragging && "opacity-60"
+        "group relative flex items-center gap-4 rounded-xl border border-border/60 bg-card p-4 shadow-sm",
+        "hover:shadow-lg-soft transition-shadow"
       )}
       aria-label={`${player.name} ${player.position} from ${player.team}`}
     >
@@ -48,6 +39,39 @@ export function PlayerRow({ player, onAdd }: { player: Player; onAdd: (p: Player
             </div>
             <span className="text-sm font-bold">£{player.price.toFixed(1)}m</span>
           </div>
+
+          {/* Status Flags */}
+          {(() => {
+            const ex: any = player.expExplain as any;
+            const raw: string | undefined = ex?.rawStatus;
+            if (!raw || raw === 'a') return null;
+            const chance: number | undefined = ex?.chance;
+            const news: string | undefined = ex?.news;
+            const label = raw === 'i' ? 'Inj' : raw === 's' ? 'Sus' : raw === 'd' ? 'Doubt' : raw === 'n' ? 'N/A' : 'Flag';
+            const color = raw === 'i'
+              ? 'bg-red-100 text-red-800 border-red-300'
+              : raw === 's'
+              ? 'bg-orange-100 text-orange-800 border-orange-300'
+              : 'bg-amber-100 text-amber-800 border-amber-300';
+            return (
+              <div className="mb-2">
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="inline-block">
+                        <Badge className={cn('border', color)}>
+                          {label}{typeof chance === 'number' ? ` ${chance}%` : ''}
+                        </Badge>
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs text-xs">
+                      {news || 'Status update'}
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+            );
+          })()}
 
           {/* Bottom section - Clean fixtures and prominent points */}
           <div className="flex items-center justify-between">

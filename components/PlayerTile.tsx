@@ -1,8 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { useDrag } from "react-dnd";
-import { Crown, Shield } from "lucide-react";
+import { Crown, Shield, Trash2 } from "lucide-react";
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
 import { TeamShirt } from "@/components/TeamShirt";
@@ -11,23 +10,19 @@ import { cn, getFPLDisplayName } from "@/lib/utils";
 import { weeklyExp } from "@/lib/optimizer";
 import { memo, useMemo } from "react";
 
-export const DND_ITEM = {
-  PLAYER: "PLAYER",
-} as const;
-
-export const PlayerTile = memo(function PlayerTile({ player, isCaptain, isVice, onClick, className, weekOffset }: {
+export const PlayerTile = memo(function PlayerTile({ player, isCaptain, isVice, onClick, className, weekOffset, isSelected, onRemove, onMakeCaptain, onMakeVice, showActions }: {
   player: Player;
   isCaptain?: boolean;
   isVice?: boolean;
   onClick?: () => void;
   className?: string;
   weekOffset?: number;
+  isSelected?: boolean;
+  onRemove?: () => void;
+  onMakeCaptain?: () => void;
+  onMakeVice?: () => void;
+  showActions?: boolean;
 }) {
-  const [{ isDragging }, drag] = useDrag(() => ({
-    type: DND_ITEM.PLAYER,
-    item: { id: player.id },
-    collect: (monitor: any) => ({ isDragging: monitor.isDragging() }),
-  }), [player.id]);
 
   const w = weekOffset ?? 0;
   const f0 = player.nextFixtures?.[w];
@@ -43,21 +38,24 @@ export const PlayerTile = memo(function PlayerTile({ player, isCaptain, isVice, 
   }, [player.id, player.expExplain, w]);
 
   return (
-    <motion.button
-      ref={drag as any}
-      onClick={onClick}
-      whileHover={{ scale: 1.02 }}
-      whileTap={{ scale: 0.98 }}
+    <motion.div
       className={cn(
-        "group relative rounded-xl border-2 border-dashed border-transparent bg-card/50 shadow-sm transition-all",
-        "hover:border-primary/50 hover:bg-card/70 hover:shadow-md",
-        isDragging && "opacity-50 scale-95",
+        "group relative rounded-xl border-2 shadow-sm transition-all",
+        isSelected 
+          ? "border-solid border-blue-500 bg-blue-50 dark:bg-blue-950 ring-2 ring-blue-400 shadow-lg scale-105"
+          : "border-dashed border-transparent bg-card/50 hover:border-primary/50 hover:bg-card/70 hover:shadow-md",
         className
       )}
       style={{ width: '140px', height: '200px' }}
-      aria-label={`${player.name}, ${player.position} from ${player.team}`}
+      whileHover={{ scale: 1.02 }}
+      whileTap={{ scale: 0.98 }}
     >
-      <div className="relative">
+      <button
+        onClick={onClick}
+        className="w-full h-full cursor-pointer"
+        aria-label={`${player.name}, ${player.position} from ${player.team}${isSelected ? ' (selected for swap)' : ''}`}
+      >
+      <div className="relative h-full">
         {/* Captain/Vice Captain Badges */}
         {(isCaptain || isVice) && (
           <div className="absolute left-2 top-2 z-10 flex gap-1">
@@ -74,13 +72,44 @@ export const PlayerTile = memo(function PlayerTile({ player, isCaptain, isVice, 
           </div>
         )}
 
+        {/* Injury/Suspension/Doubtful flag */}
+        {(() => {
+          const ex: any = player.expExplain as any;
+          const raw: string | undefined = ex?.rawStatus;
+          if (!raw || raw === 'a') return null;
+          const chance: number | undefined = ex?.chance;
+          const news: string | undefined = ex?.news;
+          const label = raw === 'i' ? 'Inj' : raw === 's' ? 'Sus' : raw === 'd' ? 'Doubt' : raw === 'n' ? 'N/A' : 'Flag';
+          const color = raw === 'i'
+            ? 'bg-red-100 text-red-800 border-red-300'
+            : raw === 's'
+            ? 'bg-orange-100 text-orange-800 border-orange-300'
+            : 'bg-amber-100 text-amber-800 border-amber-300';
+          return (
+            <div className="absolute right-2 top-2 z-10">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold border ${color}`}>
+                      {label}{typeof chance === 'number' ? ` ${chance}%` : ''}
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs text-xs">
+                    {news || 'Status update'}
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+          );
+        })()}
+
         {/* Large Team Shirt - visible and prominent */}
         <div className="flex justify-center items-center h-32 pt-2 pb-2">
           <TeamShirt team={player.team} className="w-24 h-24" />
         </div>
 
         {/* Ultra-compact transparent info card */}
-        <div className="bg-white/60 rounded-md mx-2 mb-1 px-2 py-0.5 shadow-sm">
+        <div className="bg-white/60 rounded-md mx-2 mb-2 px-2 py-0.5 shadow-sm">
           {/* Single line - Name and Price */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1">
@@ -166,6 +195,71 @@ export const PlayerTile = memo(function PlayerTile({ player, isCaptain, isVice, 
           </div>
         </div>
       </div>
-    </motion.button>
+      </button>
+
+      {/* Quick Action Buttons */}
+      {showActions && (onRemove || onMakeCaptain || onMakeVice) && (
+        <div className="absolute bottom-1 left-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-20">
+          {onMakeCaptain && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onMakeCaptain(); }}
+                    className={cn(
+                      "flex-1 flex items-center justify-center gap-0.5 rounded py-1 text-[10px] font-bold transition-colors",
+                      isCaptain 
+                        ? "bg-emerald-600 text-white"
+                        : "bg-white/90 hover:bg-emerald-100 text-emerald-700 border border-emerald-300"
+                    )}
+                    aria-label="Make Captain"
+                  >
+                    <Crown className="h-3 w-3" /> C
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>Make Captain</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+          {onMakeVice && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onMakeVice(); }}
+                    className={cn(
+                      "flex-1 flex items-center justify-center gap-0.5 rounded py-1 text-[10px] font-bold transition-colors",
+                      isVice 
+                        ? "bg-sky-600 text-white"
+                        : "bg-white/90 hover:bg-sky-100 text-sky-700 border border-sky-300"
+                    )}
+                    aria-label="Make Vice Captain"
+                  >
+                    <Shield className="h-3 w-3" /> V
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>Make Vice Captain</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+          {onRemove && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onRemove(); }}
+                    className="flex-1 flex items-center justify-center rounded py-1 bg-red-100 hover:bg-red-200 text-red-700 border border-red-300 transition-colors"
+                    aria-label="Remove Player"
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>Remove Player</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+        </div>
+      )}
+    </motion.div>
   );
 });

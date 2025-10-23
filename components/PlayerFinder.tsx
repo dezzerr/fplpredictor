@@ -14,7 +14,7 @@ import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogTrigger } 
 import { TeamShirt } from "@/components/TeamShirt";
 import { PlayerRow } from "@/components/PlayerRow";
 import { getFPLDisplayName } from "@/lib/utils";
-import { Search, RotateCcw, Info } from "lucide-react";
+import { Search, RotateCcw, Info, ChevronDown, ChevronUp } from "lucide-react";
 import { toast } from "sonner";
 
 function PlayerModal({ player }: { player: Player }) {
@@ -190,11 +190,15 @@ function PlayerModal({ player }: { player: Player }) {
   );
 }
 
+const INITIAL_DISPLAY_COUNT = 5;
+
 export function PlayerFinder() {
   const [players, setPlayers] = useState<Player[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [teamFilter, setTeamFilter] = useState<string>("all");
+  const [expandedPositions, setExpandedPositions] = useState<Record<string, boolean>>({});
+  const [displayCounts, setDisplayCounts] = useState<Record<string, number>>({});
 
   useEffect(() => {
     let cancelled = false;
@@ -310,6 +314,18 @@ export function PlayerFinder() {
     DEF: 'Defenders', 
     MID: 'Midfielders',
     FWD: 'Forwards'
+  };
+
+  const togglePosition = (pos: string) => {
+    setExpandedPositions(prev => ({ ...prev, [pos]: !prev[pos] }));
+  };
+
+  const showMore = (pos: string, currentCount: number) => {
+    setDisplayCounts(prev => ({ ...prev, [pos]: currentCount + 5 }));
+  };
+
+  const getDisplayCount = (pos: string, totalCount: number) => {
+    return displayCounts[pos] || Math.min(INITIAL_DISPLAY_COUNT, totalCount);
   };
 
   return (
@@ -429,7 +445,7 @@ export function PlayerFinder() {
       </div>
 
       {/* Player lists by position */}
-      <div className="space-y-8">
+      <div className="space-y-6">
         {loading && players.length === 0 ? (
           <div className="text-center py-8 text-gray-500">Loading players...</div>
         ) : error && players.length === 0 ? (
@@ -439,51 +455,95 @@ export function PlayerFinder() {
             if (position !== "ALL" && position !== pos) return null;
             if (posPlayers.length === 0) return null;
             
+            const isExpanded = expandedPositions[pos] !== false;
+            const displayCount = getDisplayCount(pos, posPlayers.length);
+            const displayedPlayers = posPlayers.slice(0, displayCount);
+            const hasMore = displayCount < posPlayers.length;
+            
             return (
-              <div key={pos} className="space-y-3">
-                <div className="flex items-center justify-between border-b border-gray-200 pb-2">
-                  <h3 className="text-lg font-semibold text-gray-900">{positionNames[pos as keyof typeof positionNames]}</h3>
+              <Card key={pos} className="overflow-hidden">
+                {/* Position Header - Collapsible */}
+                <button
+                  onClick={() => togglePosition(pos)}
+                  className="w-full flex items-center justify-between bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200 p-3 hover:from-gray-100 hover:to-gray-150 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    {isExpanded ? (
+                      <ChevronUp className="h-5 w-5 text-gray-600" />
+                    ) : (
+                      <ChevronDown className="h-5 w-5 text-gray-600" />
+                    )}
+                    <h3 className="text-base font-semibold text-gray-900">
+                      {positionNames[pos as keyof typeof positionNames]}
+                    </h3>
+                    <span className="text-xs text-gray-500 bg-white px-2 py-0.5 rounded-full">
+                      {posPlayers.length}
+                    </span>
+                  </div>
                   <div className="flex gap-8 text-sm font-medium text-gray-500">
                     <span>Price</span>
                     <span>TP</span>
                   </div>
-                </div>
+                </button>
                 
-                <div className="space-y-1">
-                  {posPlayers.map((player) => (
-                    <div key={player.id} className="flex items-center gap-2">
-                      <Dialog>
-                        <DialogTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="w-8 h-8 p-0 bg-blue-100 hover:bg-blue-200 rounded-full"
-                          >
-                            <Info className="h-4 w-4 text-blue-600" />
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent className="max-w-2xl">
-                          <DialogTitle className="sr-only">
-                            {getFPLDisplayName(player.name)} - Player Details
-                          </DialogTitle>
-                          <DialogDescription className="sr-only">
-                            Detailed statistics and information for {getFPLDisplayName(player.name)}
-                          </DialogDescription>
-                          <PlayerModal player={player} />
-                        </DialogContent>
-                      </Dialog>
-                      
-                      <div className="flex-1">
-                        <PlayerRow
-                          key={player.id}
-                          player={player}
-                          onAdd={handleAdd}
-                        />
-                      </div>
+                {/* Player List */}
+                {isExpanded && (
+                  <div className="p-2">
+                    <div className="space-y-1">
+                      {displayedPlayers.map((player) => (
+                        <div key={player.id} className="flex items-center gap-2">
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="w-8 h-8 p-0 bg-blue-100 hover:bg-blue-200 rounded-full flex-shrink-0"
+                              >
+                                <Info className="h-4 w-4 text-blue-600" />
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent className="max-w-2xl">
+                              <DialogTitle className="sr-only">
+                                {getFPLDisplayName(player.name)} - Player Details
+                              </DialogTitle>
+                              <DialogDescription className="sr-only">
+                                Detailed statistics and information for {getFPLDisplayName(player.name)}
+                              </DialogDescription>
+                              <PlayerModal player={player} />
+                            </DialogContent>
+                          </Dialog>
+                          
+                          <div className="flex-1 min-w-0">
+                            <PlayerRow
+                              player={player}
+                              onAdd={handleAdd}
+                            />
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              </div>
+                    
+                    {/* Show More Button */}
+                    {hasMore && (
+                      <div className="mt-4 text-center">
+                        <Button
+                          variant="outline"
+                          onClick={() => showMore(pos, displayCount)}
+                          className="gap-2"
+                        >
+                          <ChevronDown className="h-4 w-4" />
+                          Show {Math.min(5, posPlayers.length - displayCount)} more
+                        </Button>
+                      </div>
+                    )}
+                    
+                    {/* Showing count indicator */}
+                    <div className="mt-2 text-center text-xs text-gray-500">
+                      Showing {displayedPlayers.length} of {posPlayers.length}
+                    </div>
+                  </div>
+                )}
+              </Card>
             );
           })
         )}

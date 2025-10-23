@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Player, Position, players as allPlayers } from "@/lib/data";
@@ -48,6 +48,7 @@ export function PlayerSheet({ playerId, open, onOpenChange }: { playerId: string
   if (!player) return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="w-[90vw] max-w-md">
+        <SheetTitle className="sr-only">No Player Selected</SheetTitle>
         <div className="p-2 text-sm text-muted-foreground">No player selected.</div>
       </SheetContent>
     </Sheet>
@@ -59,6 +60,7 @@ export function PlayerSheet({ playerId, open, onOpenChange }: { playerId: string
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="w-[90vw] max-w-md">
+        <SheetTitle className="sr-only">{player.name} - Player Details</SheetTitle>
         <div className="space-y-4">
           <div className="flex items-start justify-between gap-3">
             <div>

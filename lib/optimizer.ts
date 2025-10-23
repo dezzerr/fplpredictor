@@ -67,17 +67,19 @@ export function weeklyExp(p: Player, weekOffset: number): number {
         return precision1(nonNeg(val));
       }
     }
-    // For week 0, align with calibrated next-GW EP (DGW-aware) from fetchFplPlayers
+    // For week 0, use the calibrated next-GW EP directly (already accounts for form, penalties, etc)
     if (weekOffset === 0 && typeof p.expPoints === 'number') {
-      // Apply minutes probability for realistic expectation
-      return precision1(nonNeg(p.expPoints * (p.minutesProb ?? 0.8)));
+      // Don't re-apply minutesProb - it's already factored into expPoints calculation
+      return precision1(nonNeg(p.expPoints));
     }
-    const ex = p.expExplain;
+    const ex = p.expExplain as any;
     const base = nonNeg(ex.base);
     const formF = nonNeg(ex.formFactor);
     const minF = nonNeg(ex.minutesFactor);
     const injF = nonNeg(ex.injuryPenalty);
     const posF = nonNeg(ex.positionFactor);
+    const penaltyBoost = typeof ex.penaltyBoost === 'number' ? nonNeg(ex.penaltyBoost) : 1;
+    const cal = typeof ex.calibration === 'number' ? nonNeg(ex.calibration) : 1;
 
     // If minutes probability is explicitly zero, short-circuit to 0
     if (typeof ex.minutesProb === 'number' && clamp01(ex.minutesProb) === 0) return 0;
@@ -95,7 +97,7 @@ export function weeklyExp(p: Player, weekOffset: number): number {
         : 1);
     const anchorPts = typeof p.expPoints === 'number'
       ? nonNeg(p.expPoints)
-      : precision1(nonNeg(base * formF * minF * injF * posF * nonNeg(ef0) * Math.max(1, c0)));
+      : precision1(nonNeg(base * posF * cal * formF * penaltyBoost * nonNeg(ef0) * Math.max(1, c0)));
 
     // Compute effective factor for requested week (DGW/blank aware) with decay beyond horizon
     const getEff = (idx: number): { f: number; c: number } => {
@@ -137,7 +139,7 @@ export function weeklyExp(p: Player, weekOffset: number): number {
     }
 
     // Final fallback: compute directly (still multiply by fixture count when available)
-    const val = base * formF * minF * injF * posF * effW.f * Math.max(1, effW.c);
+    const val = base * posF * cal * formF * penaltyBoost * effW.f * Math.max(1, effW.c);
     return precision1(nonNeg(val));
   }
 

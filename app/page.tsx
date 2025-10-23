@@ -3,17 +3,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { HeaderKpis } from "@/components/HeaderKpis";
 import { PitchCard } from "@/components/PitchCard";
-import { FormationBadge } from "@/components/FormationBadge";
 import { useSquadStore, type SquadState } from "@/store/squad";
 import type { Player } from "@/lib/data";
-import { Card } from "@/components/ui/card";
-import { Search } from "lucide-react";
-import { Calendar, ChevronLeft, ChevronRight } from "lucide-react";
+import { Sparkles } from "lucide-react";
 import { BenchRail } from "@/components/BenchRail";
 import { PlayerSheet } from "@/components/PlayerSheet";
 import { PlayerFinder } from "@/components/PlayerFinder";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { AnimatedNumber } from "@/components/animated-number";
 import { pickXIForWeek, weeklyExp, pickBestXIFromPool } from "@/lib/optimizer";
@@ -27,6 +23,7 @@ export default function Page() {
   const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
   const [gwOffset, setGwOffset] = useState<number>(0);
   const squad = useSquadStore((s) => s.squad);
+  const autoSelectBestXI = useSquadStore((s) => s.autoSelectBestXI);
 
   // Load full player pool (for FH EV)
   const [pool, setPool] = useState<Player[] | null>(null);
@@ -93,92 +90,46 @@ export default function Page() {
 
   return (
     <div className="min-h-dvh">
-      <HeaderKpis />
+      <HeaderKpis onGwChange={setGwOffset} weekPredPts={weekPredPts} />
       <main className="container py-4 space-y-6">
-        {/* Squad Header */}
-        <div className="mx-auto max-w-[880px]">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold">Squad</h1>
-              <FormationBadge counts={{ GK: starters.GK.length, DEF: starters.DEF.length, MID: starters.MID.length, FWD: starters.FWD.length }} />
-              <span className="text-sm text-muted-foreground">{mounted ? counts.total : 0}/15</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Link href="/optimize" className="hidden sm:inline-flex items-center rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">
-                <Calendar className="mr-2 h-4 w-4" />
-                Optimize
-              </Link>
-              <Link href="/players" className="inline-flex items-center rounded-md border border-input bg-background px-3 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground lg:hidden">
-                <Search className="mr-2 h-4 w-4" />
-                Find Players
-              </Link>
-            </div>
-          </div>
-        </div>
-
         <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
           {/* Main Content */}
           <div className="mx-auto w-full max-w-[880px] space-y-4">
-            {/* GW Navigation */}
-            <div className="flex items-center justify-between">
-              <div className="text-sm text-muted-foreground">
-                Viewing: <span className="font-semibold text-foreground">GW+{gwOffset + 1}</span>
-              </div>
-              <div className="flex items-center gap-2">
+            {/* Chip Deltas & Actions */}
+            <div className="bg-card border rounded-lg p-4">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="flex items-center gap-6">
+                  <div className="text-center">
+                    <div className="text-xs text-muted-foreground mb-1">TC</div>
+                    <div className="text-lg font-bold">
+                      {mounted ? `${tcDelta >= 0 ? "+" : ""}${tcDelta.toFixed(1)}` : "+0.0"}
+                    </div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-xs text-muted-foreground mb-1">BB</div>
+                    <div className="text-lg font-bold">
+                      {mounted ? `${bbDelta >= 0 ? "+" : ""}${bbDelta.toFixed(1)}` : "+0.0"}
+                    </div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-xs text-muted-foreground mb-1">FH</div>
+                    <div className="text-lg font-bold">
+                      {!mounted ? "..." : fhDelta === null ? "..." : `${fhDelta >= 0 ? "+" : ""}${fhDelta.toFixed(1)}`}
+                    </div>
+                  </div>
+                </div>
                 <Button 
-                  variant="outline" 
+                  variant="default" 
                   size="sm" 
-                  onClick={() => setGwOffset((o) => Math.max(0, o - 1))} 
-                  disabled={gwOffset === 0}
+                  onClick={() => autoSelectBestXI(gwOffset)}
+                  className="bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white"
                 >
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={() => setGwOffset((o) => Math.min(9, o + 1))}
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-                <Button variant="ghost" size="sm" onClick={() => setGwOffset(0)}>
-                  Reset
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  <span className="hidden sm:inline">Auto-Select Best XI</span>
+                  <span className="sm:hidden">Auto</span>
                 </Button>
               </div>
             </div>
-
-            {/* XI Summary */}
-            <Card className="p-3">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                <div className="flex items-center gap-4">
-                  <div>
-                    <span className="text-sm font-medium">Expected Points:</span>
-                    <span className="ml-2 text-lg font-bold text-primary">
-                      {mounted ? weekPredPts.toFixed(1) : "0.0"}
-                    </span>
-                  </div>
-                  {(() => {
-                    if (!mounted) return null;
-                    const cap = xiSel.xi.find((p) => p.id === xiSel.capId);
-                    return cap ? (
-                      <div className="text-sm text-muted-foreground">
-                        Captain: <span className="font-medium text-foreground">{cap.name}</span>
-                      </div>
-                    ) : null;
-                  })()}
-                </div>
-                <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                  <div>TC: <span className="font-semibold">
-                    {mounted ? `${tcDelta >= 0 ? "+" : ""}${tcDelta.toFixed(1)}` : "+0.0"}
-                  </span></div>
-                  <div>BB: <span className="font-semibold">
-                    {mounted ? `${bbDelta >= 0 ? "+" : ""}${bbDelta.toFixed(1)}` : "+0.0"}
-                  </span></div>
-                  <div>FH: <span className="font-semibold">
-                    {!mounted ? "..." : fhDelta === null ? "..." : `${fhDelta >= 0 ? "+" : ""}${fhDelta.toFixed(1)}`}
-                  </span></div>
-                </div>
-              </div>
-            </Card>
 
             {/* Pitch */}
             <PitchCard

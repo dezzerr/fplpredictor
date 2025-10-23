@@ -3,13 +3,14 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { Player, Position, Squad } from "@/lib/data";
-import { weeklyExp } from "@/lib/optimizer";
+import { weeklyExp, pickXIForWeek } from "@/lib/optimizer";
 
 export type SquadState = {
   squad: Squad;
   loading: boolean;
   error: string | null;
   lastImport: { entryId: string; preset?: string } | null;
+  selectedPlayerId: string | null;
   initialize: (args: { entryId: string; preset?: string }) => Promise<{ ok: true } | { ok: false; error: string }>;
   refresh: () => Promise<{ ok: true } | { ok: false; error: string }>;
   addPlayer: (p: Player) => { ok: boolean; reason?: string };
@@ -21,8 +22,11 @@ export type SquadState = {
   moveToPitch: (id: string, position: Position) => { ok: boolean; reason?: string };
   placeOnPitch: (id: string, position: Position, replaceIndex?: number) => { ok: boolean; reason?: string };
   setBank: (v: number) => void;
+  selectPlayer: (id: string | null) => void;
+  swapPlayers: (targetId: string) => { ok: boolean; reason?: string };
   replaceSquad: (s: Squad) => void;
   syncPrices: (players: Player[]) => void;
+  autoSelectBestXI: (weekOffset: number) => void;
   // selectors
   totalExpPoints: () => number;
   teamRating: () => number; // 0-100 simple heuristic
@@ -102,6 +106,7 @@ export const useSquadStore = create<SquadState>()(persist((set, get) => ({
   loading: false,
   error: null,
   lastImport: null,
+  selectedPlayerId: null,
   initialize: async ({ entryId, preset }) => {
     set({ loading: true, error: null });
     try {
@@ -326,6 +331,95 @@ export const useSquadStore = create<SquadState>()(persist((set, get) => ({
 
   setBank: (v) => set(state => ({ squad: { ...state.squad, bank: precision2(v) } })),
 
+  selectPlayer: (id) => set({ selectedPlayerId: id }),
+
+  swapPlayers: (targetId) => {
+    const s = structuredClone(get().squad);
+    const selectedId = get().selectedPlayerId;
+    
+    if (!selectedId) return { ok: false, reason: "No player selected" };
+    if (selectedId === targetId) {
+      set({ selectedPlayerId: null });
+      return { ok: true };
+    }
+
+    const { area: area1, index: index1 } = findPlayerIndex(s, selectedId);
+    const { area: area2, index: index2 } = findPlayerIndex(s, targetId);
+
+    if (!area1 || !area2) return { ok: false, reason: "Player not found" };
+
+    const p1 = area1 === "BENCH" ? s.bench[index1] : s.starters[area1][index1];
+    const p2 = area2 === "BENCH" ? s.bench[index2] : s.starters[area2][index2];
+
+    // Both on bench - simple swap
+    if (area1 === "BENCH" && area2 === "BENCH") {
+      [s.bench[index1], s.bench[index2]] = [s.bench[index2], s.bench[index1]];
+      set({ squad: s, selectedPlayerId: null });
+      return { ok: true };
+    }
+
+    // Both on pitch, same position - simple swap
+    if (area1 !== "BENCH" && area2 !== "BENCH" && area1 === area2) {
+      const row = s.starters[area1];
+      [row[index1], row[index2]] = [row[index2], row[index1]];
+      set({ squad: s, selectedPlayerId: null });
+      return { ok: true };
+    }
+
+    // One on bench, one on pitch - swap with validation
+    if ((area1 === "BENCH" && area2 !== "BENCH") || (area1 !== "BENCH" && area2 === "BENCH")) {
+      const benchPlayer = area1 === "BENCH" ? p1 : p2;
+      const pitchPlayer = area1 === "BENCH" ? p2 : p1;
+      const pitchArea = area1 === "BENCH" ? area2 : area1;
+      const pitchIndex = area1 === "BENCH" ? index2 : index1;
+      const benchIndex = area1 === "BENCH" ? index1 : index2;
+
+      const bc = benchCounts(s);
+      const sc = startersCounts(s);
+
+      // Validate bench constraints after swap
+      const nextBenchGK = bc.byPos.GK - (benchPlayer.position === 'GK' ? 1 : 0) + (pitchPlayer.position === 'GK' ? 1 : 0);
+      if (nextBenchGK !== BENCH_GK_REQUIRED) return { ok: false, reason: "Bench must have exactly 1 GK" };
+      const nextBenchDEF = bc.byPos.DEF - (benchPlayer.position === 'DEF' ? 1 : 0) + (pitchPlayer.position === 'DEF' ? 1 : 0);
+      if (nextBenchDEF > BENCH_DEF_MAX) return { ok: false, reason: "Max 2 defenders on bench" };
+
+      // Validate formation after swap
+      const nextStarters = { ...sc.byPos };
+      if (pitchArea !== benchPlayer.position) {
+        nextStarters[pitchArea as Position] -= 1;
+        nextStarters[benchPlayer.position] += 1;
+      }
+
+      if (nextStarters.GK < STARTERS_MIN.GK || nextStarters.GK > STARTERS_MAX.GK) {
+        return { ok: false, reason: "Exactly 1 goalkeeper must start" };
+      }
+      if (nextStarters.DEF < STARTERS_MIN.DEF || nextStarters.DEF > STARTERS_MAX.DEF) {
+        return { ok: false, reason: "You must play between 3 and 5 defenders" };
+      }
+      if (nextStarters.MID < STARTERS_MIN.MID || nextStarters.MID > STARTERS_MAX.MID) {
+        return { ok: false, reason: "You must play between 3 and 5 midfielders" };
+      }
+      if (nextStarters.FWD < STARTERS_MIN.FWD || nextStarters.FWD > STARTERS_MAX.FWD) {
+        return { ok: false, reason: "You must play between 1 and 3 forwards" };
+      }
+
+      // Apply swap
+      if (benchPlayer.position === pitchArea) {
+        s.starters[pitchArea as Position][pitchIndex] = benchPlayer;
+      } else {
+        s.starters[pitchArea as Position].splice(pitchIndex, 1);
+        s.starters[benchPlayer.position].push(benchPlayer);
+      }
+      s.bench.splice(benchIndex, 1);
+      s.bench.push(pitchPlayer);
+      set({ squad: s, selectedPlayerId: null });
+      return { ok: true };
+    }
+
+    // Cross-position pitch swaps not allowed
+    return { ok: false, reason: "Cannot swap players of different positions on the pitch. Swap with bench instead." };
+  },
+
   // Replace the entire squad (used by FPL import)
   replaceSquad: (s) => set({ squad: s }),
 
@@ -350,17 +444,13 @@ export const useSquadStore = create<SquadState>()(persist((set, get) => ({
       ...s.starters.MID,
       ...s.starters.FWD,
     ];
-    // Apply minutes probability to get realistic expected points
-    let total = starters.reduce((acc, p) => {
-      const adjustedPoints = (p.expPoints ?? 0) * (p.minutesProb ?? 0.8);
-      return acc + adjustedPoints;
-    }, 0);
-    // Captain double only if captain is a starter (also apply minutesProb)
+    // Sum expected points (already accounts for form/penalties, no need for minutesProb)
+    let total = starters.reduce((acc, p) => acc + (p.expPoints ?? 0), 0);
+    // Captain double only if captain is a starter
     if (s.captainId) {
       const cap = starters.find(p => p.id === s.captainId);
       if (cap) {
-        const capBonus = (cap.expPoints ?? 0) * (cap.minutesProb ?? 0.8);
-        total += capBonus;
+        total += (cap.expPoints ?? 0);
       }
     }
     return precision2(total);
@@ -405,9 +495,12 @@ export const useSquadStore = create<SquadState>()(persist((set, get) => ({
   },
 
   teamRating: () => {
-    // heuristic: compare exp points per slot (~5 avg) scale to 100
+    // heuristic: compare exp points per slot, scaled for realistic ratings
     const perSlot = get().totalExpPoints() / 11;
-    return clamp(Math.round((perSlot / 6) * 100));
+    // 6.5pts per slot = 100% (world-class team - essentially impossible)
+    // Elite teams should be 75-85%, good teams 60-75%
+    const rating = Math.min(100, Math.max(0, (perSlot / 6.5) * 100));
+    return Math.round(rating);
   },
 
   gwRating: () => {
@@ -422,17 +515,40 @@ export const useSquadStore = create<SquadState>()(persist((set, get) => ({
     
     if (starters.length === 0) return 0;
     
-    // Calculate average realistic expected points per starter (with minutesProb)
+    // Calculate average expected points per starter (expPoints already accounts for form/penalties)
     const totalExp = starters.reduce((acc, p) => {
-      const adjustedPoints = (p.expPoints ?? 0) * (p.minutesProb ?? 0.8);
-      return acc + adjustedPoints;
+      return acc + (p.expPoints ?? 0);
     }, 0);
     const avgExpPerStarter = totalExp / starters.length;
     
-    // Scale to percentage: assume 5+ points per starter is excellent (100%)
-    // 3-5 points is good (60-100%), below 3 is poor (0-60%)
-    const rating = Math.min(100, Math.max(0, (avgExpPerStarter / 5) * 100));
+    // Scale to percentage with conservative scaling
+    // 6.0pts per starter = 100% (perfect gameweek - essentially impossible)
+    // Great gameweeks should be 70-85%, good gameweeks 55-70%
+    const rating = Math.min(100, Math.max(0, (avgExpPerStarter / 6.0) * 100));
     return Math.round(rating);
+  },
+
+  autoSelectBestXI: (weekOffset: number) => {
+    const s = get().squad;
+    const { xi, bench, capId } = pickXIForWeek(s, weekOffset);
+    
+    // Rebuild squad with optimal lineup
+    const newStarters: Squad["starters"] = { GK: [], DEF: [], MID: [], FWD: [] };
+    
+    for (const p of xi) {
+      newStarters[p.position].push(p);
+    }
+    
+    set({
+      squad: {
+        ...s,
+        starters: newStarters,
+        bench,
+        captainId: capId,
+        // Keep vice or auto-select second best
+        viceId: s.viceId && xi.find(p => p.id === s.viceId) ? s.viceId : (xi[1]?.id || undefined),
+      }
+    });
   },
 
 }), { name: "fpl-copilot-squad-v2" }));

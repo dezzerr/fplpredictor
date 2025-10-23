@@ -5,8 +5,8 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { cn } from "@/lib/utils";
 
 export const metadata = {
-  title: "FPL Copilot",
-  description: "Build & optimize your FPL squad",
+  title: "FPL Companion",
+  description: "Build & optimize your FPL squad with AI-powered predictions",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

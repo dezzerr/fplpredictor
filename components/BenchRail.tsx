@@ -1,39 +1,38 @@
 "use client";
 
 import { useMemo } from "react";
-import { useDrop } from "react-dnd";
 import { Card } from "@/components/ui/card";
-import { PlayerTile, DND_ITEM } from "@/components/PlayerTile";
+import { PlayerTile } from "@/components/PlayerTile";
 import { useSquadStore } from "@/store/squad";
-import { Player } from "@/lib/data";
 import { toast } from "sonner";
-
-type DragItem = { id?: string; player?: Player };
 
 export function BenchRail({ onPlayerClick, weekOffset }: { onPlayerClick: (id: string) => void; weekOffset?: number }) {
   const squad = useSquadStore((s) => s.squad);
-  const moveToBench = useSquadStore((s) => s.moveToBench);
-  const addPlayerToBench = useSquadStore((s) => s.addPlayerToBench);
-
-  const [{ isOver, canDrop }, drop] = useDrop(() => ({
-    accept: DND_ITEM.PLAYER,
-    drop: (item: DragItem) => {
-      if (item.id) {
-        const res = moveToBench(item.id);
-        if (!res.ok) toast.error(res.reason);
-      } else if (item.player) {
-        const res = addPlayerToBench(item.player);
-        if (!res.ok) toast.error(res.reason);
-        else toast.success(`Added ${item.player.name}`);
-      }
-    },
-    collect: (monitor: any) => ({ isOver: monitor.isOver(), canDrop: monitor.canDrop() }),
-  }), [moveToBench, addPlayerToBench]);
+  const selectedPlayerId = useSquadStore((s) => s.selectedPlayerId);
+  const selectPlayer = useSquadStore((s) => s.selectPlayer);
+  const swapPlayers = useSquadStore((s) => s.swapPlayers);
+  const removePlayer = useSquadStore((s) => s.removePlayer);
+  const makeCaptain = useSquadStore((s) => s.makeCaptain);
+  const makeVice = useSquadStore((s) => s.makeVice);
 
   const slots = useMemo(() => Array.from({ length: 4 }), []);
 
+  const handlePlayerClick = (playerId: string) => {
+    if (selectedPlayerId) {
+      const res = swapPlayers(playerId);
+      if (!res.ok && res.reason) {
+        toast.error(res.reason);
+      } else if (res.ok && selectedPlayerId !== playerId) {
+        toast.success("Players swapped!");
+      }
+    } else {
+      selectPlayer(playerId);
+      toast.info("Player selected. Click another to swap.");
+    }
+  };
+
   return (
-    <div ref={drop as any}>
+    <div>
       <Card className="relative overflow-hidden border-dashed bg-green-100/80 border-green-300 p-3">
         <div className="mb-2 text-xs font-semibold text-muted-foreground">Bench</div>
         {/* Labels row */}
@@ -61,9 +60,14 @@ export function BenchRail({ onPlayerClick, weekOffset }: { onPlayerClick: (id: s
                   player={p}
                   isCaptain={squad.captainId === p.id}
                   isVice={squad.viceId === p.id}
-                  onClick={() => onPlayerClick(p.id)}
+                  onClick={() => handlePlayerClick(p.id)}
                   className="h-[132px]"
                   weekOffset={weekOffset}
+                  isSelected={selectedPlayerId === p.id}
+                  showActions={true}
+                  onRemove={() => { removePlayer(p.id); toast.success(`Removed ${p.name}`); }}
+                  onMakeCaptain={() => { makeCaptain(p.id); toast.success(`${p.name} is captain`); }}
+                  onMakeVice={() => { makeVice(p.id); toast.success(`${p.name} is vice-captain`); }}
                 />
               </div>
             ) : (
@@ -77,9 +81,6 @@ export function BenchRail({ onPlayerClick, weekOffset }: { onPlayerClick: (id: s
             );
           })}
         </div>
-        {isOver && canDrop ? (
-          <div className="pointer-events-none absolute inset-0 rounded-xl ring-2 ring-emerald-400/60" />
-        ) : null}
       </Card>
     </div>
   );
