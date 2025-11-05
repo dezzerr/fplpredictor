@@ -4,15 +4,9 @@ export const revalidate = 900; // 15 minutes
 
 export async function GET() {
   try {
-    // Add timestamp to bust FPL API cache
-    const timestamp = Date.now();
-    const res = await fetch(`https://fantasy.premierleague.com/api/bootstrap-static/?t=${timestamp}`, { 
-      cache: 'no-store',
-      headers: {
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0'
-      }
+    // Use Next.js revalidation instead of no-store for build compatibility
+    const res = await fetch(`https://fantasy.premierleague.com/api/bootstrap-static/`, { 
+      next: { revalidate: 900 } // Revalidate every 15 minutes (matches route revalidate)
     });
     
     if (!res.ok) {
