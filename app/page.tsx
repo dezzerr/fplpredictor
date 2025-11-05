@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { HeaderKpis } from "@/components/HeaderKpis";
 import { PitchCard } from "@/components/PitchCard";
+import { NavigationBar } from "@/components/NavigationBar";
 import { useSquadStore, type SquadState } from "@/store/squad";
 import type { Player } from "@/lib/data";
 import { Sparkles } from "lucide-react";
@@ -16,14 +17,17 @@ import { pickXIForWeek, weeklyExp, pickBestXIFromPool } from "@/lib/optimizer";
 
 export default function Page() {
   const [mounted, setMounted] = useState(false);
+  const [currentGw, setCurrentGw] = useState<number>(8);
   const counts = useSquadStore((s: SquadState) => s.counts());
   const starters = useSquadStore((s) => s.squad.starters);
   const bank = useSquadStore((s) => s.squad.bank);
+  const captainId = useSquadStore((s) => s.squad.captainId);
   const [playerOpen, setPlayerOpen] = useState(false);
   const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
   const [gwOffset, setGwOffset] = useState<number>(0);
   const squad = useSquadStore((s) => s.squad);
   const autoSelectBestXI = useSquadStore((s) => s.autoSelectBestXI);
+  const totalExpForWeek = useSquadStore((s) => s.totalExpForWeek);
 
   // Load full player pool (for FH EV)
   const [pool, setPool] = useState<Player[] | null>(null);
@@ -47,35 +51,20 @@ export default function Page() {
     };
   }, []);
 
-  // Week-aware KPIs based on selected GW
-  const clamp = (n: number, min = 0, max = 100) => Math.max(min, Math.min(max, n));
+  // Week-aware KPIs based on selected GW - use reactive store calculation
+  // This will update whenever squad changes (subs, captain changes, etc)
+  const weekPredPts = mounted ? totalExpForWeek(gwOffset) : 0;
+
+  // Get current XI selection (recalculates on every squad change)
+  // Track critical values that change during subs/captain changes to force recalculation
+  const starterIds = [...starters.GK, ...starters.DEF, ...starters.MID, ...starters.FWD].map(p => p.id).join(',');
+  const benchIds = useSquadStore((s) => s.squad.bench.map(p => p.id).join(','));
+  
   const xiSel = useMemo(() => {
     if (!mounted) return { xi: [], bench: [], capId: null, points: 0 };
+    // Recalculates when player positions change (starterIds/benchIds) or captain changes
     return pickXIForWeek(squad, gwOffset);
-  }, [mounted, squad, gwOffset]);
-  
-  const weekPredPts = xiSel.points; // includes captain double
-  const sumNoDouble = xiSel.xi.reduce((s, p) => s + weeklyExp(p, gwOffset), 0);
-  const teamRatingWeek = useMemo(() => {
-    if (!mounted) return 0;
-    return clamp(Math.round((sumNoDouble / 11 / 6) * 100));
-  }, [mounted, sumNoDouble, clamp]);
-  
-  const gwRatingWeek = useMemo(() => {
-    if (!mounted) return 0;
-    const xi = xiSel.xi;
-    let sumW = 0;
-    let sumD = 0;
-    for (const p of xi) {
-      const f = p.nextFixtures?.[gwOffset];
-      const d = f?.diff ?? 3;
-      const w = p.minutesProb ?? 1;
-      sumW += w;
-      sumD += d * w;
-    }
-    const avgDiff = sumW > 0 ? sumD / sumW : 3;
-    return clamp(Math.round(((6 - avgDiff) / 5) * 100));
-  }, [mounted, xiSel.xi, gwOffset, clamp]);
+  }, [mounted, squad, gwOffset, starterIds, benchIds, captainId]);
 
   // Chip deltas for selected GW
   const capPlayer = mounted ? xiSel.xi.find((p) => p.id === xiSel.capId) : null;
@@ -136,6 +125,9 @@ export default function Page() {
               onPlayerClick={(id) => { setSelectedPlayerId(id); setPlayerOpen(true); }}
               weekOffset={gwOffset}
             />
+
+            {/* Navigation Bar */}
+            <NavigationBar currentGameweek={currentGw} gwOffset={gwOffset} />
 
             {/* Bench */}
             <BenchRail

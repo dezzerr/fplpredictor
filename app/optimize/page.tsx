@@ -1,15 +1,27 @@
 "use client";
 
+import { useState, useMemo } from "react";
 import { HeaderKpis } from "@/components/HeaderKpis";
 import { AutoTeamOptimizer } from "@/components/AutoTeamOptimizer";
 import { TeamOfTheWeek } from "@/components/TeamOfTheWeek";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Users, TrendingUp } from "lucide-react";
+import { useSquadStore } from "@/store/squad";
+import { pickXIForWeek } from "@/lib/optimizer";
 
 export default function OptimizePage() {
+  const [gwOffset, setGwOffset] = useState<number>(0);
+  const squad = useSquadStore((s) => s.squad);
+  
+  // Calculate predicted points for the selected gameweek
+  const weekPredPts = useMemo(() => {
+    const optimized = pickXIForWeek(squad, gwOffset);
+    return optimized.points;
+  }, [squad, gwOffset]);
+
   return (
     <div className="min-h-dvh">
-      <HeaderKpis />
+      <HeaderKpis onGwChange={setGwOffset} weekPredPts={weekPredPts} />
       <main className="container py-6">
         <div className="mb-6">
           <h1 className="text-2xl font-bold">Optimize Your Squad</h1>
@@ -31,11 +43,11 @@ export default function OptimizePage() {
           </TabsList>
           
           <TabsContent value="my-squad" className="mt-6">
-            <AutoTeamOptimizer />
+            <AutoTeamOptimizer gwOffset={gwOffset} />
           </TabsContent>
           
           <TabsContent value="market-leaders" className="mt-6">
-            <TeamOfTheWeek />
+            <TeamOfTheWeek gwOffset={gwOffset} />
           </TabsContent>
         </Tabs>
       </main>

@@ -18,8 +18,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-export function TeamOfTheWeek() {
-  const [selectedWeek, setSelectedWeek] = useState(0);
+interface TeamOfTheWeekProps {
+  gwOffset?: number;
+}
+
+export function TeamOfTheWeek({ gwOffset = 0 }: TeamOfTheWeekProps) {
   const [players, setPlayers] = useState<Player[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -58,8 +61,8 @@ export function TeamOfTheWeek() {
 
   const teamOfTheWeek = useMemo(() => {
     if (!players.length) return null;
-    return pickBestXIFromPool(players, selectedWeek);
-  }, [players, selectedWeek]);
+    return pickBestXIFromPool(players, gwOffset);
+  }, [players, gwOffset]);
 
   const getPositionColor = (position: string) => {
     switch (position) {
@@ -207,34 +210,9 @@ export function TeamOfTheWeek() {
         </div>
       </div>
 
-      {/* Week Selector */}
+      {/* Stats Bar */}
       <div className="px-6 py-4 bg-white/50 border-b border-white/60">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => setSelectedWeek(Math.max(0, selectedWeek - 1))}
-              disabled={selectedWeek === 0}
-              className="bg-white/80 hover:bg-white border-emerald-200 h-8 px-3"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-emerald-500 to-blue-500 text-white rounded-lg font-medium text-sm shadow-sm">
-              <Target className="h-4 w-4" />
-              GW+{selectedWeek + 1}
-            </div>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => setSelectedWeek(Math.min(9, selectedWeek + 1))}
-              disabled={selectedWeek === 9}
-              className="bg-white/80 hover:bg-white border-emerald-200 h-8 px-3"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
-          
           <div className="flex gap-4 text-sm">
             <div className="text-center">
               <div className="font-semibold text-emerald-700">£{teamOfTheWeek.xi.reduce((sum, p) => sum + p.price, 0).toFixed(1)}m</div>
@@ -302,7 +280,7 @@ export function TeamOfTheWeek() {
                     <div className="text-center">
                       <div className="flex items-center gap-1 text-lg font-bold text-emerald-700">
                         <Zap className="h-4 w-4" />
-                        {formatExpectedPoints(weeklyExp(player, selectedWeek))}
+                        {formatExpectedPoints(weeklyExp(player, gwOffset))}
                       </div>
                       <div className="text-xs text-muted-foreground">Expected Pts</div>
                     </div>
@@ -371,7 +349,7 @@ export function TeamOfTheWeek() {
                     </div>
                     <div className="text-right">
                       <div className="text-sm font-semibold text-emerald-600">
-                        {formatExpectedPoints(weeklyExp(player, selectedWeek))} pts
+                        {formatExpectedPoints(weeklyExp(player, gwOffset))} pts
                       </div>
                     </div>
                   </div>

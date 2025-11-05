@@ -12,30 +12,30 @@ export type Calibration = {
 
 const BASELINE: Calibration = {
   name: "Baseline",
-  CAL: 1.5, // Further reduced from 1.9 to prevent over-prediction
-  minutes: { base: 0.8, scale: 0.2 },
+  CAL: 1.0, // Reduced to 1.0 - FPL's ep_next is already a good baseline
+  minutes: { base: 0, scale: 1.0 }, // Direct scaling: minutesFactor = minutesProb (no artificial floor)
   injury: { flaggedLowMin: 0.9, severe: 0.6 },
-  posFactor: { GK: 1.0, DEF: 1.02, MID: 1.01, FWD: 1.02 }, // More conservative position factors
+  posFactor: { GK: 1.0, DEF: 1.0, MID: 1.0, FWD: 1.0 }, // Remove position inflation
   fixtures: { diffScale: 0.2, homeBoost: 1.04 }, // Further reduced fixture impact
   horizonWeights: [0.6, 0.25, 0.15],
 };
 
 const CONSERVATIVE: Calibration = {
   name: "Conservative",
-  CAL: 1.3, // Very conservative
-  minutes: { base: 0.75, scale: 0.2 },
+  CAL: 0.85, // Conservative - expects fewer points
+  minutes: { base: 0, scale: 0.95 }, // Slightly more cautious on minutes
   injury: { flaggedLowMin: 0.85, severe: 0.5 },
-  posFactor: { GK: 1.0, DEF: 1.01, MID: 1.0, FWD: 1.01 },
+  posFactor: { GK: 1.0, DEF: 1.0, MID: 1.0, FWD: 1.0 },
   fixtures: { diffScale: 0.15, homeBoost: 1.03 },
   horizonWeights: [0.55, 0.3, 0.15],
 };
 
 const AGGRESSIVE: Calibration = {
   name: "Aggressive",
-  CAL: 1.7, // Reduced from 2.1 to be more realistic
-  minutes: { base: 0.85, scale: 0.2 },
+  CAL: 1.15, // Slightly optimistic
+  minutes: { base: 0.1, scale: 1.0 }, // More optimistic on minutes (10% floor)
   injury: { flaggedLowMin: 0.95, severe: 0.7 },
-  posFactor: { GK: 1.01, DEF: 1.03, MID: 1.02, FWD: 1.03 },
+  posFactor: { GK: 1.0, DEF: 1.0, MID: 1.0, FWD: 1.0 },
   fixtures: { diffScale: 0.25, homeBoost: 1.05 },
   horizonWeights: [0.65, 0.25, 0.1],
 };

@@ -29,14 +29,16 @@ export type SquadState = {
   autoSelectBestXI: (weekOffset: number) => void;
   // selectors
   totalExpPoints: () => number;
-  teamRating: () => number; // 0-100 simple heuristic
-  gwRating: () => number; // 0-100 simple heuristic
+  teamRating: () => number; // 0-100 simple heuristic (current week)
+  gwRating: () => number; // 0-100 simple heuristic (current week)
   counts: () => { total: number; byClub: Record<string, number>; byPos: Record<Position, number> };
   // week-aware selectors (use weeklyExp)
   startersExpForWeek: (weekOffset: number) => number;
   benchExpForWeek: (weekOffset: number) => number;
   totalExpForWeek: (weekOffset: number) => number; // includes captain double if captain starts
   totalExpWithBenchBoostForWeek: (weekOffset: number) => number;
+  teamRatingForWeek: (weekOffset: number) => number; // 0-100 week-aware rating
+  gwRatingForWeek: (weekOffset: number) => number; // 0-100 week-aware rating
 };
 
 // Dynamic formation constraints
@@ -426,8 +428,13 @@ export const useSquadStore = create<SquadState>()(persist((set, get) => ({
   // Update player prices from a provided players list (id -> price)
   syncPrices: (players) => set((state) => {
     const priceMap: Record<string, number> = Object.fromEntries(players.map(p => [p.id, p.price]));
+    const playerMap: Record<string, Player> = Object.fromEntries(players.map(p => [p.id, p]));
     const s = structuredClone(state.squad);
-    const apply = (arr: Player[]) => arr.map(p => ({ ...p, price: typeof priceMap[p.id] === 'number' ? priceMap[p.id] : p.price }));
+    const apply = (arr: Player[]) => arr.map(p => {
+      const updated = playerMap[p.id];
+      // Update all fields if player found, otherwise just update price
+      return updated ? { ...updated } : { ...p, price: typeof priceMap[p.id] === 'number' ? priceMap[p.id] : p.price };
+    });
     s.starters.GK = apply(s.starters.GK);
     s.starters.DEF = apply(s.starters.DEF);
     s.starters.MID = apply(s.starters.MID);
@@ -497,9 +504,9 @@ export const useSquadStore = create<SquadState>()(persist((set, get) => ({
   teamRating: () => {
     // heuristic: compare exp points per slot, scaled for realistic ratings
     const perSlot = get().totalExpPoints() / 11;
-    // 6.5pts per slot = 100% (world-class team - essentially impossible)
-    // Elite teams should be 75-85%, good teams 60-75%
-    const rating = Math.min(100, Math.max(0, (perSlot / 6.5) * 100));
+    // 8.5pts per slot = 100% (world-class team with perfect fixtures, ~93.5 total pts with captain)
+    // Great teams: 80-90% (75-85 pts), Good teams: 65-80% (60-75 pts)
+    const rating = Math.min(100, Math.max(0, (perSlot / 8.5) * 100));
     return Math.round(rating);
   },
 
@@ -521,10 +528,40 @@ export const useSquadStore = create<SquadState>()(persist((set, get) => ({
     }, 0);
     const avgExpPerStarter = totalExp / starters.length;
     
-    // Scale to percentage with conservative scaling
-    // 6.0pts per starter = 100% (perfect gameweek - essentially impossible)
-    // Great gameweeks should be 70-85%, good gameweeks 55-70%
-    const rating = Math.min(100, Math.max(0, (avgExpPerStarter / 6.0) * 100));
+    // Scale to percentage with realistic scaling
+    // 7.5pts per starter = 100% (world-class gameweek, ~82.5 total without captain bonus)
+    // Great: 80-90% (6-7pts avg), Good: 65-80% (5-6pts avg), Average: 50-65% (4-5pts avg)
+    const rating = Math.min(100, Math.max(0, (avgExpPerStarter / 7.5) * 100));
+    return Math.round(rating);
+  },
+
+  // Week-aware rating methods (use weeklyExp for accurate future gameweek ratings)
+  teamRatingForWeek: (weekOffset: number) => {
+    const perSlot = get().totalExpForWeek(weekOffset) / 11;
+    // 8.5pts per slot = 100% (world-class team with perfect fixtures, ~93.5 total pts with captain)
+    // Great teams: 80-90% (75-85 pts), Good teams: 65-80% (60-75 pts)
+    const rating = Math.min(100, Math.max(0, (perSlot / 8.5) * 100));
+    return Math.round(rating);
+  },
+
+  gwRatingForWeek: (weekOffset: number) => {
+    const s = get().squad;
+    const starters = [
+      ...s.starters.GK,
+      ...s.starters.DEF,
+      ...s.starters.MID,
+      ...s.starters.FWD,
+    ];
+    
+    if (starters.length === 0) return 0;
+    
+    // Calculate average expected points per starter for this specific week
+    const totalExp = starters.reduce((acc, p) => acc + weeklyExp(p, weekOffset), 0);
+    const avgExpPerStarter = totalExp / starters.length;
+    
+    // 7.5pts per starter = 100% (world-class gameweek)
+    // Great: 80-90% (6-7pts avg), Good: 65-80% (5-6pts avg), Average: 50-65% (4-5pts avg)
+    const rating = Math.min(100, Math.max(0, (avgExpPerStarter / 7.5) * 100));
     return Math.round(rating);
   },
 

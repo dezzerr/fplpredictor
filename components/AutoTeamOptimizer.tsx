@@ -9,14 +9,17 @@ import { useSquadStore } from "@/store/squad";
 import { pickXIForWeek, weeklyExp } from "@/lib/optimizer";
 import { ChevronLeft, ChevronRight, Zap, Users, Star, Crown, Target, Settings, TrendingUp, Award } from "lucide-react";
 
-export function AutoTeamOptimizer() {
-  const [selectedWeek, setSelectedWeek] = useState(0);
+interface AutoTeamOptimizerProps {
+  gwOffset?: number;
+}
+
+export function AutoTeamOptimizer({ gwOffset = 0 }: AutoTeamOptimizerProps) {
   const squad = useSquadStore((s) => s.squad);
   const makeCaptain = useSquadStore((s) => s.makeCaptain);
   
   const optimizedTeam = useMemo(() => {
-    return pickXIForWeek(squad, selectedWeek);
-  }, [squad, selectedWeek]);
+    return pickXIForWeek(squad, gwOffset);
+  }, [squad, gwOffset]);
 
   const applyOptimalTeam = () => {
     if (optimizedTeam.capId) {
@@ -59,34 +62,9 @@ export function AutoTeamOptimizer() {
         </div>
       </div>
 
-      {/* Week Selector */}
+      {/* Stats Bar */}
       <div className="px-6 py-4 bg-white/50 border-b border-white/60">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => setSelectedWeek(Math.max(0, selectedWeek - 1))}
-              disabled={selectedWeek === 0}
-              className="bg-white/80 hover:bg-white border-violet-200 h-8 px-3"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-violet-500 to-cyan-500 text-white rounded-lg font-medium text-sm shadow-sm">
-              <Target className="h-4 w-4" />
-              GW+{selectedWeek + 1}
-            </div>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => setSelectedWeek(Math.min(9, selectedWeek + 1))}
-              disabled={selectedWeek === 9}
-              className="bg-white/80 hover:bg-white border-violet-200 h-8 px-3"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
-          
           <div className="flex gap-4 text-sm">
             <div className="text-center">
               <div className="font-semibold text-violet-700">{optimizedTeam.xi.length}</div>
@@ -117,7 +95,7 @@ export function AutoTeamOptimizer() {
             </div>
             <div className="text-right">
               <div className="text-lg font-bold text-amber-700">
-                {formatExpectedPoints(weeklyExp(optimizedTeam.xi.find(p => p.id === optimizedTeam.capId)!, selectedWeek))}
+                {formatExpectedPoints(weeklyExp(optimizedTeam.xi.find(p => p.id === optimizedTeam.capId)!, gwOffset))}
               </div>
               <div className="text-xs text-amber-600">Expected Points</div>
             </div>
@@ -174,7 +152,7 @@ export function AutoTeamOptimizer() {
                   <div className="text-center flex-shrink-0">
                     <div className="flex items-center gap-1 text-lg font-bold text-violet-700">
                       <Zap className="h-4 w-4" />
-                      {formatExpectedPoints(weeklyExp(player, selectedWeek))}
+                      {formatExpectedPoints(weeklyExp(player, gwOffset))}
                     </div>
                     <div className="text-xs text-muted-foreground">Expected Pts</div>
                   </div>
@@ -215,7 +193,7 @@ export function AutoTeamOptimizer() {
                 </div>
               </div>
               <div className="text-sm font-medium text-gray-600 flex-shrink-0">
-                {formatExpectedPoints(weeklyExp(player, selectedWeek))} pts
+                {formatExpectedPoints(weeklyExp(player, gwOffset))} pts
               </div>
             </div>
           ))}

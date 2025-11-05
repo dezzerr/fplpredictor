@@ -57,18 +57,21 @@ startersExpForWeek(offset) // Uses weeklyExp(p, offset)
 totalExpForWeek(offset) // Uses weeklyExp with captain doubling
 ```
 
-### Rating Calculations (UPDATED)
+### Rating Calculations (UPDATED - Nov 2025)
 ```typescript
-teamRating() {
-  const perSlot = totalExpPoints() / 11;
-  // 6.5pts per slot = 100% (essentially impossible)
-  return min(100, (perSlot / 6.5) * 100);
+// Week-aware rating methods used for all calculations
+teamRatingForWeek(weekOffset: number) {
+  const perSlot = totalExpForWeek(weekOffset) / 11;
+  // 8.5pts per slot = 100% (world-class team, ~93.5 total pts with captain)
+  // Great teams: 80-90% (75-85 pts), Good teams: 65-80% (60-75 pts)
+  return min(100, (perSlot / 8.5) * 100);
 }
 
-gwRating() {
+gwRatingForWeek(weekOffset: number) {
   const avgExpPerStarter = totalExp / starters.length;
-  // 6.0pts per starter = 100% (essentially impossible)
-  return min(100, (avgExpPerStarter / 6.0) * 100);
+  // 7.5pts per starter = 100% (world-class gameweek, ~82.5 total)
+  // Great: 80-90% (6-7pts avg), Good: 65-80% (5-6pts avg), Average: 50-65%
+  return min(100, (avgExpPerStarter / 7.5) * 100);
 }
 ```
 

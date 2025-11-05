@@ -1,20 +1,18 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useState } from "react";
 import { AnimatedNumber } from "@/components/animated-number";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { formatDeadline, getMockDeadline } from "@/lib/date";
 import { useCountdown } from "@/lib/use-countdown";
 import { useSquadStore } from "@/store/squad";
-import { PiggyBank, Pencil, Sparkles, Gauge, Trophy, UploadCloud, Search, Calendar, Target, CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
+import { PiggyBank, Pencil, ChevronLeft, ChevronRight, RefreshCw } from "lucide-react";
 import Link from "next/link";
-import type { Squad, Player } from "@/lib/data";
-import { toast } from "sonner";
+import { createClient } from "@/lib/supabase/client";
 
 function Kpi({ label, value, icon, className }: { label: string; value: React.ReactNode; icon?: React.ReactNode; className?: string }) {
   return (
@@ -56,8 +54,9 @@ export function HeaderKpis({ compact = false, onGwChange, weekPredPts }: { compa
   const deadlineText = mounted ? formatDeadline(deadline, "").replace(eventName, "").trim() : "";
   const countdown = useCountdown(deadline);
 
-  const teamRating = useSquadStore((s) => s.teamRating());
-  const gwRating = useSquadStore((s) => s.gwRating());
+  // Use week-aware ratings that update when gwOffset changes
+  const teamRating = useSquadStore((s) => s.teamRatingForWeek(gwOffset));
+  const gwRating = useSquadStore((s) => s.gwRatingForWeek(gwOffset));
   const bank = useSquadStore((s) => s.squad.bank);
   const setBank = useSquadStore((s) => s.setBank);
   const replaceSquad = useSquadStore((s) => s.replaceSquad);
@@ -71,152 +70,76 @@ export function HeaderKpis({ compact = false, onGwChange, weekPredPts }: { compa
   
   const [open, setOpen] = useState(false);
   const [bankInput, setBankInput] = useState(bank.toFixed(1));
-  
-  // Import dialog state
-  const [importOpen, setImportOpen] = useState(false);
-  const [pending, startTransition] = useTransition();
-  const [entryId, setEntryId] = useState("");
-  const [preset, setPreset] = useState<string>("baseline");
-  const [importMessage, setImportMessage] = useState<string>("");
+  const [refreshing, setRefreshing] = useState(false);
 
-  const onImport = () => {
-    setImportMessage("");
-    const id = entryId.trim();
-    if (!id) { 
-      toast.error("Enter your FPL team ID");
-      return; 
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      const res = await fetch('/api/players');
+      if (res.ok) {
+        const players = await res.json();
+        syncPrices(players);
+      }
+    } catch (err) {
+      console.error('Failed to refresh:', err);
+    } finally {
+      setRefreshing(false);
     }
-    startTransition(async () => {
-      try {
-        const res = await fetch(`/api/squad?entryId=${encodeURIComponent(id)}&preset=${encodeURIComponent(preset)}`);
-        const data = await res.json();
-        if (!res.ok) throw new Error(data?.error || "Failed to import squad");
-        replaceSquad(data as Squad);
-        setImportMessage(`Successfully imported squad for ID ${id}!`);
-        toast.success(`Imported team ${id}`);
-        setTimeout(() => setImportOpen(false), 1500);
-      } catch (e: any) {
-        const msg = e?.message || "Import failed";
-        setImportMessage(msg);
-        toast.error(msg);
-      }
-    });
-  };
-
-  const onSyncPrices = () => {
-    setImportMessage("");
-    startTransition(async () => {
-      try {
-        const res = await fetch(`/api/players?preset=${encodeURIComponent(preset)}`);
-        const data = await res.json();
-        if (!res.ok) throw new Error(data?.error || "Failed to load players");
-        syncPrices(data as Player[]);
-        setImportMessage("Prices synced to latest FPL!");
-        toast.success("Prices synced");
-      } catch (e: any) {
-        const msg = e?.message || "Price sync failed";
-        setImportMessage(msg);
-        toast.error(msg);
-      }
-    });
   };
 
   return (
-    <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+    <header className="sticky top-0 z-50 border-b bg-gradient-to-r from-slate-50 to-blue-50/50 backdrop-blur supports-[backdrop-filter]:bg-gradient-to-r supports-[backdrop-filter]:from-slate-50/95 supports-[backdrop-filter]:to-blue-50/95 shadow-sm">
       {/* Top Bar with Logo and Actions */}
-      <div className="border-b">
+      <div className="border-b border-blue-100/50">
         <div className="container flex h-14 items-center justify-between">
-          <Link href="/" className="text-lg font-bold text-foreground hover:text-primary transition-colors">
+          <Link href="/" className="text-lg font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent hover:from-blue-700 hover:to-purple-700 transition-all duration-200">
             FPL Companion
           </Link>
-          <nav className="flex items-center gap-2">
-            <Link 
-              href="/compare" 
-              className="inline-flex items-center rounded-md border border-input bg-background px-3 py-1.5 text-sm font-medium hover:bg-accent hover:text-accent-foreground transition-colors"
+          <div className="flex items-center gap-2">
+            <Button 
+              size="sm"
+              variant="outline"
+              className="gap-2"
+              onClick={handleRefresh}
+              disabled={refreshing}
             >
-              <span className="hidden sm:inline">Compare</span>
-              <Target className="h-4 w-4 sm:hidden" />
-            </Link>
-            <Link 
-              href="/fixtures" 
-              className="inline-flex items-center rounded-md border border-input bg-background px-3 py-1.5 text-sm font-medium hover:bg-accent hover:text-accent-foreground transition-colors"
-            >
-              <span className="hidden sm:inline">Fixtures</span>
-              <CalendarDays className="h-4 w-4 sm:hidden" />
-            </Link>
-            <Link 
-              href="/optimize" 
-              className="inline-flex items-center rounded-md border border-input bg-background px-3 py-1.5 text-sm font-medium hover:bg-accent hover:text-accent-foreground transition-colors"
-            >
-              <span className="hidden sm:inline">Optimize</span>
-              <Calendar className="h-4 w-4 sm:hidden" />
-            </Link>
-            <Dialog open={importOpen} onOpenChange={setImportOpen}>
-              <DialogTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-2">
-                  <UploadCloud className="h-4 w-4" />
-                  <span className="hidden sm:inline">Import</span>
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-md">
-                <DialogHeader>
-                  <DialogTitle>Import FPL Squad</DialogTitle>
-                  <DialogDescription>
-                    Enter your FPL team ID to load your current squad with latest prices and projections.
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Input 
-                      placeholder="FPL Team ID (e.g. 1234567)" 
-                      value={entryId} 
-                      onChange={(e) => setEntryId(e.target.value)}
-                      onKeyDown={(e) => e.key === 'Enter' && onImport()}
-                      inputMode="numeric"
-                      disabled={pending}
-                    />
-                    <Select value={preset} onValueChange={setPreset} disabled={pending}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Preset" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="conservative">Conservative</SelectItem>
-                        <SelectItem value="baseline">Baseline</SelectItem>
-                        <SelectItem value="aggressive">Aggressive</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button onClick={onImport} disabled={pending} className="flex-1">
-                      {pending ? "Importing..." : "Import Squad"}
-                    </Button>
-                    <Button variant="secondary" onClick={onSyncPrices} disabled={pending}>
-                      {pending ? "Syncing..." : "Sync Prices"}
-                    </Button>
-                  </div>
-                  {importMessage && (
-                    <div className={cn(
-                      "text-sm p-3 rounded-md",
-                      importMessage.includes("Success") || importMessage.includes("synced")
-                        ? "bg-emerald-50 text-emerald-900 dark:bg-emerald-950 dark:text-emerald-100"
-                        : "bg-red-50 text-red-900 dark:bg-red-950 dark:text-red-100"
-                    )}>
-                      {importMessage}
-                    </div>
-                  )}
-                  <div className="text-xs text-muted-foreground">
-                    <strong>Tip:</strong> Find your team ID in the URL when viewing your team on FPL (e.g. fantasy.premierleague.com/entry/<strong>1234567</strong>/event/).
-                  </div>
-                </div>
-              </DialogContent>
-            </Dialog>
-          </nav>
+              <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
+              <span className="hidden sm:inline">Refresh Data</span>
+            </Button>
+            <Button 
+            size="sm"
+            className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white shadow-sm hover:shadow-md transition-all duration-200"
+            onClick={async () => {
+              try {
+                const supabase = createClient()
+                const { error } = await supabase.auth.signOut()
+                
+                if (error) {
+                  console.error('Logout error:', error)
+                  alert('Failed to log out: ' + error.message)
+                } else {
+                  // Redirect to login page after successful logout
+                  window.location.href = '/login'
+                }
+              } catch (error) {
+                console.error('Logout error:', error)
+                if (error instanceof Error) {
+                  alert('Failed to log out: ' + error.message)
+                } else {
+                  alert('Failed to log out. Please check your Supabase configuration.')
+                }
+              }
+            }}
+          >
+            <span>Log Out</span>
+          </Button>
+          </div>
         </div>
       </div>
 
       {/* Gameweek Stats Bar */}
       {!compact && (
-        <div className="sticky top-[57px] z-40 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+        <div className="sticky top-[57px] z-40 border-b border-blue-100/50 bg-gradient-to-r from-white/95 to-slate-50/95 backdrop-blur supports-[backdrop-filter]:bg-gradient-to-r supports-[backdrop-filter]:from-white/95 supports-[backdrop-filter]:to-slate-50/95">
           <div className="container py-3">
             <div className="flex items-center justify-between gap-6">
               {/* Gameweek Title with Navigation - Left Side */}

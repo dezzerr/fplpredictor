@@ -14,112 +14,90 @@ import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogTrigger } 
 import { TeamShirt } from "@/components/TeamShirt";
 import { PlayerRow } from "@/components/PlayerRow";
 import { getFPLDisplayName } from "@/lib/utils";
-import { Search, RotateCcw, Info, ChevronDown, ChevronUp } from "lucide-react";
+import { Search, RotateCcw, Info, ChevronDown, ChevronUp, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 
 function PlayerModal({ player }: { player: Player }) {
   const [activeTab, setActiveTab] = useState<'history' | 'fixtures'>('history');
 
   return (
-    <div className="space-y-4">
-      {/* Player Header */}
-      <div className="bg-gradient-to-r from-cyan-400 to-purple-500 text-white rounded-lg p-4">
-        <div className="flex items-center gap-3">
-          <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center">
-            <TeamShirt team={player.team} className="w-12 h-12" />
+    <div className="space-y-2">
+      {/* Compact Player Header */}
+      <div className="bg-gradient-to-r from-cyan-500 to-purple-500 text-white rounded-md p-2">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
+            <TeamShirt team={player.team} className="w-6 h-6" />
           </div>
-          <div>
-            <div className="text-sm opacity-90">{player.position}</div>
-            <div className="text-xl font-bold">{getFPLDisplayName(player.name)}</div>
-            <div className="text-sm opacity-90">{player.team}</div>
+          <div className="flex-1 min-w-0">
+            <div className="text-xs opacity-90">{player.position}</div>
+            <div className="text-sm font-bold truncate">{getFPLDisplayName(player.name)}</div>
+            <div className="text-xs opacity-90">{player.team}</div>
+          </div>
+          <div className="text-right">
+            <div className="text-xs opacity-90">£{player.price.toFixed(1)}m</div>
+            <div className="text-sm font-bold">{getRealisticExpPoints(player).toFixed(1)} pts</div>
           </div>
         </div>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-4 gap-4 py-2">
-        <div className="text-center">
-          <div className="text-xs text-gray-500 mb-1">Price</div>
-          <div className="font-bold text-lg">£{player.price.toFixed(1)}m</div>
+      {/* Compact Stats Grid */}
+      <div className="grid grid-cols-4 gap-2 text-center text-xs">
+        <div>
+          <div className="text-gray-500">Form</div>
+          <div className="font-bold">{player.form?.toFixed(1) || '-'}</div>
         </div>
-        <div className="text-center">
-          <div className="text-xs text-gray-500 mb-1">Form</div>
-          <div className="font-bold text-lg">{player.form?.toFixed(1) || '-'}</div>
+        <div>
+          <div className="text-gray-500">Own</div>
+          <div className="font-bold">{player.ownership?.toFixed(1) || '-'}%</div>
         </div>
-        <div className="text-center">
-          <div className="text-xs text-gray-500 mb-1">Expected Pts</div>
-          <div className="font-bold text-lg">{getRealisticExpPoints(player).toFixed(1)}</div>
+        <div>
+          <div className="text-gray-500">EO</div>
+          <div className="font-bold">{player.eo?.toFixed(1) || '-'}%</div>
         </div>
-        <div className="text-center">
-          <div className="text-xs text-gray-500 mb-1">Ownership</div>
-          <div className="font-bold text-lg">{player.ownership?.toFixed(1) || '-'}%</div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-3 gap-4 py-2">
-        <div className="text-center">
-          <div className="text-xs text-gray-500 mb-1">EO</div>
-          <div className="font-bold text-lg">{player.eo?.toFixed(1) || '-'}%</div>
-        </div>
-        <div className="text-center">
-          <div className="text-xs text-gray-500 mb-1">EO Risk</div>
-          <div className="font-bold text-lg">{player.eoRisk?.toFixed(1) || '-'}</div>
-        </div>
-        <div className="text-center">
-          <div className="text-xs text-gray-500 mb-1">Status</div>
-          <div className="font-bold text-lg">
+        <div>
+          <div className="text-gray-500">Status</div>
+          <div className="font-bold">
             {player.status === 'fit' ? '✓' : player.status === 'flag' ? '!' : '✗'}
           </div>
         </div>
       </div>
 
-      {/* Fixtures Preview */}
+      {/* Compact Fixtures */}
       <div>
-        <h3 className="font-bold text-black mb-3">Next Fixtures</h3>
-        <div className="flex gap-3">
+        <h3 className="font-bold text-xs text-gray-700 mb-1">Next Fixtures</h3>
+        <div className="flex gap-2 justify-center">
           {player.nextFixtures.slice(0, 3).map((fixture, i) => (
             <div key={i} className="text-center">
-              <div className="text-xs text-gray-500 mb-1">
-                {fixture.event ? `GW${fixture.event}` : `GW+${i + 1}`}
-              </div>
-              <TeamShirt team={fixture.opp} className="w-10 h-10 mx-auto mb-1" />
+              <div className="text-xs text-gray-500">GW{fixture.event || `+${i + 1}`}</div>
+              <TeamShirt team={fixture.opp} className="w-6 h-6 mx-auto" />
               <div className="text-xs font-medium">{fixture.opp} ({fixture.H ? 'H' : 'A'})</div>
-              <div className="text-sm font-bold">Diff: {fixture.diff}</div>
+              <div className="text-xs font-bold">D:{fixture.diff}</div>
             </div>
           ))}
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="border-t pt-4">
-        <div className="flex gap-4 border-b">
+      {/* Compact Tabs */}
+      <div className="border-t pt-2">
+        <div className="flex gap-3 border-b text-xs">
           <button 
             onClick={() => setActiveTab('history')}
-            className={`pb-2 ${activeTab === 'history' ? 'border-b-2 border-blue-500 text-blue-500' : 'text-gray-500'} font-medium`}
+            className={`pb-1 ${activeTab === 'history' ? 'border-b-2 border-blue-500 text-blue-500' : 'text-gray-500'} font-medium`}
           >
-            History
+            Summary
           </button>
           <button 
             onClick={() => setActiveTab('fixtures')}
-            className={`pb-2 ${activeTab === 'fixtures' ? 'border-b-2 border-blue-500 text-blue-500' : 'text-gray-500'} font-medium`}
+            className={`pb-1 ${activeTab === 'fixtures' ? 'border-b-2 border-blue-500 text-blue-500' : 'text-gray-500'} font-medium`}
           >
             Fixtures
           </button>
         </div>
         
-        <div className="mt-4">
+        <div className="mt-2">
           {activeTab === 'history' ? (
             <div>
-              <div className="font-bold text-black mb-3">Player Summary</div>
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <div className="text-gray-500">Expected Points</div>
-                  <div className="font-bold">{getRealisticExpPoints(player).toFixed(1)} pts</div>
-                </div>
-                <div>
-                  <div className="text-gray-500">Price</div>
-                  <div className="font-bold">£{player.price.toFixed(1)}m</div>
-                </div>
+              <div className="grid grid-cols-2 gap-2 text-xs">
                 {player.form && (
                   <div>
                     <div className="text-gray-500">Form</div>
@@ -134,24 +112,25 @@ function PlayerModal({ player }: { player: Player }) {
                 )}
                 {player.eo && (
                   <div>
-                    <div className="text-gray-500">Effective Ownership</div>
+                    <div className="text-gray-500">EO</div>
                     <div className="font-bold">{player.eo.toFixed(1)}%</div>
                   </div>
                 )}
-                <div>
-                  <div className="text-gray-500">Status</div>
-                  <div className="font-bold capitalize">{player.status}</div>
-                </div>
+                {player.eoRisk && (
+                  <div>
+                    <div className="text-gray-500">EO Risk</div>
+                    <div className="font-bold">{player.eoRisk.toFixed(1)}</div>
+                  </div>
+                )}
               </div>
               
               {player.expExplain && (
-                <div className="mt-4 p-3 bg-gray-50 rounded-lg">
-                  <div className="font-bold text-sm mb-2">Expected Points Breakdown</div>
-                  <div className="text-xs space-y-1">
-                    <div>Base: {player.expExplain.base.toFixed(1)} pts</div>
-                    <div>Minutes Probability: {(player.expExplain.minutesProb * 100).toFixed(0)}%</div>
-                    <div>Form Factor: {player.expExplain.formFactor.toFixed(2)}</div>
-                    <div>Fixture Factor: {player.expExplain.blendedFixtureFactor.toFixed(2)}</div>
+                <div className="mt-2 p-2 bg-gray-50 rounded text-xs">
+                  <div className="font-bold mb-1">Points Breakdown</div>
+                  <div className="space-y-0.5">
+                    <div>Base: {player.expExplain.base.toFixed(1)}</div>
+                    <div>Minutes: {(player.expExplain.minutesProb * 100).toFixed(0)}%</div>
+                    <div>Form: {player.expExplain.formFactor.toFixed(2)}</div>
                     <div>Final: {player.expExplain.final.toFixed(1)} pts</div>
                   </div>
                 </div>
@@ -159,25 +138,21 @@ function PlayerModal({ player }: { player: Player }) {
             </div>
           ) : (
             <div>
-              <div className="font-bold text-black mb-3">Upcoming Fixtures</div>
-              <div className="space-y-3">
-                {player.nextFixtures.map((fixture, i) => (
-                  <div key={i} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <div className="text-sm font-medium">
-                        {fixture.event ? `GW${fixture.event}` : `GW+${i + 1}`}
+              <div className="space-y-1">
+                {player.nextFixtures.slice(0, 5).map((fixture, i) => (
+                  <div key={i} className="flex items-center justify-between p-1 bg-gray-50 rounded text-xs">
+                    <div className="flex items-center gap-2">
+                      <div className="font-medium">
+                        GW{fixture.event || `+${i + 1}`}
                       </div>
-                      <TeamShirt team={fixture.opp} className="w-8 h-8" />
+                      <TeamShirt team={fixture.opp} className="w-4 h-4" />
                       <div>
-                        <div className="font-medium">{fixture.opp}</div>
-                        <div className="text-xs text-gray-500">{fixture.H ? 'Home' : 'Away'}</div>
+                        <span className="font-medium">{fixture.opp}</span>
+                        <span className="text-gray-500 ml-1">({fixture.H ? 'H' : 'A'})</span>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <div className="text-sm font-bold">Difficulty: {fixture.diff}</div>
-                      <div className="text-xs text-gray-500">
-                        {fixture.diff <= 2 ? 'Easy' : fixture.diff <= 3 ? 'Medium' : 'Hard'}
-                      </div>
+                    <div className="font-bold">
+                      D:{fixture.diff}
                     </div>
                   </div>
                 ))}
@@ -190,15 +165,14 @@ function PlayerModal({ player }: { player: Player }) {
   );
 }
 
-const INITIAL_DISPLAY_COUNT = 5;
+const PLAYERS_PER_PAGE = 10;
 
 export function PlayerFinder() {
   const [players, setPlayers] = useState<Player[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [teamFilter, setTeamFilter] = useState<string>("all");
-  const [expandedPositions, setExpandedPositions] = useState<Record<string, boolean>>({});
-  const [displayCounts, setDisplayCounts] = useState<Record<string, number>>({});
+  const [currentPage, setCurrentPage] = useState<number>(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -297,17 +271,19 @@ export function PlayerFinder() {
     setPrice([MIN_PRICE, MAX_PRICE]);
     setTeamFilter("all");
     setAuto(false);
+    setCurrentPage(0);
   };
 
-  const groupedPlayers = useMemo(() => {
-    const groups = {
-      GK: filtered.filter(p => p.position === 'GK'),
-      DEF: filtered.filter(p => p.position === 'DEF'),
-      MID: filtered.filter(p => p.position === 'MID'),
-      FWD: filtered.filter(p => p.position === 'FWD'),
+  // Calculate pagination for all players or specific position
+  const { displayedPlayers, totalPages } = useMemo(() => {
+    const startIndex = currentPage * PLAYERS_PER_PAGE;
+    const endIndex = startIndex + PLAYERS_PER_PAGE;
+    
+    return {
+      displayedPlayers: filtered.slice(startIndex, endIndex),
+      totalPages: Math.ceil(filtered.length / PLAYERS_PER_PAGE)
     };
-    return groups;
-  }, [filtered]);
+  }, [filtered, currentPage]);
 
   const positionNames = {
     GK: 'Goalkeepers',
@@ -316,17 +292,10 @@ export function PlayerFinder() {
     FWD: 'Forwards'
   };
 
-  const togglePosition = (pos: string) => {
-    setExpandedPositions(prev => ({ ...prev, [pos]: !prev[pos] }));
-  };
-
-  const showMore = (pos: string, currentCount: number) => {
-    setDisplayCounts(prev => ({ ...prev, [pos]: currentCount + 5 }));
-  };
-
-  const getDisplayCount = (pos: string, totalCount: number) => {
-    return displayCounts[pos] || Math.min(INITIAL_DISPLAY_COUNT, totalCount);
-  };
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(0);
+  }, [search, price, teamFilter, sort, position]);
 
   return (
     <div className="space-y-6">
@@ -444,108 +413,95 @@ export function PlayerFinder() {
         </div>
       </div>
 
-      {/* Player lists by position */}
+      {/* Player display */}
       <div className="space-y-6">
         {loading && players.length === 0 ? (
           <div className="text-center py-8 text-gray-500">Loading players...</div>
         ) : error && players.length === 0 ? (
           <div className="text-center py-8 text-red-500">Failed to load players: {error}</div>
         ) : (
-          Object.entries(groupedPlayers).map(([pos, posPlayers]) => {
-            if (position !== "ALL" && position !== pos) return null;
-            if (posPlayers.length === 0) return null;
+          /* Unified Paginated Display */
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold">
+                {position === "ALL" ? "Top Players" : positionNames[position as keyof typeof positionNames]}
+              </h3>
+              <div className="text-sm text-gray-500">
+                Showing {currentPage * PLAYERS_PER_PAGE + 1}-{Math.min((currentPage + 1) * PLAYERS_PER_PAGE, filtered.length)} of {filtered.length}
+              </div>
+            </div>
             
-            const isExpanded = expandedPositions[pos] !== false;
-            const displayCount = getDisplayCount(pos, posPlayers.length);
-            const displayedPlayers = posPlayers.slice(0, displayCount);
-            const hasMore = displayCount < posPlayers.length;
-            
-            return (
-              <Card key={pos} className="overflow-hidden">
-                {/* Position Header - Collapsible */}
-                <button
-                  onClick={() => togglePosition(pos)}
-                  className="w-full flex items-center justify-between bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200 p-3 hover:from-gray-100 hover:to-gray-150 transition-colors"
+            <div className="space-y-2">
+              {displayedPlayers?.map((player) => (
+                <div key={player.id} className="flex items-center gap-2">
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="w-8 h-8 p-0 bg-blue-100 hover:bg-blue-200 rounded-full flex-shrink-0"
+                      >
+                        <Info className="h-4 w-4 text-blue-600" />
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-md">
+                      <DialogTitle className="sr-only">
+                        {getFPLDisplayName(player.name)} - Player Details
+                      </DialogTitle>
+                      <DialogDescription className="sr-only">
+                        Detailed statistics and information for {getFPLDisplayName(player.name)}
+                      </DialogDescription>
+                      <PlayerModal player={player} />
+                    </DialogContent>
+                  </Dialog>
+                  
+                  <div className="flex-1 min-w-0">
+                    <PlayerRow player={player} onAdd={handleAdd} />
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center gap-2 mt-6">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
+                  disabled={currentPage === 0}
                 >
-                  <div className="flex items-center gap-3">
-                    {isExpanded ? (
-                      <ChevronUp className="h-5 w-5 text-gray-600" />
-                    ) : (
-                      <ChevronDown className="h-5 w-5 text-gray-600" />
-                    )}
-                    <h3 className="text-base font-semibold text-gray-900">
-                      {positionNames[pos as keyof typeof positionNames]}
-                    </h3>
-                    <span className="text-xs text-gray-500 bg-white px-2 py-0.5 rounded-full">
-                      {posPlayers.length}
-                    </span>
-                  </div>
-                  <div className="flex gap-8 text-sm font-medium text-gray-500">
-                    <span>Price</span>
-                    <span>TP</span>
-                  </div>
-                </button>
+                  Previous
+                </Button>
                 
-                {/* Player List */}
-                {isExpanded && (
-                  <div className="p-2">
-                    <div className="space-y-1">
-                      {displayedPlayers.map((player) => (
-                        <div key={player.id} className="flex items-center gap-2">
-                          <Dialog>
-                            <DialogTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="w-8 h-8 p-0 bg-blue-100 hover:bg-blue-200 rounded-full flex-shrink-0"
-                              >
-                                <Info className="h-4 w-4 text-blue-600" />
-                              </Button>
-                            </DialogTrigger>
-                            <DialogContent className="max-w-2xl">
-                              <DialogTitle className="sr-only">
-                                {getFPLDisplayName(player.name)} - Player Details
-                              </DialogTitle>
-                              <DialogDescription className="sr-only">
-                                Detailed statistics and information for {getFPLDisplayName(player.name)}
-                              </DialogDescription>
-                              <PlayerModal player={player} />
-                            </DialogContent>
-                          </Dialog>
-                          
-                          <div className="flex-1 min-w-0">
-                            <PlayerRow
-                              player={player}
-                              onAdd={handleAdd}
-                            />
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                    
-                    {/* Show More Button */}
-                    {hasMore && (
-                      <div className="mt-4 text-center">
-                        <Button
-                          variant="outline"
-                          onClick={() => showMore(pos, displayCount)}
-                          className="gap-2"
-                        >
-                          <ChevronDown className="h-4 w-4" />
-                          Show {Math.min(5, posPlayers.length - displayCount)} more
-                        </Button>
-                      </div>
-                    )}
-                    
-                    {/* Showing count indicator */}
-                    <div className="mt-2 text-center text-xs text-gray-500">
-                      Showing {displayedPlayers.length} of {posPlayers.length}
-                    </div>
-                  </div>
-                )}
-              </Card>
-            );
-          })
+                <div className="flex gap-1">
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    const pageNum = Math.max(0, Math.min(totalPages - 5, currentPage - 2)) + i;
+                    return (
+                      <Button
+                        key={pageNum}
+                        variant={currentPage === pageNum ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setCurrentPage(pageNum)}
+                        className="w-8 h-8 p-0"
+                      >
+                        {pageNum + 1}
+                      </Button>
+                    );
+                  })}
+                </div>
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(Math.min(totalPages - 1, currentPage + 1))}
+                  disabled={currentPage >= totalPages - 1}
+                >
+                  Next
+                </Button>
+              </div>
+            )}
+          </div>
         )}
       </div>
     </div>

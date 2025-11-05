@@ -18,26 +18,26 @@ export function PlayerRow({ player, onAdd }: { player: Player; onAdd: (p: Player
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       className={cn(
-        "group relative flex items-center gap-4 rounded-xl border border-border/60 bg-card p-4 shadow-sm",
-        "hover:shadow-lg-soft transition-shadow"
+        "group relative flex items-center gap-2 rounded-lg border border-border/60 bg-card p-2 shadow-sm",
+        "hover:shadow-md transition-shadow"
       )}
       aria-label={`${player.name} ${player.position} from ${player.team}`}
     >
-      {/* Large Team Shirt */}
-      <div className="flex-shrink-0 mr-4">
-        <TeamShirt team={player.team} className="w-16 h-16" />
+      {/* Smaller Team Shirt */}
+      <div className="flex-shrink-0">
+        <TeamShirt team={player.team} className="w-8 h-8" />
       </div>
 
-      {/* Player Info Card - compact next to huge shirt */}
+      {/* Player Info Card - much more compact */}
       <div className="flex-1 min-w-0">
-        <div className="bg-white dark:bg-white/95 rounded-lg p-3 text-black">
+        <div className="bg-white dark:bg-white/95 rounded-md p-2 text-black">
           {/* Top section - Position, Name, Price */}
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2 min-w-0">
-              <span className="text-sm font-bold">{player.position}</span>
-              <span className="text-sm font-medium truncate">{getFPLDisplayName(player.name)}</span>
+          <div className="flex items-center justify-between mb-1">
+            <div className="flex items-center gap-1 min-w-0">
+              <span className="text-xs font-bold">{player.position}</span>
+              <span className="text-xs font-medium truncate">{getFPLDisplayName(player.name)}</span>
             </div>
-            <span className="text-sm font-bold">£{player.price.toFixed(1)}m</span>
+            <span className="text-xs font-bold">£{player.price.toFixed(1)}m</span>
           </div>
 
           {/* Status Flags */}
@@ -54,12 +54,12 @@ export function PlayerRow({ player, onAdd }: { player: Player; onAdd: (p: Player
               ? 'bg-orange-100 text-orange-800 border-orange-300'
               : 'bg-amber-100 text-amber-800 border-amber-300';
             return (
-              <div className="mb-2">
+              <div className="mb-1">
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <span className="inline-block">
-                        <Badge className={cn('border', color)}>
+                        <Badge className={cn('border text-xs px-1 py-0', color)}>
                           {label}{typeof chance === 'number' ? ` ${chance}%` : ''}
                         </Badge>
                       </span>
@@ -73,10 +73,10 @@ export function PlayerRow({ player, onAdd }: { player: Player; onAdd: (p: Player
             );
           })()}
 
-          {/* Bottom section - Clean fixtures and prominent points */}
+          {/* Bottom section - Compact fixtures and points */}
           <div className="flex items-center justify-between">
-            {/* Next 3 fixtures - clean format */}
-            <div className="flex gap-3 text-sm font-medium text-gray-700">
+            {/* Next 3 fixtures - compact format */}
+            <div className="flex gap-2 text-xs font-medium text-gray-600">
               {player.nextFixtures.slice(0, 3).map((f, i) => (
                 <span key={i}>
                   {f.opp} ({f.H ? 'H' : 'A'})
@@ -84,13 +84,13 @@ export function PlayerRow({ player, onAdd }: { player: Player; onAdd: (p: Player
               ))}
             </div>
             
-            {/* Expected Points - large and prominent */}
-            <div className="flex items-center gap-2 flex-shrink-0">
+            {/* Expected Points - smaller */}
+            <div className="flex items-center gap-1 flex-shrink-0">
               {player.expExplain ? (
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <span className="cursor-help text-xl font-bold text-green-600">
+                      <span className="cursor-help text-sm font-bold text-green-600">
                         {getRealisticExpPoints(player).toFixed(1)}
                       </span>
                     </TooltipTrigger>
@@ -127,7 +127,7 @@ export function PlayerRow({ player, onAdd }: { player: Player; onAdd: (p: Player
                   </Tooltip>
                 </TooltipProvider>
               ) : (
-                <span className="text-xl font-bold text-green-600">
+                <span className="text-sm font-bold text-green-600">
                   {getRealisticExpPoints(player).toFixed(1)}
                 </span>
               )}
@@ -158,9 +158,9 @@ export function PlayerRow({ player, onAdd }: { player: Player; onAdd: (p: Player
           variant="outline" 
           onClick={(e: React.MouseEvent) => { e.stopPropagation(); onAdd(player); }} 
           aria-label={`Add ${player.name}`} 
-          className={cn("opacity-0 transition-opacity group-hover:opacity-100", hover && "opacity-100")}
+          className={cn("opacity-0 transition-opacity group-hover:opacity-100 h-6 w-6 p-0", hover && "opacity-100")}
         > 
-          <Plus className="h-4 w-4" />
+          <Plus className="h-3 w-3" />
         </Button>
       </div>
     </div>
