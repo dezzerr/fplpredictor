@@ -48,9 +48,9 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...
 SUPABASE_SERVICE_ROLE_KEY=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...
 
 # Your existing environment variables
-ODDS_API_KEY=7791f7ff971eeb3c2dbb4279128fde77
-API_FOOTBALL_KEY=
-BETFAIR_APP_KEY=
+ODDS_API_KEY=your_odds_api_key_here
+API_FOOTBALL_KEY=your_api_football_key_here
+BETFAIR_APP_KEY=your_betfair_app_key_here
 ODDS_CACHE_TTL_SECONDS=600
 ```
 

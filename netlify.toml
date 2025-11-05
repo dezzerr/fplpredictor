@@ -1,0 +1,15 @@
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+# Allow NEXT_PUBLIC_SUPABASE_ANON_KEY in build output (it's a public key)
+[secrets_scan]
+  omit_keys = [
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY"
+  ]
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
