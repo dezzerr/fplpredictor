@@ -118,8 +118,8 @@ export function HeaderKpis({ compact = false, onGwChange, weekPredPts }: { compa
                   console.error('Logout error:', error)
                   alert('Failed to log out: ' + error.message)
                 } else {
-                  // Redirect to login page after successful logout
-                  window.location.href = '/login'
+                  // Redirect to home page after successful logout
+                  window.location.href = '/'
                 }
               } catch (error) {
                 console.error('Logout error:', error)

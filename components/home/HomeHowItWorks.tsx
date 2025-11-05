@@ -23,7 +23,7 @@ const steps = [
   }
 ]
 
-export default function LandingHowItWorks() {
+export default function HomeHowItWorks() {
   return (
     <section className="relative py-16 sm:py-20 bg-gradient-to-b from-cyan-50 to-blue-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { ArrowRight, Mail } from 'lucide-react'
 
-export default function LandingCTA() {
+export default function HomeCTA() {
   return (
     <section className="relative py-12 sm:py-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

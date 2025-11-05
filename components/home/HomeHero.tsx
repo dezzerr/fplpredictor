@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { ArrowRight, TrendingUp } from 'lucide-react'
 
-export default function LandingHero() {
+export default function HomeHero() {
   return (
     <section className="relative overflow-hidden">
       {/* Background gradient effects */}
@@ -54,12 +54,12 @@ export default function LandingHero() {
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-16">
-            <Link href="/" className="group px-8 py-4 bg-gradient-to-r from-fuchsia-600 to-fuchsia-500 hover:from-fuchsia-500 hover:to-fuchsia-400 text-white rounded-lg font-semibold text-lg shadow-lg shadow-fuchsia-500/50 transition-all duration-200 flex items-center gap-2">
-              Import Your FPL Team
+            <Link href="/squad" className="group px-8 py-4 bg-gradient-to-r from-fuchsia-600 to-fuchsia-500 hover:from-fuchsia-500 hover:to-fuchsia-400 text-white rounded-lg font-semibold text-lg shadow-lg shadow-fuchsia-500/50 transition-all duration-200 flex items-center gap-2">
+              Get Started
               <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </Link>
-            <Link href="/" className="px-8 py-4 bg-slate-800 hover:bg-slate-700 text-white rounded-lg font-semibold text-lg border border-slate-700 transition-colors duration-200">
-              Try It Free
+            <Link href="/login" className="px-8 py-4 bg-slate-800 hover:bg-slate-700 text-white rounded-lg font-semibold text-lg border border-slate-700 transition-colors duration-200">
+              Sign In
             </Link>
           </div>
 
