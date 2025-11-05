@@ -76,7 +76,7 @@ export function PlayerRow({ player, onAdd }: { player: Player; onAdd: (p: Player
           {/* Bottom section - Compact fixtures and points */}
           <div className="flex items-center justify-between">
             {/* Next 3 fixtures - compact format */}
-            <div className="flex gap-2 text-xs font-medium text-gray-600">
+            <div className="flex gap-2 text-xs font-medium text-gray-700">
               {player.nextFixtures.slice(0, 3).map((f, i) => (
                 <span key={i}>
                   {f.opp} ({f.H ? 'H' : 'A'})

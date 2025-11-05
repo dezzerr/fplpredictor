@@ -43,19 +43,19 @@ function PlayerModal({ player }: { player: Player }) {
       {/* Compact Stats Grid */}
       <div className="grid grid-cols-4 gap-2 text-center text-xs">
         <div>
-          <div className="text-gray-500">Form</div>
+          <div className="text-gray-600 dark:text-gray-400">Form</div>
           <div className="font-bold">{player.form?.toFixed(1) || '-'}</div>
         </div>
         <div>
-          <div className="text-gray-500">Own</div>
+          <div className="text-gray-600 dark:text-gray-400">Own</div>
           <div className="font-bold">{player.ownership?.toFixed(1) || '-'}%</div>
         </div>
         <div>
-          <div className="text-gray-500">EO</div>
+          <div className="text-gray-600 dark:text-gray-400">EO</div>
           <div className="font-bold">{player.eo?.toFixed(1) || '-'}%</div>
         </div>
         <div>
-          <div className="text-gray-500">Status</div>
+          <div className="text-gray-600 dark:text-gray-400">Status</div>
           <div className="font-bold">
             {player.status === 'fit' ? '✓' : player.status === 'flag' ? '!' : '✗'}
           </div>
@@ -68,7 +68,7 @@ function PlayerModal({ player }: { player: Player }) {
         <div className="flex gap-2 justify-center">
           {player.nextFixtures.slice(0, 3).map((fixture, i) => (
             <div key={i} className="text-center">
-              <div className="text-xs text-gray-500">GW{fixture.event || `+${i + 1}`}</div>
+              <div className="text-xs text-gray-600 dark:text-gray-400">GW{fixture.event || `+${i + 1}`}</div>
               <TeamShirt team={fixture.opp} className="w-6 h-6 mx-auto" />
               <div className="text-xs font-medium">{fixture.opp} ({fixture.H ? 'H' : 'A'})</div>
               <div className="text-xs font-bold">D:{fixture.diff}</div>
@@ -82,13 +82,13 @@ function PlayerModal({ player }: { player: Player }) {
         <div className="flex gap-3 border-b text-xs">
           <button 
             onClick={() => setActiveTab('history')}
-            className={`pb-1 ${activeTab === 'history' ? 'border-b-2 border-blue-500 text-blue-500' : 'text-gray-500'} font-medium`}
+            className={`pb-1 ${activeTab === 'history' ? 'border-b-2 border-blue-500 text-blue-500' : 'text-gray-600 dark:text-gray-400'} font-medium`}
           >
             Summary
           </button>
           <button 
             onClick={() => setActiveTab('fixtures')}
-            className={`pb-1 ${activeTab === 'fixtures' ? 'border-b-2 border-blue-500 text-blue-500' : 'text-gray-500'} font-medium`}
+            className={`pb-1 ${activeTab === 'fixtures' ? 'border-b-2 border-blue-500 text-blue-500' : 'text-gray-600 dark:text-gray-400'} font-medium`}
           >
             Fixtures
           </button>
@@ -100,25 +100,25 @@ function PlayerModal({ player }: { player: Player }) {
               <div className="grid grid-cols-2 gap-2 text-xs">
                 {player.form && (
                   <div>
-                    <div className="text-gray-500">Form</div>
+                    <div className="text-gray-600 dark:text-gray-400">Form</div>
                     <div className="font-bold">{player.form.toFixed(1)}</div>
                   </div>
                 )}
                 {player.ownership && (
                   <div>
-                    <div className="text-gray-500">Ownership</div>
+                    <div className="text-gray-600 dark:text-gray-400">Ownership</div>
                     <div className="font-bold">{player.ownership.toFixed(1)}%</div>
                   </div>
                 )}
                 {player.eo && (
                   <div>
-                    <div className="text-gray-500">EO</div>
+                    <div className="text-gray-600 dark:text-gray-400">EO</div>
                     <div className="font-bold">{player.eo.toFixed(1)}%</div>
                   </div>
                 )}
                 {player.eoRisk && (
                   <div>
-                    <div className="text-gray-500">EO Risk</div>
+                    <div className="text-gray-600 dark:text-gray-400">EO Risk</div>
                     <div className="font-bold">{player.eoRisk.toFixed(1)}</div>
                   </div>
                 )}
@@ -148,7 +148,7 @@ function PlayerModal({ player }: { player: Player }) {
                       <TeamShirt team={fixture.opp} className="w-4 h-4" />
                       <div>
                         <span className="font-medium">{fixture.opp}</span>
-                        <span className="text-gray-500 ml-1">({fixture.H ? 'H' : 'A'})</span>
+                        <span className="text-gray-600 dark:text-gray-400 ml-1">({fixture.H ? 'H' : 'A'})</span>
                       </div>
                     </div>
                     <div className="font-bold">
@@ -301,7 +301,7 @@ export function PlayerFinder() {
     <div className="space-y-6">
       {/* Find a player section */}
       <div className="space-y-4">
-        <h2 className="text-lg font-semibold text-gray-900">Find a player</h2>
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Find a player</h2>
         
         {/* Search bar */}
         <div className="relative">
@@ -374,13 +374,13 @@ export function PlayerFinder() {
       <Tabs value="all" className="w-full">
         <TabsList className="grid w-full grid-cols-2 bg-gray-100">
           <TabsTrigger value="all" className="text-gray-900">All players</TabsTrigger>
-          <TabsTrigger value="watchlist" className="text-gray-500">Watchlist</TabsTrigger>
+          <TabsTrigger value="watchlist" className="text-gray-600 dark:text-gray-400">Watchlist</TabsTrigger>
         </TabsList>
       </Tabs>
 
       {/* Position filter tabs */}
       <div className="space-y-1">
-        <h3 className="text-sm font-medium text-gray-600 mb-2">Position</h3>
+        <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Position</h3>
         <div className="grid grid-cols-4 gap-2">
           {(['GK', 'DEF', 'MID', 'FWD'] as const).map((pos) => (
             <Button
@@ -397,7 +397,7 @@ export function PlayerFinder() {
 
       {/* Teams filter */}
       <div className="space-y-3">
-        <h3 className="text-sm font-medium text-gray-600">Teams</h3>
+        <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">Teams</h3>
         <div className="grid grid-cols-4 gap-3">
           {teams.slice(0, 20).map((team) => (
             <Button
@@ -416,17 +416,17 @@ export function PlayerFinder() {
       {/* Player display */}
       <div className="space-y-6">
         {loading && players.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">Loading players...</div>
+          <div className="text-center py-8 text-gray-600 dark:text-gray-400">Loading players...</div>
         ) : error && players.length === 0 ? (
           <div className="text-center py-8 text-red-500">Failed to load players: {error}</div>
         ) : (
           /* Unified Paginated Display */
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                 {position === "ALL" ? "Top Players" : positionNames[position as keyof typeof positionNames]}
               </h3>
-              <div className="text-sm text-gray-500">
+              <div className="text-sm text-gray-600 dark:text-gray-400">
                 Showing {currentPage * PLAYERS_PER_PAGE + 1}-{Math.min((currentPage + 1) * PLAYERS_PER_PAGE, filtered.length)} of {filtered.length}
               </div>
             </div>
