@@ -101,6 +101,9 @@ export function NavigationBar({ currentGameweek, gwOffset }: NavigationBarProps)
               <Button onClick={onImport} disabled={pending} className="w-full">
                 {pending ? "Importing..." : "Import Squad"}
               </Button>
+              <div className="text-xs text-muted-foreground">
+                <strong>Tip:</strong> Find your team ID in the URL on the FPL website when viewing your team points (e.g. fantasy.premierleague.com/entry/<strong>1234567</strong>/event/).
+              </div>
             </div>
           </DialogContent>
         </Dialog>
