@@ -30,7 +30,7 @@ export function HeaderKpis({ compact = false, onGwChange, weekPredPts }: { compa
   const [mounted, setMounted] = useState(false);
   const [deadline, setDeadline] = useState<Date>(getMockDeadline());
   const [eventName, setEventName] = useState<string>("Gameweek");
-  const [currentGw, setCurrentGw] = useState<number>(8); // Will be fetched from API
+  const [currentGw, setCurrentGw] = useState<number>(8); // Will be replaced with API eventId
   const [gwOffset, setGwOffset] = useState<number>(0);
   
   useEffect(() => { 
@@ -40,10 +40,23 @@ export function HeaderKpis({ compact = false, onGwChange, weekPredPts }: { compa
       .then(res => res.json())
       .then(data => {
         setDeadline(new Date(data.deadline));
-        setEventName(data.eventName);
-        // Extract GW number from event name (e.g., "Gameweek 8" -> 8)
-        const match = data.eventName.match(/\d+/);
-        if (match) setCurrentGw(parseInt(match[0]));
+
+        if (typeof data.eventName === "string") {
+          setEventName(data.eventName);
+        }
+
+        // Prefer explicit eventId from the API for the current gameweek
+        if (typeof data.eventId === "number") {
+          setCurrentGw(data.eventId);
+        } else {
+          const parsedId = parseInt(String(data.eventId), 10);
+          if (!Number.isNaN(parsedId)) {
+            setCurrentGw(parsedId);
+          } else if (typeof data.eventName === "string") {
+            const match = data.eventName.match(/\d+/);
+            if (match) setCurrentGw(parseInt(match[0], 10));
+          }
+        }
       })
       .catch(err => {
         console.error('Failed to fetch deadline:', err);
@@ -88,9 +101,9 @@ export function HeaderKpis({ compact = false, onGwChange, weekPredPts }: { compa
   };
 
   return (
-    <header className="sticky top-0 z-50 border-b bg-gradient-to-r from-slate-50 to-blue-50/50 backdrop-blur supports-[backdrop-filter]:bg-gradient-to-r supports-[backdrop-filter]:from-slate-50/95 supports-[backdrop-filter]:to-blue-50/95 shadow-sm">
+    <header className="sticky top-0 z-50 border-b border-slate-200 bg-white backdrop-blur shadow-sm">
       {/* Top Bar with Logo and Actions */}
-      <div className="border-b border-blue-100/50">
+      <div className="border-b border-slate-800/80 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-fuchsia-900/40 via-slate-950 to-slate-950">
         <div className="container flex h-14 items-center justify-between">
           <Link href="/" className="text-lg font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent hover:from-blue-700 hover:to-purple-700 transition-all duration-200">
             FPL Companion
@@ -99,7 +112,7 @@ export function HeaderKpis({ compact = false, onGwChange, weekPredPts }: { compa
             <Button 
               size="sm"
               variant="outline"
-              className="gap-2"
+              className="gap-2 border-slate-600 text-slate-100 bg-slate-900/40 hover:bg-slate-800"
               onClick={handleRefresh}
               disabled={refreshing}
             >
@@ -139,7 +152,7 @@ export function HeaderKpis({ compact = false, onGwChange, weekPredPts }: { compa
 
       {/* Gameweek Stats Bar */}
       {!compact && (
-        <div className="sticky top-[57px] z-40 border-b border-blue-100/50 bg-gradient-to-r from-white/95 to-slate-50/95 backdrop-blur supports-[backdrop-filter]:bg-gradient-to-r supports-[backdrop-filter]:from-white/95 supports-[backdrop-filter]:to-slate-50/95">
+        <div className="sticky top-[57px] z-40 border-b border-slate-200 bg-gradient-to-r from-white/95 to-slate-50/95 backdrop-blur">
           <div className="container py-3">
             <div className="flex items-center justify-between gap-6">
               {/* Gameweek Title with Navigation - Left Side */}

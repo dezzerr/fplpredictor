@@ -1,12 +1,20 @@
 import { NextResponse } from "next/server";
 
-export const revalidate = 900; // 15 minutes
+// This route is cheap and needs to be accurate, so we disable caching and
+// mirror the bootstrap fetch pattern used in lib/fpl.ts
+export const revalidate = 0;
 
 export async function GET() {
   try {
-    // Use Next.js revalidation instead of no-store for build compatibility
-    const res = await fetch(`https://fantasy.premierleague.com/api/bootstrap-static/`, { 
-      next: { revalidate: 900 } // Revalidate every 15 minutes (matches route revalidate)
+    // Match fetchFplPlayers: force fresh bootstrap using a timestamp and no-store
+    const timestamp = Date.now();
+    const res = await fetch(`https://fantasy.premierleague.com/api/bootstrap-static/?t=${timestamp}`, {
+      cache: "no-store",
+      headers: {
+        "Cache-Control": "no-cache, no-store, must-revalidate",
+        Pragma: "no-cache",
+        Expires: "0",
+      },
     });
     
     if (!res.ok) {
@@ -15,13 +23,21 @@ export async function GET() {
 
     const data = await res.json();
     const events = data.events || [];
-    const nextEvent = events.find((e: any) => e.is_next) || events.find((e: any) => e.is_current);
-    
-    if (nextEvent?.deadline_time) {
+
+    // Mirror the event selection logic from lib/fpl.ts so all parts of the app
+    // agree on what the "current" gameweek is.
+    const nextEvent =
+      events.find((e: any) => e.is_next) ||
+      events.find((e: any) => e.is_current) ||
+      events.find((e: any) => !e.finished);
+
+    const targetEvent = nextEvent || events[0];
+
+    if (targetEvent?.deadline_time) {
       return NextResponse.json({
-        deadline: nextEvent.deadline_time,
-        eventName: nextEvent.name || 'Gameweek',
-        eventId: nextEvent.id,
+        deadline: targetEvent.deadline_time,
+        eventName: targetEvent.name || 'Gameweek',
+        eventId: targetEvent.id ?? null,
       });
     }
 

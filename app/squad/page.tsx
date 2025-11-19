@@ -14,6 +14,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { Button } from "@/components/ui/button";
 import { AnimatedNumber } from "@/components/animated-number";
 import { pickXIForWeek, weeklyExp, pickBestXIFromPool } from "@/lib/optimizer";
+import { OnboardingDialog } from "@/components/OnboardingDialog";
 
 export default function Page() {
   const [mounted, setMounted] = useState(false);
@@ -46,6 +47,32 @@ export default function Page() {
         if (active) setPoolError(e?.message || "Failed to load player pool");
       }
     })();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+
+    (async () => {
+      try {
+        const res = await fetch('/api/deadline');
+        if (!res.ok) return;
+        const data = await res.json();
+        const gw =
+          typeof data.eventId === "number"
+            ? data.eventId
+            : parseInt(String(data.eventId), 10);
+
+        if (active && !Number.isNaN(gw)) {
+          setCurrentGw(gw);
+        }
+      } catch (e) {
+        console.error("Failed to fetch current gameweek:", e);
+      }
+    })();
+
     return () => {
       active = false;
     };
@@ -147,6 +174,7 @@ export default function Page() {
         </div>
       </main>
       <PlayerSheet playerId={selectedPlayerId} open={playerOpen} onOpenChange={setPlayerOpen} />
+      <OnboardingDialog />
     </div>
   );
 }

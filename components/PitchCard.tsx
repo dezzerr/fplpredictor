@@ -85,12 +85,6 @@ export function PitchCard({ onPlayerClick, weekOffset }: { onPlayerClick: (id: s
   const formationText = `${squad.starters.DEF.length}-${squad.starters.MID.length}-${squad.starters.FWD.length} Formation`;
   return (
     <Card className="pitch-bg relative overflow-hidden p-4 sm:p-6">
-      {/* pitch overlay shapes */}
-      <div className="pointer-events-none absolute inset-0">
-        <div className="absolute left-1/2 top-[46%] -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/40" style={{ width: 140, height: 140 }} />
-        {/* penalty box near GK */}
-        <div className="absolute left-1/2 top-[12%] h-24 w-2/3 -translate-x-1/2 rounded-md border border-white/35" />
-      </div>
       <div className="mb-4 text-center text-white/90">{formationText}</div>
       <div className="space-y-4 sm:space-y-6">
         <Row position="GK" onPlayerClick={onPlayerClick} weekOffset={weekOffset} />

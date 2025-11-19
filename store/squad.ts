@@ -504,9 +504,9 @@ export const useSquadStore = create<SquadState>()(persist((set, get) => ({
   teamRating: () => {
     // heuristic: compare exp points per slot, scaled for realistic ratings
     const perSlot = get().totalExpPoints() / 11;
-    // 8.5pts per slot = 100% (world-class team with perfect fixtures, ~93.5 total pts with captain)
-    // Great teams: 80-90% (75-85 pts), Good teams: 65-80% (60-75 pts)
-    const rating = Math.min(100, Math.max(0, (perSlot / 8.5) * 100));
+    // 6.5pts per slot ≈ 100% (world-class team, ~71.5 total pts with captain)
+    // Great teams: 80-90% (60-70 pts), Good teams: 60-80% (50-60 pts)
+    const rating = Math.min(100, Math.max(0, (perSlot / 6.5) * 100));
     return Math.round(rating);
   },
 
@@ -529,18 +529,18 @@ export const useSquadStore = create<SquadState>()(persist((set, get) => ({
     const avgExpPerStarter = totalExp / starters.length;
     
     // Scale to percentage with realistic scaling
-    // 7.5pts per starter = 100% (world-class gameweek, ~82.5 total without captain bonus)
-    // Great: 80-90% (6-7pts avg), Good: 65-80% (5-6pts avg), Average: 50-65% (4-5pts avg)
-    const rating = Math.min(100, Math.max(0, (avgExpPerStarter / 7.5) * 100));
+    // 6.0pts per starter ≈ 100% (world-class gameweek)
+    // Great: 80-90% (5.0-5.5pts avg), Good: 65-80% (4.0-5.0pts avg), Average: 50-65% (3.0-4.0pts avg)
+    const rating = Math.min(100, Math.max(0, (avgExpPerStarter / 6.0) * 100));
     return Math.round(rating);
   },
 
   // Week-aware rating methods (use weeklyExp for accurate future gameweek ratings)
   teamRatingForWeek: (weekOffset: number) => {
     const perSlot = get().totalExpForWeek(weekOffset) / 11;
-    // 8.5pts per slot = 100% (world-class team with perfect fixtures, ~93.5 total pts with captain)
-    // Great teams: 80-90% (75-85 pts), Good teams: 65-80% (60-75 pts)
-    const rating = Math.min(100, Math.max(0, (perSlot / 8.5) * 100));
+    // 6.5pts per slot ≈ 100% (world-class team, ~71.5 total pts with captain)
+    // Great teams: 80-90% (60-70 pts), Good teams: 60-80% (50-60 pts)
+    const rating = Math.min(100, Math.max(0, (perSlot / 6.5) * 100));
     return Math.round(rating);
   },
 
@@ -559,9 +559,9 @@ export const useSquadStore = create<SquadState>()(persist((set, get) => ({
     const totalExp = starters.reduce((acc, p) => acc + weeklyExp(p, weekOffset), 0);
     const avgExpPerStarter = totalExp / starters.length;
     
-    // 7.5pts per starter = 100% (world-class gameweek)
-    // Great: 80-90% (6-7pts avg), Good: 65-80% (5-6pts avg), Average: 50-65% (4-5pts avg)
-    const rating = Math.min(100, Math.max(0, (avgExpPerStarter / 7.5) * 100));
+    // 6.0pts per starter ≈ 100% (world-class gameweek)
+    // Great: 80-90% (5.0-5.5pts avg), Good: 65-80% (4.0-5.0pts avg), Average: 50-65% (3.0-4.0pts avg)
+    const rating = Math.min(100, Math.max(0, (avgExpPerStarter / 6.0) * 100));
     return Math.round(rating);
   },
 
