@@ -2,12 +2,15 @@
 
 import { HeaderKpis } from "@/components/HeaderKpis";
 import { TeamFixtureMatrix } from "@/components/TeamFixtureMatrix";
-import { Shield, Calendar } from "lucide-react";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { Calendar } from "lucide-react";
 
 export default function FixturesPage() {
   return (
     <div className="min-h-dvh">
-      <HeaderKpis />
+      <ErrorBoundary compact name="HeaderKpis">
+        <HeaderKpis />
+      </ErrorBoundary>
       <main className="container py-6">
         {/* Header */}
         <div className="mb-6">
@@ -25,7 +28,9 @@ export default function FixturesPage() {
         </div>
 
         {/* Fixture Matrix */}
-        <TeamFixtureMatrix />
+        <ErrorBoundary compact name="TeamFixtureMatrix">
+          <TeamFixtureMatrix />
+        </ErrorBoundary>
       </main>
     </div>
   );

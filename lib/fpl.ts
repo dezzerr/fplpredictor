@@ -1,13 +1,10 @@
 import type { Player, Position, Fixture } from "@/lib/data";
 import { getCalibration, type CalPresetName } from "@/lib/calibration";
-
-// Map FPL numeric element_type to our Position
-const POS_MAP: Record<number, Position> = {
-  1: "GK",
-  2: "DEF",
-  3: "MID",
-  4: "FWD",
-};
+import {
+  FPL_POSITION_MAP,
+  TEAM_STRENGTH,
+  PENALTY_TAKERS,
+} from "@/lib/constants";
 
 function mapStatus(s: string): Player["status"] {
   // FPL: a=available, d=doubtful, i=injured, s=suspended, n=not in squad, u=unknown
@@ -53,40 +50,6 @@ export async function fetchFplPlayers(preset?: CalPresetName | string | null): P
   const teamShort: Record<number, string> = Object.fromEntries(
     teams.map((t: any) => [t.id, t.short_name])
   );
-
-  // Team strength ratings (1-5, where 5 = strongest)
-  // Based on 2025-26 Premier League season performance and squad quality
-  const TEAM_STRENGTH: Record<string, number> = {
-    MCI: 5, LIV: 5, ARS: 5, // Elite tier - consistent top performers
-    CHE: 4.5, MUN: 4.5, TOT: 4.5, // Strong tier - top 6 contenders
-    NEW: 4, AVL: 4, // Upper-mid tier - European contenders
-    BHA: 3.5, BRE: 3.5, CRY: 3.5, BOU: 3.5, // Mid-upper tier - improving clubs
-    FUL: 3, WHU: 3, WOL: 3, EVE: 3, NFO: 3, // Mid tier
-    BUR: 2.5, LEE: 2.5, SUN: 2.5, // Newly promoted 2025-26
-  };
-
-  // Curated penalty takers per team (short codes)
-  // Primary taker first, followed by likely backups. Names should match web_name/second_name.
-  const PENALTY_TAKERS: Record<string, string[]> = {
-    MCI: ["Haaland", "De Bruyne", "Foden"],
-    MUN: ["Fernandes", "Rashford"],
-    LIV: ["Salah"],
-    ARS: ["Saka", "Odegaard"],
-    CHE: ["Palmer", "Sterling"],
-    TOT: ["Son", "Maddison"],
-    NEW: ["Isak"],
-    BHA: ["Pedro"], // Joao Pedro (web_name often "Joao Pedro")
-    AVL: ["Watkins"],
-    BRE: ["Toney"],
-    WHU: ["Bowen"],
-    CRY: ["Eze"],
-    NFO: ["Gibbs-White"],
-    BOU: ["Solanke"],
-    WOL: ["Hwang", "Cunha"],
-    FUL: ["Willian"],
-    EVE: ["Calvert-Lewin"],
-    SHU: [], LUT: [], BUR: [],
-  };
 
   // Determine the next event id to prioritize very near fixtures
   const events: Array<any> = bootstrap.events || [];
@@ -138,7 +101,7 @@ export async function fetchFplPlayers(preset?: CalPresetName | string | null): P
   const players: Player[] = elements.map((el: any) => {
     const teamId: number = el.team;
     const team = teamShort[teamId] || "UNK";
-    const position: Position = POS_MAP[el.element_type as number];
+    const position: Position = FPL_POSITION_MAP[el.element_type as number];
     const price = (el.now_cost ?? 0) / 10;
     const baseExp = parseFloat(el.ep_next ?? "0") || 0;
     const formVal = parseFloat(el.form ?? "0") || 0;
@@ -340,7 +303,7 @@ export async function fetchFplPlayers(preset?: CalPresetName | string | null): P
     }
 
     // Apply ALL factors to expected points (form, minutes, penalties, injury)
-    let rawPrediction = baseExp * positionFactor * calib.CAL * formFactor * penaltyBoost * minutesFactor * injuryPenalty;
+    const rawPrediction = baseExp * positionFactor * calib.CAL * formFactor * penaltyBoost * minutesFactor * injuryPenalty;
     
     // Position-based realistic caps (prevent impossible predictions)
     const positionCaps: Record<Position, number> = {
@@ -378,7 +341,7 @@ export async function fetchFplPlayers(preset?: CalPresetName | string | null): P
       ownership,
       photo,
       eoRisk,
-      expExplain: ({
+      expExplain: {
         base: baseExp,
         minutesProb,
         minutesFactor,
@@ -393,7 +356,7 @@ export async function fetchFplPlayers(preset?: CalPresetName | string | null): P
         rawStatus: statusCode,
         chance,
         news: el.news || "",
-        newsAdded: (el as any).news_added || "",
+        newsAdded: el.news_added || "",
         fixtureWeights,
         nextWeekFactor,
         eventFactors,
@@ -402,7 +365,7 @@ export async function fetchFplPlayers(preset?: CalPresetName | string | null): P
         nextEventFixtureCount,
         source: 'fpl',
         final: refined,
-      } as any),
+      },
     };
     return p;
   });

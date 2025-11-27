@@ -106,7 +106,9 @@ export default function Page() {
 
   return (
     <div className="min-h-dvh">
-      <HeaderKpis onGwChange={setGwOffset} weekPredPts={weekPredPts} />
+      <ErrorBoundary compact name="HeaderKpis">
+        <HeaderKpis onGwChange={setGwOffset} weekPredPts={weekPredPts} />
+      </ErrorBoundary>
       <main className="container py-4 space-y-6">
         <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
           {/* Main Content */}
@@ -148,25 +150,29 @@ export default function Page() {
             </div>
 
             {/* Pitch */}
-            <PitchCard
-              onPlayerClick={(id) => { setSelectedPlayerId(id); setPlayerOpen(true); }}
-              weekOffset={gwOffset}
-            />
+            <ErrorBoundary compact name="PitchCard">
+              <PitchCard
+                onPlayerClick={(id) => { setSelectedPlayerId(id); setPlayerOpen(true); }}
+                weekOffset={gwOffset}
+              />
+            </ErrorBoundary>
 
             {/* Navigation Bar */}
             <NavigationBar currentGameweek={currentGw} gwOffset={gwOffset} />
 
             {/* Bench */}
-            <BenchRail
-              onPlayerClick={(id) => { setSelectedPlayerId(id); setPlayerOpen(true); }}
-              weekOffset={gwOffset}
-            />
+            <ErrorBoundary compact name="BenchRail">
+              <BenchRail
+                onPlayerClick={(id) => { setSelectedPlayerId(id); setPlayerOpen(true); }}
+                weekOffset={gwOffset}
+              />
+            </ErrorBoundary>
           </div>
 
           {/* Sidebar - Player Finder */}
           <div className="hidden lg:block">
             <div className="sticky top-20">
-              <ErrorBoundary>
+              <ErrorBoundary compact name="PlayerFinder">
                 <PlayerFinder />
               </ErrorBoundary>
             </div>

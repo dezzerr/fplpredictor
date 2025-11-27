@@ -18,6 +18,46 @@ export type PlayingStyle =
   | 'creative_forward'  // Forwards who create and score
   | 'poacher';          // Pure finishers in the box
 
+/** Detailed breakdown of how expected points were calculated */
+export type ExpExplain = {
+  // Core calculation factors
+  base: number;
+  minutesProb: number;
+  minutesFactor: number;
+  injuryPenalty: number;
+  form: number;
+  formFactor: number;
+  positionFactor: number;
+  fixtureWeights: Array<{ w: number; d: number; H: boolean; factor: number }>;
+  blendedFixtureFactor: number;
+  final: number;
+
+  // Week-aware factors
+  nextWeekFactor?: number;
+  eventFactors?: number[]; // per-event aggregated factor for next 3 events (DGW/blank aware)
+  eventFixtureCounts?: number[]; // per-event count of fixtures in next 3 events for this team
+  nextEventFixtureCount?: number; // fixtures count in the very next event (0=blank, 2+=double)
+
+  // Penalty taker info
+  penaltyBoost?: number;
+  penaltyTakerRank?: number;
+  calibration?: number;
+
+  // Status metadata for UI
+  rawStatus?: string;
+  chance?: number | null;
+  news?: string;
+  newsAdded?: string;
+
+  // Market-first additions
+  source?: 'market' | 'fpl'; // which projection source produced expPoints/eventEP
+  eventEP?: number[]; // per-event expected points if computed from market model
+  lambdaG?: number[]; // per-event attacking goal intensity (Poisson)
+  lambdaA?: number[]; // per-event assist intensity proxy
+  pCS?: number[]; // per-event clean sheet probability for player's team
+  p60?: number[]; // per-event minutes fraction (mins/90)
+};
+
 export type Player = {
   id: string;
   name: string;
@@ -35,29 +75,7 @@ export type Player = {
   ownership?: number; // % selected
   photo?: string; // optional
   eoRisk?: number; // expPoints * (1 - ownership%)
-  expExplain?: {
-    base: number;
-    minutesProb: number;
-    minutesFactor: number;
-    injuryPenalty: number;
-    form: number;
-    formFactor: number;
-    positionFactor: number;
-    fixtureWeights: Array<{ w: number; d: number; H: boolean; factor: number }>;
-    nextWeekFactor?: number;
-    eventFactors?: number[]; // per-event aggregated factor for next 3 events (DGW/blank aware)
-    eventFixtureCounts?: number[]; // per-event count of fixtures in next 3 events for this team
-    nextEventFixtureCount?: number; // fixtures count in the very next event (0=blank, 2+=double)
-    blendedFixtureFactor: number;
-    // Market-first additions
-    source?: 'market' | 'fpl'; // which projection source produced expPoints/eventEP
-    eventEP?: number[]; // per-event expected points if computed from market model
-    lambdaG?: number[]; // per-event attacking goal intensity (Poisson)
-    lambdaA?: number[]; // per-event assist intensity proxy
-    pCS?: number[]; // per-event clean sheet probability for player's team
-    p60?: number[]; // per-event minutes fraction (mins/90)
-    final: number;
-  };
+  expExplain?: ExpExplain;
 };
 export type Squad = {
   bank: number;

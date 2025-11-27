@@ -72,7 +72,7 @@ export function weeklyExp(p: Player, weekOffset: number): number {
       // Don't re-apply minutesProb - it's already factored into expPoints calculation
       return precision1(nonNeg(p.expPoints));
     }
-    const ex = p.expExplain as any;
+    const ex = p.expExplain;
     const base = nonNeg(ex.base);
     const formF = nonNeg(ex.formFactor);
     const minF = nonNeg(ex.minutesFactor);

@@ -8,6 +8,10 @@ import { AlertTriangle, RefreshCcw } from "lucide-react";
 interface Props {
   children: React.ReactNode;
   fallback?: React.ReactNode;
+  /** Use compact mode for inline components */
+  compact?: boolean;
+  /** Component name for error logging */
+  name?: string;
   onReset?: () => void;
 }
 
@@ -27,7 +31,8 @@ export class ErrorBoundary extends React.Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error("ErrorBoundary caught an error:", error, errorInfo);
+    const componentName = this.props.name || "Unknown";
+    console.error(`ErrorBoundary [${componentName}] caught an error:`, error, errorInfo);
   }
 
   handleReset = () => {
@@ -41,14 +46,30 @@ export class ErrorBoundary extends React.Component<Props, State> {
         return this.props.fallback;
       }
 
+      // Compact fallback for inline components
+      if (this.props.compact) {
+        return (
+          <div className="flex items-center justify-center gap-2 p-4 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-lg">
+            <AlertTriangle className="h-4 w-4 text-red-500" />
+            <span className="text-sm text-red-600 dark:text-red-400">
+              {this.props.name ? `${this.props.name} failed to load` : "Failed to load"}
+            </span>
+            <Button onClick={this.handleReset} variant="ghost" size="sm" className="h-6 px-2">
+              <RefreshCcw className="h-3 w-3" />
+            </Button>
+          </div>
+        );
+      }
+
+      // Full fallback for page-level errors
       return (
         <Card className="p-6 m-4">
           <div className="flex flex-col items-center justify-center gap-4 text-center">
-            <div className="p-3 bg-red-100 rounded-full">
-              <AlertTriangle className="h-8 w-8 text-red-600" />
+            <div className="p-3 bg-red-100 dark:bg-red-900/30 rounded-full">
+              <AlertTriangle className="h-8 w-8 text-red-600 dark:text-red-400" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-gray-900 mb-2">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
                 Something went wrong
               </h2>
               <p className="text-sm text-muted-foreground mb-4">
@@ -71,13 +92,26 @@ export class ErrorBoundary extends React.Component<Props, State> {
 // Functional wrapper for easier use
 export function withErrorBoundary<P extends object>(
   Component: React.ComponentType<P>,
-  fallback?: React.ReactNode
+  options?: {
+    fallback?: React.ReactNode;
+    compact?: boolean;
+    name?: string;
+  }
 ) {
-  return function WithErrorBoundaryWrapper(props: P) {
+  const displayName = options?.name || Component.displayName || Component.name || "Component";
+  
+  function WithErrorBoundaryWrapper(props: P) {
     return (
-      <ErrorBoundary fallback={fallback}>
+      <ErrorBoundary 
+        fallback={options?.fallback} 
+        compact={options?.compact}
+        name={displayName}
+      >
         <Component {...props} />
       </ErrorBoundary>
     );
-  };
+  }
+  
+  WithErrorBoundaryWrapper.displayName = `withErrorBoundary(${displayName})`;
+  return WithErrorBoundaryWrapper;
 }

@@ -127,11 +127,11 @@ export default function LoginPage() {
           {/* Footer text */}
           <p className="text-center text-sm text-slate-400">
             By signing in, you agree to our{' '}
-            <Link href="/home" className="text-fuchsia-400 hover:text-fuchsia-300 transition-colors">
+            <Link href="/" className="text-fuchsia-400 hover:text-fuchsia-300 transition-colors">
               Terms of Service
             </Link>
             {' '}and{' '}
-            <Link href="/home" className="text-fuchsia-400 hover:text-fuchsia-300 transition-colors">
+            <Link href="/" className="text-fuchsia-400 hover:text-fuchsia-300 transition-colors">
               Privacy Policy
             </Link>
           </p>

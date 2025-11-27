@@ -345,11 +345,12 @@ export function PlayerFinder() {
             const maxPrice = parseFloat(value.replace('£', '').replace('m', ''));
             setPrice([MIN_PRICE, maxPrice]);
           }}>
-            <SelectTrigger className="w-20">
+            <SelectTrigger className="w-24">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="£15.0m">£15.0m</SelectItem>
+              <SelectItem value="£16.0m">£16.0m</SelectItem>
+              <SelectItem value="£14.0m">£14.0m</SelectItem>
               <SelectItem value="£12.0m">£12.0m</SelectItem>
               <SelectItem value="£10.0m">£10.0m</SelectItem>
               <SelectItem value="£8.0m">£8.0m</SelectItem>

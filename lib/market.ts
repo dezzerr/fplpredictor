@@ -133,12 +133,12 @@ export async function fetchPlayersWithMarket(preset?: CalPresetName | string | n
       p60Arr[event] = Math.round(p60 * 1000) / 1000;
     }
 
-    const ex = p.expExplain ?? ({} as Player["expExplain"]);
+    const ex = p.expExplain;
     const nextEp = typeof eventEP[0] === 'number' ? eventEP[0] : undefined;
     return {
       ...p,
       expPoints: nextEp ?? p.expPoints,
-      expExplain: ({
+      expExplain: {
         base: ex?.base ?? p.baseExp ?? p.expPoints,
         minutesProb: typeof p.minutesProb === 'number' ? p.minutesProb : p60Base,
         minutesFactor: ex?.minutesFactor ?? 1,
@@ -147,14 +147,14 @@ export async function fetchPlayersWithMarket(preset?: CalPresetName | string | n
         formFactor: ex?.formFactor ?? 1,
         positionFactor: ex?.positionFactor ?? 1,
         // Preserve penalty metadata when present
-        penaltyBoost: (ex as any)?.penaltyBoost,
-        penaltyTakerRank: (ex as any)?.penaltyTakerRank,
-        calibration: (ex as any)?.calibration,
+        penaltyBoost: ex?.penaltyBoost,
+        penaltyTakerRank: ex?.penaltyTakerRank,
+        calibration: ex?.calibration,
         // Preserve status metadata when present
-        rawStatus: (ex as any)?.rawStatus,
-        chance: (ex as any)?.chance,
-        news: (ex as any)?.news,
-        newsAdded: (ex as any)?.newsAdded,
+        rawStatus: ex?.rawStatus,
+        chance: ex?.chance,
+        news: ex?.news,
+        newsAdded: ex?.newsAdded,
         fixtureWeights: ex?.fixtureWeights ?? [],
         blendedFixtureFactor: ex?.blendedFixtureFactor ?? 1,
         // Market-first additions
@@ -169,7 +169,7 @@ export async function fetchPlayersWithMarket(preset?: CalPresetName | string | n
         eventFactors: ex?.eventFactors,
         eventFixtureCounts: ex?.eventFixtureCounts,
         nextEventFixtureCount: ex?.nextEventFixtureCount,
-      } as any),
+      },
     };
   });
 

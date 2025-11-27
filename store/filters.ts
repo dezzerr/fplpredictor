@@ -16,8 +16,8 @@ export type FiltersState = {
   setSort: (v: "PRICE" | "EXP_POINTS" | "FIXTURE_EASE" | "FORM" | "OWNERSHIP") => void;
 };
 
-export const MIN_PRICE = 4.0;
-export const MAX_PRICE = 14.5;
+export const MIN_PRICE = 3.5;
+export const MAX_PRICE = 16.0;
 
 export const useFilters = create<FiltersState>((set) => ({
   search: "",

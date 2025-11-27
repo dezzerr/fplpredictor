@@ -104,7 +104,7 @@ export function TeamOfTheWeek({ gwOffset = 0 }: TeamOfTheWeekProps) {
 
   const confirmBulkApply = () => {
     let successCount = 0;
-    let failedPlayers: string[] = [];
+    const failedPlayers: string[] = [];
 
     squadDiff.missing.forEach(player => {
       const result = addPlayer(player);

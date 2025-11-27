@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import { HeaderKpis } from "@/components/HeaderKpis";
 import { AutoTeamOptimizer } from "@/components/AutoTeamOptimizer";
 import { TeamOfTheWeek } from "@/components/TeamOfTheWeek";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Users, TrendingUp } from "lucide-react";
 import { useSquadStore } from "@/store/squad";
@@ -21,7 +22,9 @@ export default function OptimizePage() {
 
   return (
     <div className="min-h-dvh">
-      <HeaderKpis onGwChange={setGwOffset} weekPredPts={weekPredPts} />
+      <ErrorBoundary compact name="HeaderKpis">
+        <HeaderKpis onGwChange={setGwOffset} weekPredPts={weekPredPts} />
+      </ErrorBoundary>
       <main className="container py-6">
         <div className="mb-6">
           <h1 className="text-2xl font-bold">Optimize Your Squad</h1>
@@ -43,11 +46,15 @@ export default function OptimizePage() {
           </TabsList>
           
           <TabsContent value="my-squad" className="mt-6">
-            <AutoTeamOptimizer gwOffset={gwOffset} />
+            <ErrorBoundary compact name="AutoTeamOptimizer">
+              <AutoTeamOptimizer gwOffset={gwOffset} />
+            </ErrorBoundary>
           </TabsContent>
           
           <TabsContent value="market-leaders" className="mt-6">
-            <TeamOfTheWeek gwOffset={gwOffset} />
+            <ErrorBoundary compact name="TeamOfTheWeek">
+              <TeamOfTheWeek gwOffset={gwOffset} />
+            </ErrorBoundary>
           </TabsContent>
         </Tabs>
       </main>
