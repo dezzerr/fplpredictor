@@ -306,7 +306,7 @@ export function TeamOfTheWeek({ gwOffset = 0 }: TeamOfTheWeekProps) {
       {/* Footer */}
       <div className="px-6 pb-6">
         <div className="text-xs text-muted-foreground bg-white/60 p-3 rounded-lg border border-white/80">
-          💡 <strong>Pro Tip:</strong> This optimal XI is calculated from all Premier League players based on expected points for the selected gameweek. Use "Apply to Squad" to bulk add missing players.
+          💡 <strong>Pro Tip:</strong> This optimal XI is calculated from all Premier League players based on expected points for the selected gameweek. Use &quot;Apply to Squad&quot; to bulk add missing players.
         </div>
       </div>
 
@@ -319,7 +319,7 @@ export function TeamOfTheWeek({ gwOffset = 0 }: TeamOfTheWeekProps) {
               Apply Team to Your Squad
             </DialogTitle>
             <DialogDescription>
-              Review the players that will be added to your squad. Note: This doesn't remove existing players.
+              Review the players that will be added to your squad. Note: This doesn&apos;t remove existing players.
             </DialogDescription>
           </DialogHeader>
 

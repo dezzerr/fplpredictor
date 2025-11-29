@@ -61,7 +61,7 @@ export function OnboardingDialog() {
             Welcome to FPL Companion
           </DialogTitle>
           <DialogDescription className="pt-2">
-            Let's get started by importing your Fantasy Premier League team. We'll sync your latest squad and prices.
+            Let&apos;s get started by importing your Fantasy Premier League team. We&apos;ll sync your latest squad and prices.
           </DialogDescription>
         </DialogHeader>
 
@@ -98,7 +98,7 @@ export function OnboardingDialog() {
 
         <DialogFooter className="gap-2 sm:gap-0">
           <Button variant="ghost" onClick={() => setOpen(false)}>
-            I'll do this later
+            I&apos;ll do this later
           </Button>
           <Button onClick={onImport} disabled={pending} className="bg-indigo-600 hover:bg-indigo-700">
             {pending ? "Importing..." : "Import Team"}

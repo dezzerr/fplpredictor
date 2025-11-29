@@ -53,7 +53,7 @@ export default function ImportPage() {
       <div className="mb-4 text-xl font-semibold">Import Squad</div>
       <Card className="max-w-xl p-4">
         <div className="mb-3 text-sm text-muted-foreground">
-          Enter your FPL team (entry) ID to load your current squad and bank. We'll use the latest prices and projections.
+          Enter your FPL team (entry) ID to load your current squad and bank. We&apos;ll use the latest prices and projections.
         </div>
         <div className="mb-3 grid grid-cols-1 gap-3 sm:grid-cols-[1fr,160px]">
           <Input placeholder="FPL Team ID (e.g. 1234567)" value={entryId} onChange={(e) => setEntryId(e.target.value)} inputMode="numeric" />
