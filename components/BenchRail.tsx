@@ -33,15 +33,15 @@ export function BenchRail({ onPlayerClick, weekOffset }: { onPlayerClick: (id: s
 
   return (
     <div>
-      <Card className="relative overflow-hidden border-dashed bg-green-100/80 border-green-300 p-3">
-        <div className="mb-2 text-xs font-semibold text-muted-foreground">Bench</div>
-        {/* Labels row */}
-        <div className="mb-2 hidden justify-center gap-3 sm:gap-4 text-[10px] text-muted-foreground sm:flex">
+      <Card className="relative overflow-hidden border-dashed bg-green-100/80 border-green-300 p-2 sm:p-3">
+        <div className="mb-1 sm:mb-2 text-xs font-semibold text-muted-foreground">Bench</div>
+        {/* Labels row - hidden on mobile */}
+        <div className="mb-2 hidden justify-center gap-1.5 sm:gap-4 text-[10px] text-muted-foreground sm:flex">
           {slots.map((_, i) => {
             const p = squad.bench[i];
             const label = i === 0 ? 'GKP' : `${i}.`;
             return (
-              <div key={`label-${i}`} className="w-[112px] sm:w-[132px] text-center">
+              <div key={`label-${i}`} className="w-[68px] sm:w-[112px] text-center">
                 <span>{label}</span>
                 {i > 0 && p && (
                   <span className="ml-1 rounded bg-background px-1 py-[1px] text-[9px] uppercase opacity-70">{p.position}</span>
@@ -51,17 +51,17 @@ export function BenchRail({ onPlayerClick, weekOffset }: { onPlayerClick: (id: s
           })}
         </div>
         {/* Cards row */}
-        <div className="flex flex-wrap items-start justify-center gap-3 sm:gap-4">
+        <div className="flex flex-wrap items-start justify-center gap-1.5 sm:gap-3">
           {slots.map((_, idx) => {
             const p = squad.bench[idx];
             return p ? (
-              <div key={p.id} className="w-[112px] sm:w-[132px]">
+              <div key={p.id} className="w-[68px] sm:w-[112px]">
                 <PlayerTile
                   player={p}
                   isCaptain={squad.captainId === p.id}
                   isVice={squad.viceId === p.id}
                   onClick={() => handlePlayerClick(p.id)}
-                  className="h-[132px]"
+                  className="h-[90px] sm:h-[130px]"
                   weekOffset={weekOffset}
                   isSelected={selectedPlayerId === p.id}
                   showActions={true}
@@ -73,7 +73,7 @@ export function BenchRail({ onPlayerClick, weekOffset }: { onPlayerClick: (id: s
             ) : (
               <div
                 key={idx}
-                className="flex h-[132px] w-[112px] sm:w-[132px] items-center justify-center rounded-2xl border-2 border-dashed border-border/60 text-xs text-muted-foreground"
+                className="flex h-[90px] sm:h-[130px] w-[68px] sm:w-[112px] items-center justify-center rounded-xl sm:rounded-2xl border-2 border-dashed border-border/60 text-[10px] sm:text-xs text-muted-foreground"
                 aria-label="Empty bench slot"
               >
                 Empty

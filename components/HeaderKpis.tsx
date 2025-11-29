@@ -104,24 +104,23 @@ export function HeaderKpis({ compact = false, onGwChange, weekPredPts }: { compa
     <header className="sticky top-0 z-50 border-b border-slate-200 bg-white backdrop-blur shadow-sm">
       {/* Top Bar with Logo and Actions */}
       <div className="border-b border-slate-800/80 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-fuchsia-900/40 via-slate-950 to-slate-950">
-        <div className="container flex h-14 items-center justify-between">
-          <Link href="/" className="text-lg font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent hover:from-blue-700 hover:to-purple-700 transition-all duration-200">
+        <div className="container flex h-12 sm:h-14 items-center justify-between px-3 sm:px-4">
+          <Link href="/" className="text-base sm:text-lg font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent hover:from-blue-700 hover:to-purple-700 transition-all duration-200">
             FPL Companion
           </Link>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2">
             <Button 
               size="sm"
               variant="outline"
-              className="gap-2 border-slate-600 text-slate-100 bg-slate-900/40 hover:bg-slate-800"
+              className="gap-1 sm:gap-2 border-slate-600 text-slate-100 bg-slate-900/40 hover:bg-slate-800 h-8 sm:h-9 px-2 sm:px-3"
               onClick={handleRefresh}
               disabled={refreshing}
             >
-              <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
-              <span className="hidden sm:inline">Refresh Data</span>
+              <RefreshCw className={cn("h-3.5 w-3.5 sm:h-4 sm:w-4", refreshing && "animate-spin")} />
             </Button>
             <Button 
             size="sm"
-            className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white shadow-sm hover:shadow-md transition-all duration-200"
+            className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white shadow-sm hover:shadow-md transition-all duration-200 h-8 sm:h-9 px-2 sm:px-3 text-xs sm:text-sm"
             onClick={async () => {
               try {
                 const supabase = createClient()
@@ -152,25 +151,25 @@ export function HeaderKpis({ compact = false, onGwChange, weekPredPts }: { compa
 
       {/* Gameweek Stats Bar */}
       {!compact && (
-        <div className="sticky top-[57px] z-40 border-b border-slate-200 bg-gradient-to-r from-white/95 to-slate-50/95 backdrop-blur">
-          <div className="container py-3">
-            <div className="flex items-center justify-between gap-6">
+        <div className="sticky top-[49px] sm:top-[57px] z-40 border-b border-slate-200 bg-gradient-to-r from-white/95 to-slate-50/95 backdrop-blur">
+          <div className="container py-2 sm:py-3 px-3 sm:px-4">
+            <div className="flex items-center justify-between gap-2 sm:gap-6">
               {/* Gameweek Title with Navigation - Left Side */}
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1 sm:gap-3">
                 <Button 
                   variant="ghost" 
                   size="icon"
                   onClick={() => handleGwChange(-1)}
                   disabled={gwOffset === 0}
-                  className="h-7 w-7"
+                  className="h-6 w-6 sm:h-7 sm:w-7"
                 >
-                  <ChevronLeft className="h-4 w-4" />
+                  <ChevronLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 </Button>
                 <div>
-                  <h2 className="text-lg font-bold leading-tight" suppressHydrationWarning>
+                  <h2 className="text-sm sm:text-lg font-bold leading-tight" suppressHydrationWarning>
                     {mounted ? `Gameweek ${currentGw + gwOffset}` : "Gameweek"}
                   </h2>
-                  <p className="text-xs text-muted-foreground" suppressHydrationWarning>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground" suppressHydrationWarning>
                     {mounted ? deadlineText : ""}
                   </p>
                 </div>
@@ -178,60 +177,88 @@ export function HeaderKpis({ compact = false, onGwChange, weekPredPts }: { compa
                   variant="ghost" 
                   size="icon"
                   onClick={() => handleGwChange(1)}
-                  className="h-7 w-7"
+                  className="h-6 w-6 sm:h-7 sm:w-7"
                 >
-                  <ChevronRight className="h-4 w-4" />
+                  <ChevronRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 </Button>
               </div>
 
-              {/* Stats Grid - Right Side */}
+              {/* Stats Grid - Mobile (all KPIs) */}
+              <div className="flex lg:hidden items-center gap-3 sm:gap-4">
+                <div className="text-center">
+                  <div className="text-[8px] text-muted-foreground">Team</div>
+                  <div className="text-xs font-bold text-emerald-600" suppressHydrationWarning>
+                    {mounted ? `${Math.round(teamRating)}%` : "0%"}
+                  </div>
+                </div>
+                <div className="text-center">
+                  <div className="text-[8px] text-muted-foreground">GW</div>
+                  <div className="text-xs font-bold text-sky-600" suppressHydrationWarning>
+                    {mounted ? `${Math.round(gwRating)}%` : "0%"}
+                  </div>
+                </div>
+                <div className="text-center">
+                  <div className="text-[8px] text-muted-foreground">Pts</div>
+                  <div className="text-xs font-bold" suppressHydrationWarning>
+                    {mounted && typeof weekPredPts === 'number' ? weekPredPts.toFixed(1) : "0"}
+                  </div>
+                </div>
+                <div className="text-center">
+                  <div className="text-[8px] text-muted-foreground">Bank</div>
+                  <div className="text-xs font-bold" suppressHydrationWarning>
+                    {mounted ? `£${bank.toFixed(1)}` : "£0"}
+                  </div>
+                </div>
+              </div>
+
+              {/* Stats Grid - Desktop (full) */}
               <div className="hidden lg:flex items-center gap-6">
-            <div className="text-center">
-              <div className="text-xs text-muted-foreground mb-0.5">Team Rating</div>
-              <div className="text-xl font-bold text-emerald-600" suppressHydrationWarning>
-                {mounted ? <AnimatedNumber value={teamRating} format={(n) => `${Math.round(n)}%`} /> : "0%"}
-              </div>
-            </div>
-            <div className="text-center">
-              <div className="text-xs text-muted-foreground mb-0.5">Predicted Points</div>
-              <div className="text-xl font-bold" suppressHydrationWarning>
-                {mounted && typeof weekPredPts === 'number' ? <AnimatedNumber value={weekPredPts} format={(n) => n.toFixed(1)} /> : "0.0"}
-              </div>
-            </div>
-            <div className="text-center">
-              <div className="text-xs text-muted-foreground mb-0.5">GW Rating</div>
-              <div className="text-xl font-bold text-sky-600" suppressHydrationWarning>
-                {mounted ? <AnimatedNumber value={gwRating} format={(n) => `${Math.round(n)}%`} /> : "0%"}
-              </div>
-            </div>
-            <div className="text-center">
-              <div className="text-xs text-muted-foreground mb-0.5">In the bank</div>
-              <div className="flex items-center justify-center gap-1">
-                <span className="text-xl font-bold" suppressHydrationWarning>
-                  {mounted ? `£${bank.toFixed(1)}m` : "£0.0m"}
-                </span>
-                <Dialog open={open} onOpenChange={(o)=>{ setOpen(o); if (o) setBankInput(bank.toFixed(1)); }}>
-                  <DialogTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-5 w-5">
-                      <Pencil className="h-3 w-3" />
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Edit Bank</DialogTitle>
-                      <DialogDescription>Adjust available funds in your bank.</DialogDescription>
-                    </DialogHeader>
-                    <div className="flex items-center gap-2">
-                      <PiggyBank className="h-5 w-5" />
-                      <Input value={bankInput} onChange={(e)=>setBankInput(e.target.value)} inputMode="decimal" />
-                      <Button onClick={()=>{ const v = parseFloat(bankInput); if (!Number.isNaN(v)) { setBank(Number(v.toFixed(1))); setOpen(false); } }}>
-                        Save
-                      </Button>
-                    </div>
-                  </DialogContent>
-                </Dialog>
-              </div>
-            </div>
+                <div className="text-center">
+                  <div className="text-xs text-muted-foreground mb-0.5">Team Rating</div>
+                  <div className="text-xl font-bold text-emerald-600" suppressHydrationWarning>
+                    {mounted ? <AnimatedNumber value={teamRating} format={(n) => `${Math.round(n)}%`} /> : "0%"}
+                  </div>
+                </div>
+                <div className="text-center">
+                  <div className="text-xs text-muted-foreground mb-0.5">Predicted Points</div>
+                  <div className="text-xl font-bold" suppressHydrationWarning>
+                    {mounted && typeof weekPredPts === 'number' ? <AnimatedNumber value={weekPredPts} format={(n) => n.toFixed(1)} /> : "0.0"}
+                  </div>
+                </div>
+                <div className="text-center">
+                  <div className="text-xs text-muted-foreground mb-0.5">GW Rating</div>
+                  <div className="text-xl font-bold text-sky-600" suppressHydrationWarning>
+                    {mounted ? <AnimatedNumber value={gwRating} format={(n) => `${Math.round(n)}%`} /> : "0%"}
+                  </div>
+                </div>
+                <div className="text-center">
+                  <div className="text-xs text-muted-foreground mb-0.5">In the bank</div>
+                  <div className="flex items-center justify-center gap-1">
+                    <span className="text-xl font-bold" suppressHydrationWarning>
+                      {mounted ? `£${bank.toFixed(1)}m` : "£0.0m"}
+                    </span>
+                    <Dialog open={open} onOpenChange={(o)=>{ setOpen(o); if (o) setBankInput(bank.toFixed(1)); }}>
+                      <DialogTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-5 w-5">
+                          <Pencil className="h-3 w-3" />
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Edit Bank</DialogTitle>
+                          <DialogDescription>Adjust available funds in your bank.</DialogDescription>
+                        </DialogHeader>
+                        <div className="flex items-center gap-2">
+                          <PiggyBank className="h-5 w-5" />
+                          <Input value={bankInput} onChange={(e)=>setBankInput(e.target.value)} inputMode="decimal" />
+                          <Button onClick={()=>{ const v = parseFloat(bankInput); if (!Number.isNaN(v)) { setBank(Number(v.toFixed(1))); setOpen(false); } }}>
+                            Save
+                          </Button>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

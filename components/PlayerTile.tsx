@@ -40,13 +40,12 @@ export const PlayerTile = memo(function PlayerTile({ player, isCaptain, isVice, 
   return (
     <motion.div
       className={cn(
-        "group relative rounded-xl border-2 shadow-sm transition-all",
+        "group relative rounded-xl border-2 shadow-sm transition-all w-full",
         isSelected 
           ? "border-solid border-blue-500 bg-blue-50 dark:bg-blue-950 ring-2 ring-blue-400 shadow-lg scale-105"
           : "border-dashed border-transparent bg-card/50 hover:border-primary/50 hover:bg-card/70 hover:shadow-md",
         className
       )}
-      style={{ width: '140px', height: '200px' }}
       whileHover={{ scale: 1.02 }}
       whileTap={{ scale: 0.98 }}
     >
@@ -58,15 +57,15 @@ export const PlayerTile = memo(function PlayerTile({ player, isCaptain, isVice, 
       <div className="relative h-full">
         {/* Captain/Vice Captain Badges */}
         {(isCaptain || isVice) && (
-          <div className="absolute left-2 top-2 z-10 flex gap-1">
+          <div className="absolute left-0.5 sm:left-2 top-0.5 sm:top-2 z-10 flex gap-0.5">
             {isCaptain && (
-              <span className="flex items-center gap-1 rounded-full bg-emerald-600 px-2 py-0.5 text-xs font-bold text-white shadow-sm" aria-label="Captain">
-                <Crown className="h-3.5 w-3.5" /> C
+              <span className="flex items-center justify-center w-4 h-4 sm:w-auto sm:h-auto sm:gap-1 rounded-full bg-emerald-600 sm:px-2 sm:py-0.5 text-[8px] sm:text-xs font-bold text-white shadow-sm" aria-label="Captain">
+                <span className="hidden sm:inline"><Crown className="h-3.5 w-3.5" /></span> C
               </span>
             )}
             {isVice && (
-              <span className="flex items-center gap-1 rounded-full bg-sky-600 px-2 py-0.5 text-xs font-bold text-white shadow-sm" aria-label="Vice Captain">
-                <Shield className="h-3.5 w-3.5" /> V
+              <span className="flex items-center justify-center w-4 h-4 sm:w-auto sm:h-auto sm:gap-1 rounded-full bg-sky-600 sm:px-2 sm:py-0.5 text-[8px] sm:text-xs font-bold text-white shadow-sm" aria-label="Vice Captain">
+                <span className="hidden sm:inline"><Shield className="h-3.5 w-3.5" /></span> V
               </span>
             )}
           </div>
@@ -103,95 +102,24 @@ export const PlayerTile = memo(function PlayerTile({ player, isCaptain, isVice, 
           );
         })()}
 
-        {/* Large Team Shirt - visible and prominent */}
-        <div className="flex justify-center items-center h-32 pt-2 pb-2">
-          <TeamShirt team={player.team} className="w-24 h-24" />
+        {/* Team Shirt - smaller on mobile */}
+        <div className="flex justify-center items-center pt-1 sm:pt-2">
+          <TeamShirt team={player.team} className="w-8 h-8 sm:w-14 sm:h-14" />
         </div>
 
-        {/* Ultra-compact transparent info card */}
-        <div className="bg-white/60 rounded-md mx-2 mb-2 px-2 py-0.5 shadow-sm">
-          {/* Single line - Name and Price */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1">
-              <span className="text-[10px] font-bold text-black">{player.position}</span>
-              <span className="text-[10px] font-medium truncate text-black max-w-[50px]">{getFPLDisplayName(player.name)}</span>
-            </div>
-            <span className="text-[10px] font-bold text-black">{player.price.toFixed(1)}m</span>
+        {/* Player info - with dark background for readability */}
+        <div className="bg-slate-900/85 rounded mx-0.5 sm:mx-1 px-1 py-0.5 text-center">
+          {/* Name - truncated */}
+          <div className="text-[8px] sm:text-[11px] font-bold text-white truncate leading-tight">
+            {getFPLDisplayName(player.name)}
           </div>
-
-          {/* Bottom line - Fixture and Points */}
-          <div className="flex items-center justify-between">
-            {/* Fixture display - very compact */}
-            <div className="text-[9px] font-medium text-gray-600">
-              {fixText || (
-                player.nextFixtures.length > 0 && 
-                `${player.nextFixtures[0].opp} (${player.nextFixtures[0].H ? 'H' : 'A'})`
-              )}
-            </div>
-            
-            {/* Expected Points - prominent green */}
-            <div className="flex items-center gap-0.5">
-              {player.expExplain ? (
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <span className="cursor-help text-xs font-bold text-green-600">
-                        {weekPts.toFixed(1)}
-                      </span>
-                    </TooltipTrigger>
-                    <TooltipContent className="max-w-xs text-xs">
-                      {player.expExplain?.source && (
-                        <div className="mb-1 text-[10px] uppercase tracking-wide text-muted-foreground">
-                          Source: {player.expExplain.source === 'market' ? 'Market' : 'FPL'}
-                        </div>
-                      )}
-                      <div className="font-semibold">Expected points breakdown for GW{w+1}</div>
-                      <div>Base: {player.expExplain.base.toFixed(1)}</div>
-                      <div>Minutes: p={Math.round(player.expExplain.minutesProb*100)}%, factor={player.expExplain.minutesFactor.toFixed(2)}</div>
-                      <div>Injury penalty: {player.expExplain.injuryPenalty.toFixed(2)}</div>
-                      <div>Form: {player.expExplain.form?.toFixed(1) ?? '-'} → factor={player.expExplain.formFactor.toFixed(2)}</div>
-                      <div>Position factor: {player.expExplain.positionFactor.toFixed(2)}</div>
-                      <div className="mt-1">Fixtures:</div>
-                      {player.expExplain.fixtureWeights.map((fw, i) => (
-                        <div key={i}>GW+{i+1}: w={fw.w.toFixed(2)}, d={fw.d}, {fw.H ? 'H' : 'A'}, factor={fw.factor.toFixed(2)}</div>
-                      ))}
-                      <div>Blended fixture factor: {player.expExplain.blendedFixtureFactor.toFixed(2)}</div>
-                      {player.expExplain.eventFixtureCounts && (
-                        <div className="mt-1">
-                          <div className="font-medium">Next events:</div>
-                          {player.expExplain.eventFixtureCounts.map((c, i) => (
-                            <div key={i}>GW+{i+1}: {c} {c===0 ? '(Blank)' : c>=2 ? '(DGW)' : ''}</div>
-                          ))}
-                        </div>
-                      )}
-                      {typeof player.eoRisk === 'number' && (
-                        <div className="mt-1 text-rose-700 dark:text-rose-300">EO risk: {player.eoRisk.toFixed(1)}</div>
-                      )}
-                      <div className="mt-1 font-semibold">Final (this GW): {weekPts.toFixed(1)} pts</div>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              ) : (
-                <span className="text-xs font-bold text-green-600">
-                  {weekPts.toFixed(1)}
-                </span>
-              )}
-              
-              {/* Tiny status indicators */}
-              <div className="flex gap-0.5">
-                {player.expExplain?.source === 'market' && (
-                  <div className="w-1 h-1 rounded-full bg-emerald-500" title="Market data" />
-                )}
-                {typeof fixtureCount === 'number' && fixtureCount !== 1 && (
-                  <div 
-                    className={`w-1 h-1 rounded-full ${
-                      fixtureCount === 0 ? 'bg-gray-400' : 'bg-blue-500'
-                    }`} 
-                    title={fixtureCount === 0 ? 'Blank GW' : 'Double GW'} 
-                  />
-                )}
-              </div>
-            </div>
+          {/* Opponent fixture */}
+          <div className="text-[7px] sm:text-[9px] text-amber-300 leading-tight">
+            {fixText || (player.nextFixtures?.[0] ? `${player.nextFixtures[0].opp} (${player.nextFixtures[0].H ? 'H' : 'A'})` : player.team)}
+          </div>
+          {/* Points - prominent green */}
+          <div className="text-[9px] sm:text-xs font-bold text-emerald-400 leading-tight">
+            {weekPts.toFixed(1)}
           </div>
         </div>
       </div>

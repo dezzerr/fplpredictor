@@ -41,9 +41,9 @@ export function SaveSquadButton({ currentGameweek, gwOffset }: SaveSquadButtonPr
       <DialogTrigger asChild>
         <Button 
           size="sm" 
-          className="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white shadow-sm hover:shadow-md transition-all duration-200 gap-2"
+          className="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white shadow-sm hover:shadow-md transition-all duration-200 gap-1 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm h-auto"
         >
-          <Save className="h-4 w-4" />
+          <Save className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
           <span className="hidden sm:inline">Save</span>
         </Button>
       </DialogTrigger>

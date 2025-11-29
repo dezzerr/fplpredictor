@@ -36,27 +36,27 @@ export function NavigationBar({ currentGameweek, gwOffset }: NavigationBarProps)
   }
 
   return (
-    <div className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200/50 rounded-lg p-3 shadow-sm">
-      <nav className="flex items-center justify-center gap-2 flex-wrap">
+    <div className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200/50 rounded-lg p-2 sm:p-3 shadow-sm">
+      <nav className="flex items-center justify-center gap-1.5 sm:gap-2 flex-wrap">
         <Link 
           href="/compare" 
-          className="inline-flex items-center rounded-md bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-3 py-1.5 text-sm font-medium transition-all duration-200 shadow-sm hover:shadow-md"
+          className="inline-flex items-center rounded-md bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm font-medium transition-all duration-200 shadow-sm hover:shadow-md"
         >
-          <Target className="h-4 w-4 mr-2" />
+          <Target className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
           <span>Compare</span>
         </Link>
         <Link 
           href="/fixtures" 
-          className="inline-flex items-center rounded-md bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white px-3 py-1.5 text-sm font-medium transition-all duration-200 shadow-sm hover:shadow-md"
+          className="inline-flex items-center rounded-md bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm font-medium transition-all duration-200 shadow-sm hover:shadow-md"
         >
-          <CalendarDays className="h-4 w-4 mr-2" />
+          <CalendarDays className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
           <span>Fixtures</span>
         </Link>
         <Link 
           href="/optimize" 
-          className="inline-flex items-center rounded-md bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white px-3 py-1.5 text-sm font-medium transition-all duration-200 shadow-sm hover:shadow-md"
+          className="inline-flex items-center rounded-md bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm font-medium transition-all duration-200 shadow-sm hover:shadow-md"
         >
-          <Calendar className="h-4 w-4 mr-2" />
+          <Calendar className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
           <span>Optimize</span>
         </Link>
         <SaveSquadButton currentGameweek={currentGameweek} gwOffset={gwOffset} />
@@ -64,9 +64,9 @@ export function NavigationBar({ currentGameweek, gwOffset }: NavigationBarProps)
           <DialogTrigger asChild>
             <Button 
               size="sm" 
-              className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white shadow-sm hover:shadow-md transition-all duration-200 gap-2"
+              className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white shadow-sm hover:shadow-md transition-all duration-200 gap-1 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm h-auto"
             >
-              <UploadCloud className="h-4 w-4" />
+              <UploadCloud className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               <span>Import</span>
             </Button>
           </DialogTrigger>

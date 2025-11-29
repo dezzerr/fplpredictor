@@ -6,7 +6,8 @@ import { PitchCard } from "@/components/PitchCard";
 import { NavigationBar } from "@/components/NavigationBar";
 import { useSquadStore, type SquadState } from "@/store/squad";
 import type { Player } from "@/lib/data";
-import { Sparkles } from "lucide-react";
+import { Sparkles, Search } from "lucide-react";
+import { Sheet, SheetContent, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { BenchRail } from "@/components/BenchRail";
 import { PlayerSheet } from "@/components/PlayerSheet";
 import { PlayerFinder } from "@/components/PlayerFinder";
@@ -25,6 +26,7 @@ export default function Page() {
   const captainId = useSquadStore((s) => s.squad.captainId);
   const [playerOpen, setPlayerOpen] = useState(false);
   const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
+  const [finderOpen, setFinderOpen] = useState(false);
   const [gwOffset, setGwOffset] = useState<number>(0);
   const squad = useSquadStore((s) => s.squad);
   const autoSelectBestXI = useSquadStore((s) => s.autoSelectBestXI);
@@ -93,10 +95,13 @@ export default function Page() {
     return pickXIForWeek(squad, gwOffset);
   }, [mounted, squad, gwOffset, starterIds, benchIds, captainId]);
 
-  // Chip deltas for selected GW
-  const capPlayer = mounted ? xiSel.xi.find((p) => p.id === xiSel.capId) : null;
-  const tcDelta = mounted && capPlayer ? weeklyExp(capPlayer, gwOffset) : 0; // TC adds +cap points beyond normal double
-  const bbDelta = mounted ? xiSel.bench.reduce((s, p) => s + weeklyExp(p, gwOffset), 0) : 0; // BB adds bench points
+  // Chip deltas for selected GW - use user's actual captain, not optimal
+  const allPlayers = useMemo(() => [
+    ...starters.GK, ...starters.DEF, ...starters.MID, ...starters.FWD, ...squad.bench
+  ], [starters, squad.bench]);
+  const userCaptain = mounted ? allPlayers.find((p) => p.id === captainId) : null;
+  const tcDelta = mounted && userCaptain ? weeklyExp(userCaptain, gwOffset) : 0; // TC adds +cap points beyond normal double
+  const bbDelta = mounted ? squad.bench.reduce((s, p) => s + weeklyExp(p, gwOffset), 0) : 0; // BB adds bench points
   const fhDelta = useMemo(() => {
     if (!mounted || !pool || !Array.isArray(pool) || pool.length === 0) return null;
     const best = pickBestXIFromPool(pool, gwOffset).points;
@@ -114,38 +119,49 @@ export default function Page() {
           {/* Main Content */}
           <div className="mx-auto w-full max-w-[880px] space-y-4">
             {/* Chip Deltas & Actions */}
-            <div className="bg-card border rounded-lg p-4">
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                <div className="flex items-center gap-6">
+            <div className="bg-card border rounded-lg p-3 sm:p-4">
+              <div className="flex items-center justify-between gap-2 sm:gap-4">
+                <div className="flex items-center gap-3 sm:gap-6">
                   <div className="text-center">
-                    <div className="text-xs text-muted-foreground mb-1">TC</div>
-                    <div className="text-lg font-bold">
+                    <div className="text-[10px] sm:text-xs text-muted-foreground mb-0.5 sm:mb-1">TC</div>
+                    <div className="text-sm sm:text-lg font-bold">
                       {mounted ? `${tcDelta >= 0 ? "+" : ""}${tcDelta.toFixed(1)}` : "+0.0"}
                     </div>
                   </div>
                   <div className="text-center">
-                    <div className="text-xs text-muted-foreground mb-1">BB</div>
-                    <div className="text-lg font-bold">
+                    <div className="text-[10px] sm:text-xs text-muted-foreground mb-0.5 sm:mb-1">BB</div>
+                    <div className="text-sm sm:text-lg font-bold">
                       {mounted ? `${bbDelta >= 0 ? "+" : ""}${bbDelta.toFixed(1)}` : "+0.0"}
                     </div>
                   </div>
                   <div className="text-center">
-                    <div className="text-xs text-muted-foreground mb-1">FH</div>
-                    <div className="text-lg font-bold">
+                    <div className="text-[10px] sm:text-xs text-muted-foreground mb-0.5 sm:mb-1">FH</div>
+                    <div className="text-sm sm:text-lg font-bold">
                       {!mounted ? "..." : fhDelta === null ? "..." : `${fhDelta >= 0 ? "+" : ""}${fhDelta.toFixed(1)}`}
                     </div>
                   </div>
                 </div>
-                <Button 
-                  variant="default" 
-                  size="sm" 
-                  onClick={() => autoSelectBestXI(gwOffset)}
-                  className="bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white"
-                >
-                  <Sparkles className="h-4 w-4 mr-2" />
-                  <span className="hidden sm:inline">Auto-Select Best XI</span>
-                  <span className="sm:hidden">Auto</span>
-                </Button>
+                <div className="flex items-center gap-2">
+                  {/* Mobile Player Finder Button */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setFinderOpen(true)}
+                    className="lg:hidden"
+                  >
+                    <Search className="h-4 w-4" />
+                    <span className="hidden sm:inline ml-2">Find</span>
+                  </Button>
+                  <Button 
+                    variant="default" 
+                    size="sm" 
+                    onClick={() => autoSelectBestXI(gwOffset)}
+                    className="bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white"
+                  >
+                    <Sparkles className="h-4 w-4" />
+                    <span className="hidden sm:inline ml-2">Auto</span>
+                  </Button>
+                </div>
               </div>
             </div>
 
@@ -181,6 +197,17 @@ export default function Page() {
       </main>
       <PlayerSheet playerId={selectedPlayerId} open={playerOpen} onOpenChange={setPlayerOpen} />
       <OnboardingDialog />
+      
+      {/* Mobile Player Finder Sheet */}
+      <Sheet open={finderOpen} onOpenChange={setFinderOpen}>
+        <SheetContent side="right" className="w-full sm:w-[400px] overflow-y-auto">
+          <SheetTitle className="sr-only">Find Players</SheetTitle>
+          <SheetDescription className="sr-only">Search and add players to your squad</SheetDescription>
+          <ErrorBoundary compact name="PlayerFinder">
+            <PlayerFinder />
+          </ErrorBoundary>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

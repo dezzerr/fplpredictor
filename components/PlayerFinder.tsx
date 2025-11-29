@@ -298,10 +298,10 @@ export function PlayerFinder() {
   }, [search, price, teamFilter, sort, position]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Find a player section */}
-      <div className="space-y-4">
-        <h2 className="text-lg font-semibold text-gray-900">Find a player</h2>
+      <div className="space-y-3 sm:space-y-4">
+        <h2 className="text-base sm:text-lg font-semibold text-gray-900">Find a player</h2>
         
         {/* Search bar */}
         <div className="relative">
@@ -310,33 +310,33 @@ export function PlayerFinder() {
             placeholder="Search by name"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-10 h-12 text-base"
+            className="pl-10 h-10 sm:h-12 text-sm sm:text-base"
           />
         </div>
 
-        {/* Filter row */}
-        <div className="flex gap-3 items-center">
+        {/* Filter row - wrap on mobile */}
+        <div className="flex flex-wrap gap-2 sm:gap-3 items-center">
           <Select value={position === "ALL" ? "all" : position} onValueChange={(value) => setPosition(value === "all" ? "ALL" : value as any)}>
-            <SelectTrigger className="w-32">
-              <SelectValue placeholder="All players" />
+            <SelectTrigger className="w-[100px] sm:w-32 h-9 sm:h-10 text-xs sm:text-sm">
+              <SelectValue placeholder="All" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All players</SelectItem>
-              <SelectItem value="GK">Goalkeepers</SelectItem>
-              <SelectItem value="DEF">Defenders</SelectItem>
-              <SelectItem value="MID">Midfielders</SelectItem>
-              <SelectItem value="FWD">Forwards</SelectItem>
+              <SelectItem value="all">All</SelectItem>
+              <SelectItem value="GK">GK</SelectItem>
+              <SelectItem value="DEF">DEF</SelectItem>
+              <SelectItem value="MID">MID</SelectItem>
+              <SelectItem value="FWD">FWD</SelectItem>
             </SelectContent>
           </Select>
 
           <Select value={sort} onValueChange={setSort}>
-            <SelectTrigger className="w-32">
+            <SelectTrigger className="w-[100px] sm:w-32 h-9 sm:h-10 text-xs sm:text-sm">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="EXP_POINTS">Total points</SelectItem>
+              <SelectItem value="EXP_POINTS">Points</SelectItem>
               <SelectItem value="PRICE">Price</SelectItem>
-              <SelectItem value="OWNERSHIP">Ownership</SelectItem>
+              <SelectItem value="OWNERSHIP">Owned</SelectItem>
               <SelectItem value="FORM">Form</SelectItem>
             </SelectContent>
           </Select>
@@ -345,70 +345,63 @@ export function PlayerFinder() {
             const maxPrice = parseFloat(value.replace('£', '').replace('m', ''));
             setPrice([MIN_PRICE, maxPrice]);
           }}>
-            <SelectTrigger className="w-24">
+            <SelectTrigger className="w-[80px] sm:w-24 h-9 sm:h-10 text-xs sm:text-sm">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="£16.0m">£16.0m</SelectItem>
-              <SelectItem value="£14.0m">£14.0m</SelectItem>
-              <SelectItem value="£12.0m">£12.0m</SelectItem>
-              <SelectItem value="£10.0m">£10.0m</SelectItem>
-              <SelectItem value="£8.0m">£8.0m</SelectItem>
-              <SelectItem value="£6.0m">£6.0m</SelectItem>
-              <SelectItem value="£4.0m">£4.0m</SelectItem>
+              <SelectItem value="£16.0m">£16m</SelectItem>
+              <SelectItem value="£14.0m">£14m</SelectItem>
+              <SelectItem value="£12.0m">£12m</SelectItem>
+              <SelectItem value="£10.0m">£10m</SelectItem>
+              <SelectItem value="£8.0m">£8m</SelectItem>
+              <SelectItem value="£6.0m">£6m</SelectItem>
+              <SelectItem value="£4.0m">£4m</SelectItem>
             </SelectContent>
           </Select>
 
-          <Button variant="outline" onClick={resetFilters} className="gap-2">
-            <RotateCcw className="h-4 w-4" />
-            Reset
+          <Button variant="outline" onClick={resetFilters} size="sm" className="gap-1 sm:gap-2 h-9 sm:h-10 px-2 sm:px-3">
+            <RotateCcw className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+            <span className="hidden sm:inline">Reset</span>
           </Button>
         </div>
       </div>
 
       {/* Players count banner */}
-      <div className="bg-gradient-to-r from-cyan-400 to-blue-500 text-white text-center py-3 rounded-lg font-medium">
-        {filtered.length} players shown
+      <div className="bg-gradient-to-r from-cyan-400 to-blue-500 text-white text-center py-2 sm:py-3 rounded-lg font-medium text-sm sm:text-base">
+        {filtered.length} players
       </div>
 
-      {/* Position tabs */}
-      <Tabs value="all" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 bg-gray-100">
-          <TabsTrigger value="all" className="text-gray-900">All players</TabsTrigger>
-          <TabsTrigger value="watchlist" className="text-gray-500">Watchlist</TabsTrigger>
-        </TabsList>
-      </Tabs>
-
-      {/* Position filter tabs */}
+      {/* Position filter tabs - compact on mobile */}
       <div className="space-y-1">
-        <h3 className="text-sm font-medium text-gray-600 mb-2">Position</h3>
-        <div className="grid grid-cols-4 gap-2">
+        <div className="grid grid-cols-4 gap-1 sm:gap-2">
           {(['GK', 'DEF', 'MID', 'FWD'] as const).map((pos) => (
             <Button
               key={pos}
               variant={position === pos ? "default" : "outline"}
               onClick={() => setPosition(pos)}
-              className="text-sm"
+              size="sm"
+              className="text-xs sm:text-sm px-2 sm:px-3"
             >
-              {positionNames[pos]}
+              {pos}
             </Button>
           ))}
         </div>
       </div>
 
-      {/* Teams filter */}
-      <div className="space-y-3">
-        <h3 className="text-sm font-medium text-gray-600">Teams</h3>
-        <div className="grid grid-cols-4 gap-3">
+      {/* Teams filter - scrollable on mobile */}
+      <div className="space-y-2">
+        <h3 className="text-xs sm:text-sm font-medium text-gray-600">Teams</h3>
+        <div className="flex flex-wrap gap-1.5 sm:gap-2 max-h-[120px] sm:max-h-none overflow-y-auto">
           {teams.slice(0, 20).map((team) => (
             <Button
               key={team}
               variant={teamFilter === team ? "default" : "ghost"}
               onClick={() => setTeamFilter(teamFilter === team ? "all" : team)}
-              className="justify-start gap-2 h-auto p-2"
+              size="sm"
+              className="gap-1 h-auto p-1.5 sm:p-2"
             >
-              <TeamShirt team={team} className="w-5 h-5" />
-              <span className="text-xs">{team}</span>
+              <TeamShirt team={team} className="w-4 h-4 sm:w-5 sm:h-5" />
+              <span className="text-[10px] sm:text-xs">{team}</span>
             </Button>
           ))}
         </div>

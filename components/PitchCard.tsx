@@ -39,18 +39,18 @@ function Row({ position, onPlayerClick, weekOffset }: { position: Position; onPl
   };
 
   return (
-    <div className="flex flex-wrap items-start justify-center gap-3 sm:gap-4">
+    <div className="flex flex-wrap items-start justify-center gap-1 sm:gap-3">
       {slots.map((_, idx) => {
         const p = squad.starters[position][idx];
         return (
-          <div key={idx} className="w-[112px] sm:w-[132px]">
+          <div key={idx} className="w-[56px] sm:w-[100px]">
             {p ? (
               <PlayerTile
                 player={p}
                 isCaptain={squad.captainId === p.id}
                 isVice={squad.viceId === p.id}
                 onClick={() => handlePlayerClick(p.id)}
-                className="h-[140px]"
+                className="h-[72px] sm:h-[120px]"
                 weekOffset={weekOffset}
                 isSelected={selectedPlayerId === p.id}
                 showActions={true}
@@ -72,10 +72,10 @@ function EmptySlot({ position }: { position: Position }) {
   const label = position === 'GK' ? 'Goalkeeper' : position === 'DEF' ? 'Defender' : position === 'MID' ? 'Midfielder' : 'Forward';
   return (
     <div
-      className="flex h-[140px] items-center justify-center rounded-2xl border-2 border-dashed border-white/30 text-xs text-white/80"
+      className="flex h-[72px] sm:h-[120px] items-center justify-center rounded-lg sm:rounded-xl border-2 border-dashed border-white/30 text-[9px] sm:text-xs text-white/60"
       aria-label={`Empty ${label} slot`}
     >
-      Empty
+      +
     </div>
   );
 }
@@ -84,9 +84,9 @@ export function PitchCard({ onPlayerClick, weekOffset }: { onPlayerClick: (id: s
   const squad = useSquadStore((s) => s.squad);
   const formationText = `${squad.starters.DEF.length}-${squad.starters.MID.length}-${squad.starters.FWD.length} Formation`;
   return (
-    <Card className="pitch-bg relative overflow-hidden p-4 sm:p-6">
-      <div className="mb-4 text-center text-white/90">{formationText}</div>
-      <div className="space-y-4 sm:space-y-6">
+    <Card className="pitch-bg relative overflow-hidden p-2 sm:p-4">
+      <div className="mb-1 sm:mb-3 text-center text-xs sm:text-sm text-white/80 font-medium">{formationText}</div>
+      <div className="space-y-1 sm:space-y-4">
         <Row position="GK" onPlayerClick={onPlayerClick} weekOffset={weekOffset} />
         <Row position="DEF" onPlayerClick={onPlayerClick} weekOffset={weekOffset} />
         <Row position="MID" onPlayerClick={onPlayerClick} weekOffset={weekOffset} />
