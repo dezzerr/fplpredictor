@@ -109,7 +109,7 @@ export function MobileAddPlayerPage({
   }, [squad]);
 
   const filteredPlayers = useMemo(() => {
-    let players = allPlayers.filter(p => {
+    const players = allPlayers.filter(p => {
       if (positionFilter !== "all" && p.position !== positionFilter) return false;
       if (squadPlayerIds.has(p.id)) return false;
       if (priceFilter !== "unlimited" && p.price > priceFilter) return false;
