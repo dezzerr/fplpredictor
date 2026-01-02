@@ -34,9 +34,12 @@ export function MobileSquadView({ currentGw, gwOffset, deadline, onGwChange }: M
   const [importMode, setImportMode] = useState(false);
   const [optimiseMode, setOptimiseMode] = useState(false);
   const [compareMode, setCompareMode] = useState(false);
+  const [substituteMode, setSubstituteMode] = useState(false);
+  const [substitutePlayer, setSubstitutePlayer] = useState<Player | null>(null);
   
   const autoSelectBestXI = useSquadStore((s) => s.autoSelectBestXI);
   const selectPlayer = useSquadStore((s) => s.selectPlayer);
+  const swapPlayers = useSquadStore((s) => s.swapPlayers);
   const totalExpForWeek = useSquadStore((s) => s.totalExpForWeek);
   const canUndo = useSquadStore((s) => s.canUndo);
   const undo = useSquadStore((s) => s.undo);
@@ -58,8 +61,35 @@ export function MobileSquadView({ currentGw, gwOffset, deadline, onGwChange }: M
   };
 
   const handlePlayerClick = (id: string) => {
+    // If in substitute mode, perform the swap
+    if (substituteMode && substitutePlayer) {
+      selectPlayer(substitutePlayer.id);
+      const result = swapPlayers(id);
+      if (result.ok) {
+        toast.success(`Swapped ${substitutePlayer.name}`);
+      } else {
+        toast.error(result.reason || "Cannot swap these players");
+      }
+      setSubstituteMode(false);
+      setSubstitutePlayer(null);
+      selectPlayer(null);
+      return;
+    }
+    
     setSelectedPlayerId(id);
     setPlayerProfileOpen(true);
+  };
+
+  const handleSubstitute = (player: Player) => {
+    setSubstitutePlayer(player);
+    setSubstituteMode(true);
+    toast.info(`Select a player to swap with ${player.name}`);
+  };
+
+  const cancelSubstitute = () => {
+    setSubstituteMode(false);
+    setSubstitutePlayer(null);
+    selectPlayer(null);
   };
   
   // Get selected player for profile
@@ -199,6 +229,23 @@ export function MobileSquadView({ currentGw, gwOffset, deadline, onGwChange }: M
         />
       </div>
 
+      {/* Substitute Mode Banner */}
+      {substituteMode && substitutePlayer && (
+        <div className="fixed bottom-20 left-0 right-0 z-40 px-4">
+          <div className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-xl p-3 shadow-lg flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium">Swap {substitutePlayer.name} with...</span>
+            </div>
+            <button
+              onClick={cancelSubstitute}
+              className="px-3 py-1 bg-white/20 rounded-full text-sm font-medium hover:bg-white/30"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Player Profile Sheet */}
       <MobilePlayerProfile 
         playerId={selectedPlayerId}
@@ -211,6 +258,7 @@ export function MobileSquadView({ currentGw, gwOffset, deadline, onGwChange }: M
           setPlayerProfileOpen(false);
           setTransferMode(true);
         }}
+        onSubstitute={handleSubstitute}
       />
 
       {/* Transfer Page */}

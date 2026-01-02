@@ -83,9 +83,12 @@ export default function Page() {
   const [transferOpen, setTransferOpen] = useState(false);
   const [outgoingPlayer, setOutgoingPlayer] = useState<Player | null>(null);
   const [gwOffset, setGwOffset] = useState<number>(0);
+  const [substituteMode, setSubstituteMode] = useState(false);
+  const [substitutePlayer, setSubstitutePlayer] = useState<Player | null>(null);
   const squad = useSquadStore((s) => s.squad);
   const autoSelectBestXI = useSquadStore((s) => s.autoSelectBestXI);
   const selectPlayer = useSquadStore((s) => s.selectPlayer);
+  const swapPlayers = useSquadStore((s) => s.swapPlayers);
   const canUndo = useSquadStore((s) => s.canUndo);
   const undo = useSquadStore((s) => s.undo);
   const lastImport = useSquadStore((s) => s.lastImport);
@@ -150,6 +153,38 @@ export default function Page() {
   const handleGwChange = (delta: number) => {
     const newOffset = Math.max(0, Math.min(9, gwOffset + delta));
     setGwOffset(newOffset);
+  };
+
+  const handlePlayerClick = (id: string) => {
+    // If in substitute mode, perform the swap
+    if (substituteMode && substitutePlayer) {
+      selectPlayer(substitutePlayer.id);
+      const result = swapPlayers(id);
+      if (result.ok) {
+        toast.success(`Swapped ${substitutePlayer.name}`);
+      } else {
+        toast.error(result.reason || "Cannot swap these players");
+      }
+      setSubstituteMode(false);
+      setSubstitutePlayer(null);
+      selectPlayer(null);
+      return;
+    }
+    
+    setSelectedPlayerId(id);
+    setPlayerOpen(true);
+  };
+
+  const handleSubstitute = (player: Player) => {
+    setSubstitutePlayer(player);
+    setSubstituteMode(true);
+    toast.info(`Select a player to swap with ${player.name}`);
+  };
+
+  const cancelSubstitute = () => {
+    setSubstituteMode(false);
+    setSubstitutePlayer(null);
+    selectPlayer(null);
   };
 
   // Mobile view
@@ -284,7 +319,7 @@ export default function Page() {
             {/* Pitch */}
             <ErrorBoundary compact name="PitchCard">
               <PitchCard
-                onPlayerClick={(id) => { setSelectedPlayerId(id); setPlayerOpen(true); }}
+                onPlayerClick={handlePlayerClick}
                 weekOffset={gwOffset}
               />
             </ErrorBoundary>
@@ -293,11 +328,28 @@ export default function Page() {
             <div className="mt-2">
               <ErrorBoundary compact name="BenchRail">
                 <BenchRail
-                  onPlayerClick={(id) => { setSelectedPlayerId(id); setPlayerOpen(true); }}
+                  onPlayerClick={handlePlayerClick}
                   weekOffset={gwOffset}
                 />
               </ErrorBoundary>
             </div>
+
+            {/* Substitute Mode Banner */}
+            {substituteMode && substitutePlayer && (
+              <div className="mt-4">
+                <div className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-xl p-3 shadow-lg flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium">Swap {substitutePlayer.name} with...</span>
+                  </div>
+                  <button
+                    onClick={cancelSubstitute}
+                    className="px-3 py-1 bg-white/20 rounded-full text-sm font-medium hover:bg-white/30"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </main>
       </div>
@@ -311,6 +363,7 @@ export default function Page() {
           setOutgoingPlayer(player);
           setTransferOpen(true);
         }}
+        onSubstitute={handleSubstitute}
       />
       <OnboardingDialog />
       

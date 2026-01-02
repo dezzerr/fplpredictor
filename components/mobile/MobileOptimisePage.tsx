@@ -1,11 +1,49 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { ArrowLeft, Crown, Zap, Users, TrendingUp, Trophy } from "lucide-react";
-import { players as allPlayers } from "@/lib/data";
+import { Player, Fixture } from "@/lib/data";
 import { useSquadStore } from "@/store/squad";
-import { pickXIForWeek, weeklyExp } from "@/lib/optimizer";
+import { pickXIForWeek, pickBestXIFromPool, weeklyExp } from "@/lib/optimizer";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
+
+// Get background color based on fixture difficulty rating (FDR)
+function getFDRColor(diff: number): string {
+  switch (diff) {
+    case 1: return "bg-emerald-500 text-white";
+    case 2: return "bg-green-400 text-white";
+    case 3: return "bg-amber-400 text-gray-900";
+    case 4: return "bg-orange-500 text-white";
+    case 5: return "bg-red-600 text-white";
+    default: return "bg-gray-400 text-white";
+  }
+}
+
+function MobileFixtureBadges({ fixtures, maxShow = 5 }: { fixtures: Fixture[]; maxShow?: number }) {
+  const displayFixtures = fixtures.slice(0, maxShow);
+  
+  if (!displayFixtures.length) {
+    return <span className="text-[10px] text-slate-400">No fixtures</span>;
+  }
+
+  return (
+    <div className="flex items-center gap-0.5 mt-1">
+      {displayFixtures.map((fix, idx) => (
+        <div
+          key={idx}
+          className={cn(
+            "rounded text-[8px] px-1 py-0.5 min-w-[24px] font-semibold text-center uppercase",
+            getFDRColor(fix.diff)
+          )}
+        >
+          {fix.opp}
+          <span className="text-[6px] opacity-80 ml-0.5">{fix.H ? "H" : "A"}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 interface MobileOptimisePageProps {
   onBack: () => void;
@@ -17,17 +55,47 @@ export function MobileOptimisePage({ onBack, weekOffset = 0 }: MobileOptimisePag
   const autoSelectBestXI = useSquadStore((s) => s.autoSelectBestXI);
   const makeCaptain = useSquadStore((s) => s.makeCaptain);
   const [activeTab, setActiveTab] = useState<'optimised' | 'market'>('optimised');
+  const [allPlayers, setAllPlayers] = useState<Player[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch all players from API (same as web version)
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        setLoading(true);
+        const res = await fetch('/api/players');
+        if (!res.ok) throw new Error('Failed to fetch players');
+        const data: Player[] = await res.json();
+        if (!cancelled) setAllPlayers(data);
+      } catch (e) {
+        console.error('Failed to load players', e);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   const optimizedTeam = useMemo(() => {
     return pickXIForWeek(squad, weekOffset);
   }, [squad, weekOffset]);
 
-  // Market leaders - top owned players
-  const marketLeaders = useMemo(() => {
-    return [...allPlayers]
-      .sort((a, b) => (b.ownership || 0) - (a.ownership || 0))
-      .slice(0, 20);
-  }, []);
+  // Market leaders - Team of the Week (best XI from all players)
+  const teamOfTheWeek = useMemo(() => {
+    if (!allPlayers.length) return null;
+    return pickBestXIFromPool(allPlayers, weekOffset);
+  }, [allPlayers, weekOffset]);
+
+  // Get owned player IDs for comparison
+  const squadPlayers = useMemo(() => [
+    ...squad.starters.GK,
+    ...squad.starters.DEF,
+    ...squad.starters.MID,
+    ...squad.starters.FWD,
+    ...squad.bench,
+  ], [squad]);
+  const ownedPlayerIds = useMemo(() => new Set(squadPlayers.map(p => p.id)), [squadPlayers]);
 
   const getPositionColor = (position: string) => {
     switch (position) {
@@ -176,6 +244,7 @@ export function MobileOptimisePage({ onBack, weekOffset = 0 }: MobileOptimisePag
                     <div className="text-xs text-slate-500">
                       {player.team} • £{player.price.toFixed(1)}m
                     </div>
+                    <MobileFixtureBadges fixtures={player.nextFixtures || []} />
                   </div>
                   
                   <div className="text-right">
@@ -212,6 +281,7 @@ export function MobileOptimisePage({ onBack, weekOffset = 0 }: MobileOptimisePag
                   <div className="text-xs text-slate-500">
                     {player.team} • £{player.price.toFixed(1)}m
                   </div>
+                  <MobileFixtureBadges fixtures={player.nextFixtures || []} />
                 </div>
                 
                 <div className="text-sm text-slate-500">
@@ -223,54 +293,106 @@ export function MobileOptimisePage({ onBack, weekOffset = 0 }: MobileOptimisePag
         </div>
           </>
         ) : (
-          /* Market Leaders Tab */
+          /* Market Leaders Tab - Team of the Week */
           <div className="px-4 py-4">
-            {/* Market Leaders Header */}
+            {/* Header */}
             <div className="bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-600 px-4 py-5 text-white rounded-xl mb-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-white/20 backdrop-blur-sm rounded-xl">
-                  <Trophy className="h-6 w-6" />
-                </div>
-                <div>
-                  <div className="text-sm text-white/80">Top Owned Players</div>
-                  <div className="text-xl font-bold">Market Leaders</div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 bg-white/20 backdrop-blur-sm rounded-xl">
+                    <Crown className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <div className="text-sm text-white/80">Elite XI • Highest Expected Returns</div>
+                    <div className="text-xl font-bold">Team of the Week</div>
+                  </div>
                 </div>
               </div>
             </div>
 
-            <div className="space-y-2">
-              {marketLeaders.map((player, index) => (
-                <div 
-                  key={player.id}
-                  className="flex items-center gap-3 p-3 rounded-lg bg-white border border-slate-200"
-                >
-                  <div className="flex items-center gap-2">
-                    <span className={`text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full ${
-                      index < 3 ? 'bg-amber-100 text-amber-700' : 'text-slate-400'
-                    }`}>
-                      {index + 1}
-                    </span>
-                    <div className={`w-8 h-8 ${getPositionColor(player.position)} rounded-full flex items-center justify-center text-white text-xs font-bold`}>
-                      {player.position}
-                    </div>
+            {loading ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="flex flex-col items-center gap-3">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></div>
+                  <div className="text-sm text-slate-500">Analyzing players...</div>
+                </div>
+              </div>
+            ) : teamOfTheWeek ? (
+              <>
+                {/* Stats Bar */}
+                <div className="flex items-center justify-between mb-4 px-2">
+                  <div className="text-center">
+                    <div className="font-semibold text-emerald-700">£{teamOfTheWeek.xi.reduce((sum, p) => sum + p.price, 0).toFixed(1)}m</div>
+                    <div className="text-[10px] text-slate-500">Total Value</div>
                   </div>
-                  
-                  <div className="flex-1 min-w-0">
-                    <div className="font-medium text-slate-900 truncate">{player.name}</div>
-                    <div className="text-xs text-slate-500">
-                      {player.team} • £{player.price.toFixed(1)}m
-                    </div>
+                  <div className="text-center">
+                    <div className="font-semibold text-blue-700">{teamOfTheWeek.xi.filter(p => ownedPlayerIds.has(p.id)).length}/{teamOfTheWeek.xi.length}</div>
+                    <div className="text-[10px] text-slate-500">You Own</div>
                   </div>
-                  
-                  <div className="text-right">
-                    <div className="text-sm font-semibold text-emerald-600">
-                      {(player.ownership || 0).toFixed(1)}%
-                    </div>
-                    <div className="text-[10px] text-slate-400">owned</div>
+                  <div className="text-center">
+                    <div className="font-semibold text-violet-700">{teamOfTheWeek.points.toFixed(1)}</div>
+                    <div className="text-[10px] text-slate-500">Expected Pts</div>
                   </div>
                 </div>
-              ))}
-            </div>
+
+                <div className="space-y-2">
+                  {teamOfTheWeek.xi.map((player, index) => {
+                    const isOwned = ownedPlayerIds.has(player.id);
+                    const isCaptain = player.id === teamOfTheWeek.capId;
+                    
+                    return (
+                      <div 
+                        key={player.id}
+                        className={`flex items-center gap-3 p-3 rounded-lg border ${
+                          isOwned 
+                            ? 'bg-emerald-50 border-emerald-200' 
+                            : 'bg-white border-slate-200'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className={`text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full ${
+                            index < 3 ? 'bg-amber-100 text-amber-700' : 'text-slate-400'
+                          }`}>
+                            {index + 1}
+                          </span>
+                          <div className={`w-8 h-8 ${getPositionColor(player.position)} rounded-full flex items-center justify-center text-white text-xs font-bold`}>
+                            {player.position}
+                          </div>
+                        </div>
+                        
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-slate-900 truncate">{player.name}</span>
+                            {isOwned && (
+                              <span className="px-1.5 py-0.5 bg-emerald-100 text-emerald-700 text-[9px] font-semibold rounded flex items-center gap-0.5">
+                                <Users className="w-2.5 h-2.5" /> Owned
+                              </span>
+                            )}
+                            {isCaptain && (
+                              <span className="px-1.5 py-0.5 bg-amber-500 text-white text-[9px] font-bold rounded">C</span>
+                            )}
+                          </div>
+                          <div className="text-xs text-slate-500">
+                            {player.team} • £{player.price.toFixed(1)}m
+                          </div>
+                          <MobileFixtureBadges fixtures={player.nextFixtures || []} />
+                        </div>
+                        
+                        <div className="text-right">
+                          <div className="flex items-center gap-1 text-emerald-600 font-semibold">
+                            <Zap className="h-3.5 w-3.5" />
+                            {weeklyExp(player, weekOffset).toFixed(1)}
+                          </div>
+                          <div className="text-[10px] text-slate-400">pts</div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            ) : (
+              <div className="text-center py-8 text-slate-500">Unable to load team data</div>
+            )}
           </div>
         )}
       </div>

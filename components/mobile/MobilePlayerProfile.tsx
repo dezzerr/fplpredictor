@@ -6,7 +6,7 @@ import { Player, Position } from "@/lib/data";
 import { useSquadStore } from "@/store/squad";
 import { weeklyExp } from "@/lib/optimizer";
 import { toast } from "sonner";
-import { ExternalLink } from "lucide-react";
+import { ArrowLeftRight } from "lucide-react";
 
 // FDR color mapping
 function getFdrColor(diff: number): string {
@@ -47,6 +47,7 @@ interface MobilePlayerProfileProps {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   onSelectReplacement?: (player: Player) => void;
+  onSubstitute?: (player: Player) => void;
   weekOffset?: number;
 }
 
@@ -56,6 +57,7 @@ export function MobilePlayerProfile({
   open, 
   onOpenChange, 
   onSelectReplacement,
+  onSubstitute,
   weekOffset = 0 
 }: MobilePlayerProfileProps) {
   const squad = useSquadStore((s) => s.squad);
@@ -127,6 +129,13 @@ export function MobilePlayerProfile({
   const handleSelectReplacement = () => {
     if (onSelectReplacement) {
       onSelectReplacement(player);
+    }
+  };
+
+  const handleSubstitute = () => {
+    if (onSubstitute && player) {
+      onSubstitute(player);
+      onOpenChange(false);
     }
   };
 
@@ -278,10 +287,11 @@ export function MobilePlayerProfile({
             </button>
           </div>
           <button
-            onClick={() => window.open(`https://fantasy.premierleague.com/`, '_blank')}
-            className="w-full py-3.5 rounded-full border border-slate-300 text-slate-600 font-medium text-sm hover:bg-slate-50 flex items-center justify-center gap-2"
+            onClick={handleSubstitute}
+            className="w-full py-3.5 rounded-full bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-semibold text-sm hover:from-blue-600 hover:to-cyan-600 flex items-center justify-center gap-2"
           >
-            Full Profile <ExternalLink className="w-4 h-4" />
+            <ArrowLeftRight className="w-4 h-4" />
+            Substitute
           </button>
         </div>
       </SheetContent>

@@ -6,7 +6,7 @@ import { Player, Position, players as allPlayers } from "@/lib/data";
 import { useSquadStore } from "@/store/squad";
 import { weeklyExp } from "@/lib/optimizer";
 import { toast } from "sonner";
-import { ExternalLink } from "lucide-react";
+import { ArrowLeftRight } from "lucide-react";
 
 // FDR color mapping
 function getFdrColor(diff: number): string {
@@ -57,9 +57,10 @@ interface PlayerSheetProps {
   onOpenChange: (v: boolean) => void;
   weekOffset?: number;
   onSelectReplacement?: (player: Player) => void;
+  onSubstitute?: (player: Player) => void;
 }
 
-export function PlayerSheet({ playerId, open, onOpenChange, weekOffset = 0, onSelectReplacement }: PlayerSheetProps) {
+export function PlayerSheet({ playerId, open, onOpenChange, weekOffset = 0, onSelectReplacement, onSubstitute }: PlayerSheetProps) {
   const squad = useSquadStore((s) => s.squad);
   const makeCaptain = useSquadStore((s) => s.makeCaptain);
   const makeVice = useSquadStore((s) => s.makeVice);
@@ -101,6 +102,13 @@ export function PlayerSheet({ playerId, open, onOpenChange, weekOffset = 0, onSe
     removePlayer(player.id);
     onOpenChange(false);
     toast.success(`Removed ${player.name}`);
+  };
+
+  const handleSubstitute = () => {
+    if (onSubstitute && player) {
+      onSubstitute(player);
+      onOpenChange(false);
+    }
   };
 
   return (
@@ -228,10 +236,11 @@ export function PlayerSheet({ playerId, open, onOpenChange, weekOffset = 0, onSe
             </button>
           </div>
           <button
-            onClick={() => window.open(`https://fantasy.premierleague.com/`, '_blank')}
-            className="w-full py-3 rounded-full border border-slate-300 text-slate-600 font-medium text-sm hover:bg-slate-50 flex items-center justify-center gap-2"
+            onClick={handleSubstitute}
+            className="w-full py-3 rounded-full bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-semibold text-sm hover:from-blue-600 hover:to-cyan-600 flex items-center justify-center gap-2"
           >
-            Full Profile <ExternalLink className="w-4 h-4" />
+            <ArrowLeftRight className="w-4 h-4" />
+            Substitute
           </button>
         </div>
       </SheetContent>
