@@ -7,7 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { useSquadStore } from "@/store/squad";
 import { pickXIForWeek, weeklyExp } from "@/lib/optimizer";
-import { ChevronLeft, ChevronRight, Zap, Users, Star, Crown, Target, Settings, TrendingUp, Award } from "lucide-react";
+import { ChevronLeft, ChevronRight, Zap, Users, Star, Crown, Target, Settings, TrendingUp, Award, Calendar } from "lucide-react";
+import { FixtureBadges } from "@/components/FixtureBadges";
 
 interface AutoTeamOptimizerProps {
   gwOffset?: number;
@@ -142,10 +143,11 @@ export function AutoTeamOptimizer({ gwOffset = 0 }: AutoTeamOptimizerProps) {
                       <div className="flex items-center gap-2 mb-1">
                         <span className="font-semibold text-gray-900 truncate">{player.name}</span>
                       </div>
-                      <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                      <div className="flex items-center gap-3 text-sm text-muted-foreground mb-1">
                         <span className="font-medium text-gray-700">{player.team}</span>
                         <span>£{player.price.toFixed(1)}m</span>
                       </div>
+                      <FixtureBadges fixtures={player.nextFixtures || []} maxShow={5} size="sm" />
                     </div>
                   </div>
                   
@@ -187,9 +189,10 @@ export function AutoTeamOptimizer({ gwOffset = 0 }: AutoTeamOptimizerProps) {
                 </div>
                 <div className="flex-1 min-w-0">
                   <span className="text-sm font-medium text-gray-700 truncate">{player.name}</span>
-                  <div className="text-xs text-muted-foreground">
+                  <div className="text-xs text-muted-foreground mb-1">
                     {player.team} • £{player.price.toFixed(1)}m
                   </div>
+                  <FixtureBadges fixtures={player.nextFixtures || []} maxShow={5} size="sm" />
                 </div>
               </div>
               <div className="text-sm font-medium text-gray-600 flex-shrink-0">

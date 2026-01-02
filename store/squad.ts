@@ -24,6 +24,11 @@ export type SquadState = {
   error: string | null;
   lastImport: { entryId: string; preset?: string } | null;
   selectedPlayerId: string | null;
+  // Undo history
+  history: Squad[];
+  canUndo: () => boolean;
+  undo: () => void;
+  pushHistory: () => void;
   initialize: (args: { entryId: string; preset?: string }) => Promise<{ ok: true } | { ok: false; error: string }>;
   refresh: () => Promise<{ ok: true } | { ok: false; error: string }>;
   addPlayer: (p: Player) => { ok: boolean; reason?: string };
@@ -165,6 +170,8 @@ function findPlayerIndex(s: Squad, id: string): PlayerLocation {
   return { area: null, index: -1 };
 }
 
+const MAX_HISTORY = 20; // Keep last 20 states for undo
+
 export const useSquadStore = create<SquadState>()(persist((set, get) => ({
   squad: {
     bank: 0,
@@ -177,6 +184,29 @@ export const useSquadStore = create<SquadState>()(persist((set, get) => ({
   error: null,
   lastImport: null,
   selectedPlayerId: null,
+  history: [],
+  
+  canUndo: () => get().history.length > 0,
+  
+  undo: () => {
+    const history = get().history;
+    if (history.length === 0) return;
+    const previous = history[history.length - 1];
+    set({ 
+      squad: previous, 
+      history: history.slice(0, -1),
+      selectedPlayerId: null 
+    });
+  },
+  
+  pushHistory: () => {
+    const current = structuredClone(get().squad);
+    const history = get().history;
+    // Keep only last MAX_HISTORY states
+    const newHistory = [...history.slice(-(MAX_HISTORY - 1)), current];
+    set({ history: newHistory });
+  },
+  
   initialize: async ({ entryId, preset }) => {
     set({ loading: true, error: null });
     try {
@@ -214,6 +244,7 @@ export const useSquadStore = create<SquadState>()(persist((set, get) => ({
   },
 
   addPlayer: (p) => {
+    get().pushHistory(); // Save state before adding player
     const s = structuredClone(get().squad);
     // Already in squad
     if (flattenSquad(s).some(x => x.id === p.id)) return { ok: false, reason: "Player is already in your squad" };
@@ -270,6 +301,7 @@ export const useSquadStore = create<SquadState>()(persist((set, get) => ({
   },
 
   removePlayer: (id) => {
+    get().pushHistory(); // Save state before removal
     const s = structuredClone(get().squad);
     const { area, index } = findPlayerIndex(s, id);
     if (!area) return;
@@ -383,6 +415,7 @@ export const useSquadStore = create<SquadState>()(persist((set, get) => ({
   selectPlayer: (id) => set({ selectedPlayerId: id }),
 
   swapPlayers: (targetId) => {
+    get().pushHistory(); // Save state before swap
     const s = structuredClone(get().squad);
     const selectedId = get().selectedPlayerId;
     
@@ -543,6 +576,7 @@ export const useSquadStore = create<SquadState>()(persist((set, get) => ({
   },
 
   autoSelectBestXI: (weekOffset: number) => {
+    get().pushHistory(); // Save state before auto-select
     const s = get().squad;
     const { xi, bench, capId } = pickXIForWeek(s, weekOffset);
     

@@ -7,7 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { pickBestXIFromPool, weeklyExp } from "@/lib/optimizer";
 import { Player } from "@/lib/data";
-import { ChevronLeft, ChevronRight, Trophy, TrendingUp, Users, Star, Crown, Zap, Target, Download, ArrowRightLeft } from "lucide-react";
+import { ChevronLeft, ChevronRight, Trophy, TrendingUp, Users, Star, Crown, Zap, Target, Download, ArrowRightLeft, Calendar } from "lucide-react";
+import { FixtureBadges } from "@/components/FixtureBadges";
 import { toast } from "sonner";
 import { useSquadStore } from "@/store/squad";
 import {
@@ -269,10 +270,11 @@ export function TeamOfTheWeek({ gwOffset = 0 }: TeamOfTheWeekProps) {
                           </Badge>
                         )}
                       </div>
-                      <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                      <div className="flex items-center gap-3 text-sm text-muted-foreground mb-1">
                         <span className="font-medium text-gray-700">{player.team}</span>
                         <span>£{player.price.toFixed(1)}m</span>
                       </div>
+                      <FixtureBadges fixtures={player.nextFixtures || []} maxShow={5} size="sm" />
                     </div>
                   </div>
                   
@@ -344,7 +346,8 @@ export function TeamOfTheWeek({ gwOffset = 0 }: TeamOfTheWeekProps) {
                       </Badge>
                       <div>
                         <div className="font-medium text-sm">{player.name}</div>
-                        <div className="text-xs text-muted-foreground">{player.team} • £{player.price.toFixed(1)}m</div>
+                        <div className="text-xs text-muted-foreground mb-1">{player.team} • £{player.price.toFixed(1)}m</div>
+                        <FixtureBadges fixtures={player.nextFixtures || []} maxShow={5} size="sm" />
                       </div>
                     </div>
                     <div className="text-right">

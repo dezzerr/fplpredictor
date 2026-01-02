@@ -1,31 +1,41 @@
 "use client";
 
+import { memo, useMemo } from "react";
+import { cn, getFPLDisplayName } from "@/lib/utils";
 import { TeamShirt } from "@/components/TeamShirt";
 import { Player } from "@/lib/data";
-import { cn, getFPLDisplayName } from "@/lib/utils";
 import { weeklyExp } from "@/lib/optimizer";
-import { memo, useMemo } from "react";
 
-export const PlayerTile = memo(function PlayerTile({ player, isCaptain, isVice, onClick, className, weekOffset, isSelected, onRemove, onMakeCaptain, onMakeVice, showActions }: {
+interface MobilePlayerTileProps {
   player: Player;
   isCaptain?: boolean;
   isVice?: boolean;
   onClick?: () => void;
-  className?: string;
   weekOffset?: number;
   isSelected?: boolean;
-  onRemove?: () => void;
-  onMakeCaptain?: () => void;
-  onMakeVice?: () => void;
-  showActions?: boolean;
-}) {
+  showPrice?: boolean;
+  variant?: "starter" | "bench";
+}
 
-  const w = weekOffset ?? 0;
-  const f0 = player.nextFixtures?.[w];
+export const MobilePlayerTile = memo(function MobilePlayerTile({
+  player,
+  isCaptain,
+  isVice,
+  onClick,
+  weekOffset = 0,
+  isSelected,
+  showPrice = false,
+  variant = "starter",
+}: MobilePlayerTileProps) {
+  const f0 = player.nextFixtures?.[weekOffset];
   const fixText = useMemo(() => {
-    return f0 ? `${f0.opp} (${f0.H ? 'H' : 'A'})` : '';
+    return f0 ? `${f0.opp} (${f0.H ? "H" : "A"})` : "";
   }, [f0]);
-  const weekPts = useMemo(() => weeklyExp(player, w), [player.id, player.expExplain?.final, player.expPoints, player.nextFixtures, w]);
+
+  const weekPts = useMemo(
+    () => weeklyExp(player, weekOffset),
+    [player.id, player.expExplain?.final, player.expPoints, player.nextFixtures, weekOffset]
+  );
 
   // Check for injury/suspension status
   const ex: any = player.expExplain as any;
@@ -41,16 +51,22 @@ export const PlayerTile = memo(function PlayerTile({ player, isCaptain, isVice, 
       onClick={onClick}
       className={cn(
         "flex flex-col items-center w-full transition-all",
-        isSelected && "scale-105 ring-2 ring-blue-400 rounded-lg",
-        className
+        isSelected && "scale-105 ring-2 ring-blue-400 rounded-lg"
       )}
     >
+      {/* Price tag - shown in transfer view */}
+      {showPrice && (
+        <div className="px-2 py-0.5 rounded-sm text-[11px] font-bold mb-1 bg-purple-600 text-white shadow-sm">
+          £{(player.price / 10).toFixed(1)}m
+        </div>
+      )}
+
       {/* Jersey with captain/vice badge */}
       <div className="relative">
         {/* Captain/Vice badge - positioned top-left like FPL app */}
         {(isCaptain || isVice) && (
           <div className={cn(
-            "absolute -left-2 top-0 z-10 w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold text-white shadow-md",
+            "absolute -left-2 top-0 z-10 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold text-white shadow-md",
             isCaptain ? "bg-black" : "bg-gray-500"
           )}>
             {isCaptain ? "C" : "V"}
@@ -61,7 +77,7 @@ export const PlayerTile = memo(function PlayerTile({ player, isCaptain, isVice, 
         {hasFlag && (
           <div className="absolute -right-2 top-0 z-10">
             <div className={cn(
-              "w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold shadow-md",
+              "w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shadow-md",
               rawStatus === "i" ? "bg-red-500 text-white" : 
               rawStatus === "s" ? "bg-orange-500 text-white" : 
               "bg-yellow-400 text-black"
@@ -71,32 +87,35 @@ export const PlayerTile = memo(function PlayerTile({ player, isCaptain, isVice, 
           </div>
         )}
 
-        <TeamShirt team={player.team} className="w-14 h-14 sm:w-[72px] sm:h-[72px] drop-shadow-md" />
+        <TeamShirt team={player.team} className="w-14 h-14 drop-shadow-md" />
       </div>
 
       {/* Player info box - FPL style dark box */}
       <div className={cn(
-        "w-full mt-2 rounded overflow-hidden min-w-[70px] sm:min-w-[90px]",
+        "w-full mt-1.5 rounded overflow-hidden min-w-[60px]",
         isSelected ? "ring-2 ring-blue-400" : ""
       )}>
         {/* Name row */}
-        <div className="bg-slate-800 px-2 py-1 sm:py-1.5 text-center">
-          <div className="text-[11px] sm:text-sm font-bold text-white truncate leading-tight">
+        <div className={cn(
+          "px-1.5 py-0.5 text-center",
+          variant === "bench" && isSelected ? "bg-purple-600" : "bg-slate-800"
+        )}>
+          <div className="text-[10px] font-bold text-white truncate leading-tight">
             {getFPLDisplayName(player.name)}
           </div>
         </div>
         {/* Fixture row with FDR color */}
         <div className={cn(
-          "px-2 py-0.5 sm:py-1 text-center",
+          "px-1.5 py-0.5 text-center",
           fdrColor
         )}>
-          <div className="text-[10px] sm:text-xs font-medium text-white leading-tight" suppressHydrationWarning>
+          <div className="text-[9px] font-medium text-white leading-tight" suppressHydrationWarning>
             {fixText || player.team}
           </div>
         </div>
         {/* Predicted points row */}
-        <div className="bg-slate-700 px-2 py-1 sm:py-1.5 text-center">
-          <div className="text-[11px] sm:text-sm font-bold text-emerald-400 leading-tight" suppressHydrationWarning>
+        <div className="bg-slate-700 px-1.5 py-0.5 text-center">
+          <div className="text-[10px] font-bold text-emerald-400 leading-tight" suppressHydrationWarning>
             {weekPts.toFixed(1)}
           </div>
         </div>

@@ -159,8 +159,8 @@ export async function fetchFplPlayers(preset?: CalPresetName | string | null): P
     }
     const ownership = ownPct || undefined;
 
-    // Build nextFixtures: take first three upcoming for the player's team, compute opp and diff for that team side
-    const tf = (teamFixtures[teamId] || []).slice(0, 3);
+    // Build nextFixtures: take first five upcoming for the player's team, compute opp and diff for that team side
+    const tf = (teamFixtures[teamId] || []).slice(0, 5);
     const nextFixtures: Fixture[] = tf.map((fx: any) => {
       const isHome = fx.team_h === teamId;
       const oppId = isHome ? fx.team_a : fx.team_h;

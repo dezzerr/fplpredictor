@@ -96,6 +96,17 @@
   background-image: none;
 }
 
+/* Mobile pitch background - FPL app style */
+.mobile-pitch-bg {
+  background: linear-gradient(180deg, #2d8a5e 0%, #1e6b47 50%, #165a3a 100%);
+  position: relative;
+}
+
+/* Safe area padding for bottom bar */
+.pb-safe {
+  padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+}
+
 /* Focus ring high-contrast */
 :focus-visible {
   outline: none;
