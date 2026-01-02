@@ -1,11 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 
+// Validate entryId is a valid FPL team ID (numeric, reasonable range)
+function isValidEntryId(id: string | null): boolean {
+  if (!id) return false;
+  const num = parseInt(id, 10);
+  return !isNaN(num) && num > 0 && num < 100000000 && String(num) === id;
+}
+
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const entryId = searchParams.get("entryId");
 
-  if (!entryId) {
-    return NextResponse.json({ error: "Missing entryId" }, { status: 400 });
+  if (!isValidEntryId(entryId)) {
+    return NextResponse.json({ error: "Invalid or missing entryId" }, { status: 400 });
   }
 
   try {
@@ -82,7 +89,9 @@ export async function GET(req: NextRequest) {
       classicLeagues,
     });
   } catch (error) {
-    console.error("Manager API error:", error);
+    if (process.env.NODE_ENV === 'development') {
+      console.error("Manager API error:", error);
+    }
     return NextResponse.json(
       { error: "Failed to fetch manager data" },
       { status: 500 }

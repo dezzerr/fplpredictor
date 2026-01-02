@@ -66,7 +66,9 @@ export async function GET() {
     const nextEvent = events.find((e: any) => e.is_next)?.id;
     const targetEvent = nextEvent || currentEvent || 1;
 
-    console.log('[FIXTURES] Target event:', targetEvent);
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[FIXTURES] Target event:', targetEvent);
+    }
 
     // Filter upcoming fixtures (not finished)
     const upcomingFixtures = allFixtures.filter(f => !f.finished && f.event !== null);
@@ -127,7 +129,9 @@ export async function GET() {
       currentEvent: targetEvent
     });
   } catch (error: any) {
-    console.error('Error fetching fixtures:', error);
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Error fetching fixtures:', error);
+    }
     return NextResponse.json(
       { error: error?.message || 'Failed to fetch fixtures' },
       { status: 500 }

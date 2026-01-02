@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo } from "react";
-import { ArrowLeft, Crown, Zap, Users, TrendingUp } from "lucide-react";
+import { useMemo, useState } from "react";
+import { ArrowLeft, Crown, Zap, Users, TrendingUp, Trophy } from "lucide-react";
+import { players as allPlayers } from "@/lib/data";
 import { useSquadStore } from "@/store/squad";
 import { pickXIForWeek, weeklyExp } from "@/lib/optimizer";
 import { toast } from "sonner";
@@ -15,10 +16,18 @@ export function MobileOptimisePage({ onBack, weekOffset = 0 }: MobileOptimisePag
   const squad = useSquadStore((s) => s.squad);
   const autoSelectBestXI = useSquadStore((s) => s.autoSelectBestXI);
   const makeCaptain = useSquadStore((s) => s.makeCaptain);
+  const [activeTab, setActiveTab] = useState<'optimised' | 'market'>('optimised');
 
   const optimizedTeam = useMemo(() => {
     return pickXIForWeek(squad, weekOffset);
   }, [squad, weekOffset]);
+
+  // Market leaders - top owned players
+  const marketLeaders = useMemo(() => {
+    return [...allPlayers]
+      .sort((a, b) => (b.ownership || 0) - (a.ownership || 0))
+      .slice(0, 20);
+  }, []);
 
   const getPositionColor = (position: string) => {
     switch (position) {
@@ -59,6 +68,32 @@ export function MobileOptimisePage({ onBack, weekOffset = 0 }: MobileOptimisePag
       </div>
 
       <div className="flex-1 overflow-y-auto">
+        {/* Tabs */}
+        <div className="flex border-b border-slate-200">
+          <button
+            onClick={() => setActiveTab('optimised')}
+            className={`flex-1 py-3 text-sm font-medium transition-colors ${
+              activeTab === 'optimised'
+                ? 'text-violet-600 border-b-2 border-violet-600'
+                : 'text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            Optimised Squad
+          </button>
+          <button
+            onClick={() => setActiveTab('market')}
+            className={`flex-1 py-3 text-sm font-medium transition-colors ${
+              activeTab === 'market'
+                ? 'text-violet-600 border-b-2 border-violet-600'
+                : 'text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            Market Leaders
+          </button>
+        </div>
+
+        {activeTab === 'optimised' ? (
+          <>
         {/* Stats Header */}
         <div className="bg-gradient-to-br from-violet-500 via-purple-500 to-indigo-600 px-4 py-5 text-white">
           <div className="flex items-center justify-between">
@@ -186,6 +221,58 @@ export function MobileOptimisePage({ onBack, weekOffset = 0 }: MobileOptimisePag
             ))}
           </div>
         </div>
+          </>
+        ) : (
+          /* Market Leaders Tab */
+          <div className="px-4 py-4">
+            {/* Market Leaders Header */}
+            <div className="bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-600 px-4 py-5 text-white rounded-xl mb-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 bg-white/20 backdrop-blur-sm rounded-xl">
+                  <Trophy className="h-6 w-6" />
+                </div>
+                <div>
+                  <div className="text-sm text-white/80">Top Owned Players</div>
+                  <div className="text-xl font-bold">Market Leaders</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              {marketLeaders.map((player, index) => (
+                <div 
+                  key={player.id}
+                  className="flex items-center gap-3 p-3 rounded-lg bg-white border border-slate-200"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className={`text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full ${
+                      index < 3 ? 'bg-amber-100 text-amber-700' : 'text-slate-400'
+                    }`}>
+                      {index + 1}
+                    </span>
+                    <div className={`w-8 h-8 ${getPositionColor(player.position)} rounded-full flex items-center justify-center text-white text-xs font-bold`}>
+                      {player.position}
+                    </div>
+                  </div>
+                  
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium text-slate-900 truncate">{player.name}</div>
+                    <div className="text-xs text-slate-500">
+                      {player.team} • £{player.price.toFixed(1)}m
+                    </div>
+                  </div>
+                  
+                  <div className="text-right">
+                    <div className="text-sm font-semibold text-emerald-600">
+                      {(player.ownership || 0).toFixed(1)}%
+                    </div>
+                    <div className="text-[10px] text-slate-400">owned</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Bottom Action */}

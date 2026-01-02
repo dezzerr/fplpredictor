@@ -61,6 +61,8 @@ export function HeaderKpis({ compact = false, onGwChange, weekPredPts }: { compa
     }
   };
 
+  const reset = useSquadStore((s) => s.reset);
+
   const handleLogout = async () => {
     try {
       const supabase = createClient();
@@ -69,6 +71,8 @@ export function HeaderKpis({ compact = false, onGwChange, weekPredPts }: { compa
         console.error('Logout error:', error);
         alert('Failed to log out: ' + error.message);
       } else {
+        // Clear squad store to prevent data leakage to next user
+        reset();
         window.location.href = '/';
       }
     } catch (error) {

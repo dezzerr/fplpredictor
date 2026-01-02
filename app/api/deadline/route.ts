@@ -54,7 +54,9 @@ export async function GET() {
       eventId: null,
     });
   } catch (error: any) {
-    console.error('Error fetching deadline:', error);
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Error fetching deadline:', error);
+    }
     
     // Return mock deadline on error
     const mockDeadline = new Date();

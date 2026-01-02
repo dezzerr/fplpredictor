@@ -3,14 +3,21 @@ import { NextResponse } from "next/server";
 export const revalidate = 900; // 15 minutes
 export const dynamic = 'force-dynamic';
 
+// Validate playerId is numeric and reasonable
+function isValidPlayerId(id: string | null): boolean {
+  if (!id) return false;
+  const num = parseInt(id, 10);
+  return !isNaN(num) && num > 0 && num < 10000 && String(num) === id;
+}
+
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
     const playerId = searchParams.get('playerId');
 
-    if (!playerId) {
+    if (!isValidPlayerId(playerId)) {
       return NextResponse.json(
-        { error: 'playerId is required' },
+        { error: 'Invalid or missing playerId' },
         { status: 400 }
       );
     }

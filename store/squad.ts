@@ -45,6 +45,7 @@ export type SquadState = {
   replaceSquad: (s: Squad) => void;
   syncPrices: (players: Player[]) => void;
   autoSelectBestXI: (weekOffset: number) => void;
+  reset: () => void; // Clear all state (for logout)
   // selectors
   totalExpPoints: () => number;
   teamRating: () => number; // 0-100 simple heuristic (current week)
@@ -599,4 +600,28 @@ export const useSquadStore = create<SquadState>()(persist((set, get) => ({
     });
   },
 
-}), { name: "fpl-copilot-squad-v2" }));
+  reset: () => {
+    set({
+      squad: {
+        bank: 0,
+        starters: { GK: [], DEF: [], MID: [], FWD: [] },
+        bench: [],
+        captainId: undefined,
+        viceId: undefined,
+      },
+      loading: false,
+      error: null,
+      lastImport: null,
+      selectedPlayerId: null,
+      history: [],
+    });
+  },
+
+}), { 
+  name: "fpl-copilot-squad-v2",
+  partialize: (state) => ({
+    // Only persist squad data, NOT lastImport (security: prevents cross-user data leakage)
+    squad: state.squad,
+    // Exclude: lastImport, loading, error, selectedPlayerId, history
+  }),
+}));

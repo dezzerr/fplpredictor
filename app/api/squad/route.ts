@@ -14,14 +14,26 @@ function pickEventId(events: any[]): number | undefined {
   return upcoming?.id;
 }
 
+// Validate entryId is a valid FPL team ID (numeric, reasonable range)
+function isValidEntryId(id: string | null): boolean {
+  if (!id) return false;
+  const num = parseInt(id, 10);
+  return !isNaN(num) && num > 0 && num < 100000000 && String(num) === id;
+}
+
 export async function GET(req: Request) {
   try {
     const url = new URL(req.url);
     const entryId = url.searchParams.get("entryId");
     const preset = url.searchParams.get("preset");
-    if (!entryId) return NextResponse.json({ error: "Missing entryId" }, { status: 400 });
+    
+    if (!isValidEntryId(entryId)) {
+      return NextResponse.json({ error: "Invalid or missing entryId" }, { status: 400 });
+    }
 
-    console.log('[IMPORT] Importing squad for entry:', entryId, 'preset:', preset);
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[IMPORT] Importing squad for entry:', entryId, 'preset:', preset);
+    }
 
     // Load bootstrap (for event id) and player universe (with calibrated EP and current prices)
     // Use cache: 'no-store' + timestamp to force fresh data from FPL API
@@ -42,24 +54,32 @@ export async function GET(req: Request) {
     const events: any[] = bootstrap.events || [];
     const eventId: number | undefined = pickEventId(events);
     
-    console.log('[IMPORT] Detected event ID:', eventId, 'from events:', events.map((e: any) => ({ id: e.id, name: e.name, is_current: e.is_current, is_next: e.is_next, finished: e.finished })));
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[IMPORT] Detected event ID:', eventId, 'from events:', events.map((e: any) => ({ id: e.id, name: e.name, is_current: e.is_current, is_next: e.is_next, finished: e.finished })));
+    }
     
     if (!eventId) throw new Error("Could not determine current/next event");
 
     // Try to load the picks for the chosen event
     const picksUrl = `https://fantasy.premierleague.com/api/entry/${entryId}/event/${eventId}/picks/`;
-    console.log('[IMPORT] Fetching picks from:', picksUrl);
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[IMPORT] Fetching picks from:', picksUrl);
+    }
     
     let picksRes = await fetch(picksUrl, { next: { revalidate: 60 } });
     
     if (!picksRes.ok && events.find((e: any) => e.is_current)?.id) {
       // fallback: try current event id if next failed
       const cur = events.find((e: any) => e.is_current)?.id;
-      console.log('[IMPORT] First attempt failed (status:', picksRes.status, '), trying current event:', cur);
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[IMPORT] First attempt failed (status:', picksRes.status, '), trying current event:', cur);
+      }
       
       if (cur && cur !== eventId) {
         const fallbackUrl = `https://fantasy.premierleague.com/api/entry/${entryId}/event/${cur}/picks/`;
-        console.log('[IMPORT] Fallback URL:', fallbackUrl);
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[IMPORT] Fallback URL:', fallbackUrl);
+        }
         picksRes = await fetch(fallbackUrl, { next: { revalidate: 60 } });
       }
     }
@@ -76,7 +96,9 @@ export async function GET(req: Request) {
     const picks: Array<{ element: number; position: number; is_captain: boolean; is_vice_captain: boolean }> = picksJson.picks || [];
     const entryHistory = picksJson.entry_history || {};
     
-    console.log('[IMPORT] Successfully loaded', picks.length, 'picks for entry', entryId);
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[IMPORT] Successfully loaded', picks.length, 'picks for entry', entryId);
+    }
 
     // Map of id -> Player
     const byId: Record<string, Player> = Object.fromEntries(players.map((p) => [p.id, p]));
@@ -118,9 +140,11 @@ export async function GET(req: Request) {
     }
 
     const totalStarters = Object.values(s.starters).flat().length;
-    console.log('[IMPORT] Successfully built squad with', totalStarters, 'starters and', s.bench.length, 'bench players. Bank:', s.bank);
-    console.log('[IMPORT] Captain:', s.captainId, 'Vice:', s.viceId);
-    console.log('[IMPORT] Sample starters:', Object.values(s.starters).flat().slice(0, 3).map(p => p.name));
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[IMPORT] Successfully built squad with', totalStarters, 'starters and', s.bench.length, 'bench players. Bank:', s.bank);
+      console.log('[IMPORT] Captain:', s.captainId, 'Vice:', s.viceId);
+      console.log('[IMPORT] Sample starters:', Object.values(s.starters).flat().slice(0, 3).map(p => p.name));
+    }
 
     return NextResponse.json(s, {
       headers: {
