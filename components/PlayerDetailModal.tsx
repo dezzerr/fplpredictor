@@ -369,7 +369,7 @@ export function PlayerDetailModal({
                         >
                           <div className="text-sm font-bold">{game.points}</div>
                           <div className="text-[9px] opacity-90">GW{game.gw}</div>
-                          <div className="text-[9px] opacity-75">{game.minutes}'</div>
+                          <div className="text-[9px] opacity-75">{game.minutes}&apos;</div>
                         </div>
                       ))}
                     </div>
