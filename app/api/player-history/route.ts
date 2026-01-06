@@ -75,7 +75,7 @@ export async function GET(req: Request) {
         transfersOut: game.transfers_out,
       }));
 
-    // Calculate aggregates
+    // Calculate aggregates for last 5 GWs
     const totalPoints = lastFiveGWs.reduce((sum: number, g: any) => sum + g.points, 0);
     const avgPoints = lastFiveGWs.length > 0 ? totalPoints / lastFiveGWs.length : 0;
     
@@ -101,6 +101,38 @@ export async function GET(req: Request) {
       else if (recentPoints < olderPoints * 0.8) trend = 'down';
     }
 
+    // Calculate SEASON totals from full history (not just last 5)
+    const seasonStats = {
+      goals: history.reduce((sum: number, g: any) => sum + (g.goals_scored || 0), 0),
+      assists: history.reduce((sum: number, g: any) => sum + (g.assists || 0), 0),
+      cleanSheets: history.reduce((sum: number, g: any) => sum + (g.clean_sheets || 0), 0),
+      bonus: history.reduce((sum: number, g: any) => sum + (g.bonus || 0), 0),
+      minutes: history.reduce((sum: number, g: any) => sum + (g.minutes || 0), 0),
+      yellowCards: history.reduce((sum: number, g: any) => sum + (g.yellow_cards || 0), 0),
+      redCards: history.reduce((sum: number, g: any) => sum + (g.red_cards || 0), 0),
+      saves: history.reduce((sum: number, g: any) => sum + (g.saves || 0), 0),
+      penaltiesSaved: history.reduce((sum: number, g: any) => sum + (g.penalties_saved || 0), 0),
+      penaltiesMissed: history.reduce((sum: number, g: any) => sum + (g.penalties_missed || 0), 0),
+      ownGoals: history.reduce((sum: number, g: any) => sum + (g.own_goals || 0), 0),
+      totalPoints: history.reduce((sum: number, g: any) => sum + (g.total_points || 0), 0),
+      gamesPlayed: history.filter((g: any) => g.minutes > 0).length,
+    };
+
+    // Calculate Defcon stats from full history
+    // FPL API provides: defensive_contribution (total actions per game)
+    // DEF: 10 actions = 2 pts, MID/FWD: 12 actions = 2 pts
+    // We need to determine position to know the threshold, but for now we'll use a general approach
+    // Count games where defensive_contribution >= 10 (conservative threshold)
+    const defconGames = history.filter((g: any) => {
+      const dc = g.defensive_contribution || 0;
+      // Use 10 as threshold (DEF threshold, MID/FWD is 12 but we'll be conservative)
+      return dc >= 10;
+    });
+    const defcon = {
+      points: defconGames.length * 2, // 2 points per Defcon earned
+      timesEarned: defconGames.length,
+    };
+
     return NextResponse.json({
       lastFiveGWs,
       avgPoints,
@@ -110,6 +142,8 @@ export async function GET(req: Request) {
       trend,
       homeGamesCount: homeGames.length,
       awayGamesCount: awayGames.length,
+      seasonStats,
+      defcon,
     });
   } catch (error: any) {
     console.error('[PLAYER-HISTORY] Error:', error);

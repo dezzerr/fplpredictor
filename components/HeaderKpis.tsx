@@ -82,39 +82,41 @@ export function HeaderKpis({ compact = false, onGwChange, weekPredPts }: { compa
 
   return (
     <header className="sticky top-0 z-50 bg-white">
-      {/* Title Bar - Clean white like mobile */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+      {/* Title Bar - Compact with larger title */}
+      <div className="flex items-center justify-between px-4 py-2 border-b border-gray-100">
         <div className="w-10">
           <Link href="/" className="p-1 -ml-1 text-gray-600 hover:text-gray-900">
-            <ChevronLeft className="h-6 w-6" />
+            <ChevronLeft className="h-5 w-5" />
           </Link>
         </div>
-        <h1 className="text-lg font-bold text-gray-900">Pick Team</h1>
+        <h1 className="text-xl font-bold text-gray-900">Pick Team</h1>
         <div className="flex items-center gap-2">
           <button
             onClick={handleRefresh}
             disabled={refreshing}
-            className="p-1.5 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full"
+            className="p-1 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full"
           >
-            <RefreshCw className={cn("h-5 w-5", refreshing && "animate-spin")} />
+            <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
           </button>
           <button
             onClick={handleLogout}
-            className="px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg"
+            className="px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50 rounded-lg"
           >
             Log Out
           </button>
         </div>
       </div>
       
-      {/* Gameweek Info - Clean center aligned */}
+      {/* Gameweek Info - Center aligned with green background */}
       {!compact && (
-        <div className="px-4 py-2 text-center border-b border-gray-100" suppressHydrationWarning>
-          <p className="text-sm font-semibold text-purple-700">
-            <span suppressHydrationWarning>Gameweek {currentGw + gwOffset}</span>
-            <span className="mx-2 text-gray-400">•</span>
-            <span className="font-normal text-gray-600" suppressHydrationWarning>Deadline: {deadlineText}</span>
-          </p>
+        <div className="max-w-xl mx-auto px-4" suppressHydrationWarning>
+          <div className="bg-emerald-50 rounded-lg px-4 py-2 mt-2 text-center">
+            <p className="text-sm font-semibold text-emerald-700">
+              <span suppressHydrationWarning>Gameweek {currentGw + gwOffset}</span>
+              <span className="mx-2 text-emerald-400">•</span>
+              <span className="font-normal text-emerald-600" suppressHydrationWarning>Deadline: {deadlineText}</span>
+            </p>
+          </div>
         </div>
       )}
     </header>

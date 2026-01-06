@@ -41,7 +41,7 @@ function KpisHeader({ weekOffset = 0 }: { weekOffset?: number }) {
   };
 
   return (
-    <div className="flex items-center justify-between px-4 py-2 bg-slate-800/90 backdrop-blur-sm rounded-lg mx-2">
+    <div className="flex items-center justify-between px-4 py-2 bg-slate-800/90 backdrop-blur-sm">
       <div className="flex flex-col items-center">
         <span className="text-[9px] text-slate-400 uppercase tracking-wide">Team</span>
         <span className={`text-sm font-bold ${getRatingColor(teamRating)}`} suppressHydrationWarning>
@@ -216,103 +216,166 @@ export default function Page() {
 
         {/* Main Content */}
         <main className="flex-1 max-w-xl mx-auto">
-          {/* Action Bar - aligned with pitch */}
-          <div className="bg-white border border-slate-200 rounded-xl px-3 py-2 mb-2">
-            <div className="flex items-center justify-center gap-1.5">
+          {/* Action Bar - Web view with labels */}
+          <div className="px-4 py-3 mb-3">
+            <div className="flex items-start justify-between">
               {/* Live Team Button */}
-              <button
-                onClick={async () => {
-                  if (!lastImport) {
-                    toast.error("Import a team first");
-                    return;
-                  }
-                  const result = await refresh();
-                  if (result.ok) {
-                    toast.success("Live team restored!");
-                  } else {
-                    toast.error(result.error || "Failed to restore");
-                  }
-                }}
-                disabled={!lastImport || loading}
-                className="p-2 rounded-full bg-blue-100 hover:bg-blue-200 disabled:opacity-30 disabled:cursor-not-allowed"
-                title="Restore live team from FPL"
-              >
-                <RefreshCw className={`w-4 h-4 text-blue-600 ${loading ? 'animate-spin' : ''}`} />
-              </button>
+              <div className="group relative flex flex-col items-center">
+                <button
+                  onClick={async () => {
+                    if (!lastImport) {
+                      toast.error("Import a team first");
+                      return;
+                    }
+                    const result = await refresh();
+                    if (result.ok) {
+                      toast.success("Live team restored!");
+                    } else {
+                      toast.error(result.error || "Failed to restore");
+                    }
+                  }}
+                  disabled={!lastImport || loading}
+                  className="p-3 rounded-xl bg-blue-50 hover:bg-blue-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                >
+                  <RefreshCw className={`w-6 h-6 text-blue-600 ${loading ? 'animate-spin' : ''}`} />
+                </button>
+                <span className="mt-1.5 text-[10px] font-medium text-slate-600">Refresh</span>
+                <div className="absolute bottom-full mb-2 hidden group-hover:block z-50">
+                  <div className="bg-slate-800 text-white text-xs px-3 py-2 rounded-lg shadow-lg whitespace-nowrap">
+                    Restore your live FPL team
+                  </div>
+                </div>
+              </div>
 
               {/* Undo Button */}
-              <button
-                onClick={() => {
-                  if (canUndo()) {
-                    undo();
-                    toast.success("Change undone");
-                  }
-                }}
-                disabled={!canUndo()}
-                className="p-2 rounded-full bg-slate-100 hover:bg-slate-200 disabled:opacity-30 disabled:cursor-not-allowed"
-              >
-                <Undo2 className="w-4 h-4 text-slate-600" />
-              </button>
+              <div className="group relative flex flex-col items-center">
+                <button
+                  onClick={() => {
+                    if (canUndo()) {
+                      undo();
+                      toast.success("Change undone");
+                    }
+                  }}
+                  disabled={!canUndo()}
+                  className="p-3 rounded-xl bg-slate-50 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                >
+                  <Undo2 className="w-6 h-6 text-slate-600" />
+                </button>
+                <span className="mt-1.5 text-[10px] font-medium text-slate-600">Undo</span>
+                <div className="absolute bottom-full mb-2 hidden group-hover:block z-50">
+                  <div className="bg-slate-800 text-white text-xs px-3 py-2 rounded-lg shadow-lg whitespace-nowrap">
+                    Undo your last change
+                  </div>
+                </div>
+              </div>
               
               {/* GW Navigation Left */}
-              <button
-                onClick={() => handleGwChange(-1)}
-                disabled={gwOffset === 0}
-                className="p-2 rounded-full bg-slate-100 hover:bg-slate-200 disabled:opacity-30 disabled:cursor-not-allowed"
-              >
-                <ChevronLeft className="w-4 h-4 text-slate-600" />
-              </button>
+              <div className="group relative flex flex-col items-center">
+                <button
+                  onClick={() => handleGwChange(-1)}
+                  disabled={gwOffset === 0}
+                  className="p-3 rounded-xl bg-slate-50 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                >
+                  <ChevronLeft className="w-6 h-6 text-slate-600" />
+                </button>
+                <span className="mt-1.5 text-[10px] font-medium text-slate-600">Prev GW</span>
+                <div className="absolute bottom-full mb-2 hidden group-hover:block z-50">
+                  <div className="bg-slate-800 text-white text-xs px-3 py-2 rounded-lg shadow-lg whitespace-nowrap">
+                    View previous gameweek
+                  </div>
+                </div>
+              </div>
               
               {/* Auto Select Button */}
-              <button
-                onClick={() => {
-                  autoSelectBestXI(gwOffset);
-                  selectPlayer(null);
-                  toast.success("Best XI selected");
-                }}
-                className="py-2 px-3 rounded-full font-semibold text-xs bg-emerald-500 text-white hover:bg-emerald-600 active:scale-[0.98] shadow-sm"
-              >
-                Auto
-              </button>
+              <div className="group relative flex flex-col items-center">
+                <button
+                  onClick={() => {
+                    autoSelectBestXI(gwOffset);
+                    selectPlayer(null);
+                    toast.success("Best XI selected");
+                  }}
+                  className="p-3 rounded-xl bg-emerald-500 hover:bg-emerald-600 active:scale-[0.98] shadow-sm transition-colors"
+                >
+                  <TrendingUp className="w-6 h-6 text-white" />
+                </button>
+                <span className="mt-1.5 text-[10px] font-medium text-emerald-600">Auto</span>
+                <div className="absolute bottom-full mb-2 hidden group-hover:block z-50">
+                  <div className="bg-slate-800 text-white text-xs px-3 py-2 rounded-lg shadow-lg whitespace-nowrap">
+                    Auto-select best XI for this GW
+                  </div>
+                </div>
+              </div>
 
               {/* Import Button */}
-              <button
-                onClick={() => setImportOpen(true)}
-                className="p-2 rounded-full bg-indigo-100 hover:bg-indigo-200"
-              >
-                <Download className="w-4 h-4 text-indigo-600" />
-              </button>
+              <div className="group relative flex flex-col items-center">
+                <button
+                  onClick={() => setImportOpen(true)}
+                  className="p-3 rounded-xl bg-indigo-50 hover:bg-indigo-100 transition-colors"
+                >
+                  <Download className="w-6 h-6 text-indigo-600" />
+                </button>
+                <span className="mt-1.5 text-[10px] font-medium text-slate-600">Import</span>
+                <div className="absolute bottom-full mb-2 hidden group-hover:block z-50">
+                  <div className="bg-slate-800 text-white text-xs px-3 py-2 rounded-lg shadow-lg whitespace-nowrap">
+                    Import your FPL team by ID
+                  </div>
+                </div>
+              </div>
 
               {/* Optimise Button */}
-              <Link
-                href="/optimize"
-                className="p-2 rounded-full bg-purple-100 hover:bg-purple-200"
-              >
-                <TrendingUp className="w-4 h-4 text-purple-600" />
-              </Link>
+              <div className="group relative flex flex-col items-center">
+                <Link
+                  href="/optimize"
+                  className="p-3 rounded-xl bg-purple-50 hover:bg-purple-100 transition-colors"
+                >
+                  <TrendingUp className="w-6 h-6 text-purple-600" />
+                </Link>
+                <span className="mt-1.5 text-[10px] font-medium text-slate-600">Optimise</span>
+                <div className="absolute bottom-full mb-2 hidden group-hover:block z-50">
+                  <div className="bg-slate-800 text-white text-xs px-3 py-2 rounded-lg shadow-lg whitespace-nowrap">
+                    View transfer recommendations
+                  </div>
+                </div>
+              </div>
 
               {/* Compare Button */}
-              <Link
-                href="/compare"
-                className="p-2 rounded-full bg-cyan-100 hover:bg-cyan-200"
-              >
-                <GitCompare className="w-4 h-4 text-cyan-600" />
-              </Link>
+              <div className="group relative flex flex-col items-center">
+                <Link
+                  href="/compare"
+                  className="p-3 rounded-xl bg-cyan-50 hover:bg-cyan-100 transition-colors"
+                >
+                  <GitCompare className="w-6 h-6 text-cyan-600" />
+                </Link>
+                <span className="mt-1.5 text-[10px] font-medium text-slate-600">Compare</span>
+                <div className="absolute bottom-full mb-2 hidden group-hover:block z-50">
+                  <div className="bg-slate-800 text-white text-xs px-3 py-2 rounded-lg shadow-lg whitespace-nowrap">
+                    Compare players side-by-side
+                  </div>
+                </div>
+              </div>
               
               {/* GW Navigation Right */}
-              <button
-                onClick={() => handleGwChange(1)}
-                disabled={gwOffset >= 9}
-                className="p-2 rounded-full bg-slate-100 hover:bg-slate-200 disabled:opacity-30 disabled:cursor-not-allowed"
-              >
-                <ChevronRight className="w-4 h-4 text-slate-600" />
-              </button>
+              <div className="group relative flex flex-col items-center">
+                <button
+                  onClick={() => handleGwChange(1)}
+                  disabled={gwOffset >= 9}
+                  className="p-3 rounded-xl bg-slate-50 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                >
+                  <ChevronRight className="w-6 h-6 text-slate-600" />
+                </button>
+                <span className="mt-1.5 text-[10px] font-medium text-slate-600">Next GW</span>
+                <div className="absolute bottom-full mb-2 hidden group-hover:block z-50">
+                  <div className="bg-slate-800 text-white text-xs px-3 py-2 rounded-lg shadow-lg whitespace-nowrap">
+                    View next gameweek
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
           <div className="px-3">
             {/* KPIs Header on Pitch */}
-            <div className="mobile-pitch-bg rounded-t-xl pt-3 pb-2">
+            <div className="mobile-pitch-bg rounded-t-xl pt-3 pb-2 overflow-hidden">
               <KpisHeader weekOffset={gwOffset} />
             </div>
             

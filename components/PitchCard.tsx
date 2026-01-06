@@ -114,7 +114,7 @@ export function PitchCard({ onPlayerClick, onAddPlayer, weekOffset }: PitchCardP
   const extraSlotPosition = getExtraSlotPosition();
 
   return (
-    <div className="mobile-pitch-bg relative overflow-hidden rounded-xl">
+    <div className="mobile-pitch-bg relative overflow-hidden rounded-b-xl">
       {/* Pitch rows - compact spacing for viewport fit */}
       <div className="space-y-2 sm:space-y-3 px-2 py-3 sm:py-4 relative z-10">
         <PitchRow position="GK" onPlayerClick={onPlayerClick} onAddPlayer={onAddPlayer} weekOffset={weekOffset} showEmptySlot={extraSlotPosition === "GK"} />
