@@ -1,5 +1,6 @@
 'use client'
 
+import type { Route } from 'next'
 import Link from 'next/link'
 import { ArrowRight, TrendingUp, Shield, Zap } from 'lucide-react'
 
@@ -24,6 +25,9 @@ export default function HomeHero() {
             <span className="text-2xl font-bold text-white tracking-tight">FPL Companion</span>
           </div>
           <div className="flex items-center gap-4">
+            <Link href={'/blog' as Route} className="hidden sm:block text-sm font-medium text-slate-300 hover:text-white transition-colors">
+              Blog
+            </Link>
             <Link href="/login" className="hidden sm:block text-sm font-medium text-slate-300 hover:text-white transition-colors">
               Sign In
             </Link>
@@ -63,8 +67,8 @@ export default function HomeHero() {
                 Start Winning
                 <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </Link>
-              <Link href="#features" className="px-8 py-4 bg-slate-800/50 hover:bg-slate-800 text-white rounded-xl font-semibold text-lg border border-slate-700 backdrop-blur-sm transition-colors duration-200">
-                How it Works
+              <Link href={'/blog' as Route} className="px-8 py-4 bg-slate-800/50 hover:bg-slate-800 text-white rounded-xl font-semibold text-lg border border-slate-700 backdrop-blur-sm transition-colors duration-200">
+                Read the Blog
               </Link>
             </div>
 
@@ -141,7 +145,7 @@ export default function HomeHero() {
             </div>
             
             {/* Floating Elements */}
-            <div className="absolute -right-4 top-20 p-4 bg-slate-800 rounded-xl border border-slate-700 shadow-xl animate-bounce duration-[3000ms]">
+            <div className="absolute -right-4 top-20 p-4 bg-slate-800 rounded-xl border border-slate-700 shadow-xl animate-bounce duration-[3000ms] will-change-transform">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center text-green-400 font-bold">H</div>
                 <div>
@@ -151,7 +155,7 @@ export default function HomeHero() {
               </div>
             </div>
 
-             <div className="absolute -left-8 bottom-40 p-4 bg-slate-800 rounded-xl border border-slate-700 shadow-xl animate-bounce duration-[4000ms]">
+             <div className="absolute -left-8 bottom-40 p-4 bg-slate-800 rounded-xl border border-slate-700 shadow-xl animate-bounce duration-[4000ms] will-change-transform">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400 font-bold">S</div>
                 <div>

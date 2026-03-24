@@ -1,8 +1,9 @@
 'use client'
 
+import type { Route } from 'next'
 import { useState } from 'react'
 import Link from 'next/link'
-import { Calendar, CalendarDays, Target, UploadCloud } from 'lucide-react'
+import { BookOpen, Calendar, CalendarDays, Target, UploadCloud } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog'
@@ -58,6 +59,13 @@ export function NavigationBar({ currentGameweek, gwOffset }: NavigationBarProps)
         >
           <Calendar className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
           <span>Optimize</span>
+        </Link>
+        <Link 
+          href={'/blog' as Route} 
+          className="inline-flex items-center rounded-md bg-gradient-to-r from-pink-500 to-fuchsia-600 hover:from-pink-600 hover:to-fuchsia-700 text-white px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm font-medium transition-all duration-200 shadow-sm hover:shadow-md"
+        >
+          <BookOpen className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+          <span>Blog</span>
         </Link>
         <SaveSquadButton currentGameweek={currentGameweek} gwOffset={gwOffset} />
         <Dialog open={importOpen} onOpenChange={setImportOpen}>

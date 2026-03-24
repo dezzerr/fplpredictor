@@ -1,11 +1,12 @@
 'use client'
 
+import type { Route } from 'next'
 import Link from 'next/link'
 import { ArrowRight } from 'lucide-react'
 
 export default function HomeCTA() {
   return (
-    <section className="relative py-20 sm:py-24">
+    <section className="relative py-20 sm:py-24 cv-auto">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Main CTA */}
         <div className="relative overflow-hidden bg-gradient-to-br from-fuchsia-900/50 to-indigo-900/50 rounded-[2.5rem] border border-slate-800 p-12 sm:p-20 mb-24 text-center">
@@ -26,8 +27,8 @@ export default function HomeCTA() {
                 Get Started Free
                 <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </Link>
-              <Link href="/login" className="w-full sm:w-auto px-8 py-4 bg-slate-800/50 hover:bg-slate-800 text-white rounded-xl font-semibold text-lg border border-slate-700 backdrop-blur-sm transition-colors duration-200">
-                View Demo
+              <Link href={'/blog' as Route} className="w-full sm:w-auto px-8 py-4 bg-slate-800/50 hover:bg-slate-800 text-white rounded-xl font-semibold text-lg border border-slate-700 backdrop-blur-sm transition-colors duration-200">
+                Read Blog
               </Link>
             </div>
 
@@ -46,10 +47,11 @@ export default function HomeCTA() {
             <span className="text-xl font-bold text-white tracking-tight">FPL Companion</span>
           </div>
           <p className="text-slate-500 text-sm mb-6">
-            © 2025 FPL Companion. All rights reserved. Not affiliated with the Premier League.
+            © 2026 FPL Companion. All rights reserved. Not affiliated with the Premier League.
           </p>
           <div className="flex justify-center gap-8 text-sm text-slate-500">
             <Link href="/login" className="hover:text-white transition-colors">Sign In</Link>
+            <Link href={'/blog' as Route} className="hover:text-white transition-colors">Blog</Link>
             <Link href="#" className="hover:text-white transition-colors">Privacy</Link>
             <Link href="#" className="hover:text-white transition-colors">Terms</Link>
           </div>
