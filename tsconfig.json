@@ -54,6 +54,7 @@
   "exclude": [
     "node_modules",
     "Homepage",
-    ".netlify"
+    ".netlify",
+    "studio-fpl-companion"
   ]
 }
