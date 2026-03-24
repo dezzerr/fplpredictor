@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { ArrowLeft, Search, X, Plus, TrendingUp, Zap } from "lucide-react";
-import { Player } from "@/lib/data";
+import { Player, Fixture } from "@/lib/data";
 import { weeklyExp } from "@/lib/optimizer";
 
 interface MobileComparePageProps {
@@ -251,19 +251,41 @@ export function MobileComparePage({ onBack, weekOffset = 0 }: MobileComparePageP
               
               <div className="p-4">
                 <div className="flex gap-2">
-                  {selectedPlayers.map(player => (
-                    <div key={player.id} className="flex-1 space-y-2">
-                      <div className="text-xs text-slate-500 truncate text-center">{player.name.split(' ').pop()}</div>
-                      {player.nextFixtures.slice(0, 3).map((fixture, i) => (
-                        <div 
-                          key={i}
-                          className={`${getFdrColor(fixture.diff)} text-white text-center py-1.5 rounded text-xs font-medium`}
-                        >
-                          {fixture.opp} ({fixture.H ? 'H' : 'A'})
-                        </div>
-                      ))}
-                    </div>
-                  ))}
+                  {selectedPlayers.map(player => {
+                    // Group fixtures by event for DGW display
+                    const fixtures = player.nextFixtures.slice(0, 5);
+                    const groups: { event: number | undefined; fixtures: Fixture[] }[] = [];
+                    for (const fix of fixtures) {
+                      const last = groups[groups.length - 1];
+                      if (last && fix.event != null && last.event === fix.event) {
+                        last.fixtures.push(fix);
+                      } else {
+                        groups.push({ event: fix.event, fixtures: [fix] });
+                      }
+                    }
+                    return (
+                      <div key={player.id} className="flex-1 space-y-2">
+                        <div className="text-xs text-slate-500 truncate text-center">{player.name.split(' ').pop()}</div>
+                        {groups.slice(0, 3).map((group, gIdx) => (
+                          <div key={gIdx} className="space-y-0.5">
+                            {group.fixtures.length >= 2 && (
+                              <div className="text-center">
+                                <span className="px-1 py-0.5 rounded text-[7px] font-bold bg-blue-500 text-white leading-none">DGW</span>
+                              </div>
+                            )}
+                            {group.fixtures.map((fixture, fIdx) => (
+                              <div 
+                                key={fIdx}
+                                className={`${getFdrColor(fixture.diff)} text-white text-center py-1.5 rounded text-xs font-medium`}
+                              >
+                                {fixture.opp} ({fixture.H ? 'H' : 'A'})
+                              </div>
+                            ))}
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             </div>

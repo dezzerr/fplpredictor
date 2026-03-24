@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { getRealisticExpPoints } from "@/lib/data";
+import { getRealisticExpPoints, Fixture } from "@/lib/data";
 import type { Player } from "@/lib/data";
 import { useFilters, MIN_PRICE, MAX_PRICE } from "@/store/filters";
 import { useSquadStore } from "@/store/squad";
@@ -62,18 +62,39 @@ function PlayerModal({ player }: { player: Player }) {
         </div>
       </div>
 
-      {/* Compact Fixtures */}
+      {/* Compact Fixtures - DGW aware */}
       <div>
         <h3 className="font-bold text-xs text-gray-700 mb-1">Next Fixtures</h3>
         <div className="flex gap-2 justify-center">
-          {player.nextFixtures.slice(0, 3).map((fixture, i) => (
-            <div key={i} className="text-center">
-              <div className="text-xs text-gray-500">GW{fixture.event || `+${i + 1}`}</div>
-              <TeamShirt team={fixture.opp} className="w-6 h-6 mx-auto" />
-              <div className="text-xs font-medium">{fixture.opp} ({fixture.H ? 'H' : 'A'})</div>
-              <div className="text-xs font-bold">D:{fixture.diff}</div>
-            </div>
-          ))}
+          {(() => {
+            const fixtures = player.nextFixtures.slice(0, 5);
+            const groups: { event: number | undefined; fixtures: Fixture[] }[] = [];
+            for (const fix of fixtures) {
+              const last = groups[groups.length - 1];
+              if (last && fix.event != null && last.event === fix.event) {
+                last.fixtures.push(fix);
+              } else {
+                groups.push({ event: fix.event, fixtures: [fix] });
+              }
+            }
+            return groups.slice(0, 3).map((group, gIdx) => (
+              <div key={gIdx} className="text-center">
+                <div className="text-xs text-gray-500 flex items-center justify-center gap-0.5">
+                  GW{group.event || `+${gIdx + 1}`}
+                  {group.fixtures.length >= 2 && (
+                    <span className="px-1 py-0.5 rounded text-[8px] font-bold bg-blue-500 text-white leading-none">DGW</span>
+                  )}
+                </div>
+                {group.fixtures.map((fixture, fIdx) => (
+                  <div key={fIdx}>
+                    <TeamShirt team={fixture.opp} className="w-6 h-6 mx-auto" />
+                    <div className="text-xs font-medium">{fixture.opp} ({fixture.H ? 'H' : 'A'})</div>
+                    <div className="text-xs font-bold">D:{fixture.diff}</div>
+                  </div>
+                ))}
+              </div>
+            ));
+          })()}
         </div>
       </div>
 
@@ -139,23 +160,42 @@ function PlayerModal({ player }: { player: Player }) {
           ) : (
             <div>
               <div className="space-y-1">
-                {player.nextFixtures.slice(0, 5).map((fixture, i) => (
-                  <div key={i} className="flex items-center justify-between p-1 bg-gray-50 rounded text-xs">
-                    <div className="flex items-center gap-2">
-                      <div className="font-medium">
-                        GW{fixture.event || `+${i + 1}`}
-                      </div>
-                      <TeamShirt team={fixture.opp} className="w-4 h-4" />
-                      <div>
-                        <span className="font-medium">{fixture.opp}</span>
-                        <span className="text-gray-500 ml-1">({fixture.H ? 'H' : 'A'})</span>
-                      </div>
+                {(() => {
+                  const fixtures = player.nextFixtures.slice(0, 8);
+                  const groups: { event: number | undefined; fixtures: Fixture[] }[] = [];
+                  for (const fix of fixtures) {
+                    const last = groups[groups.length - 1];
+                    if (last && fix.event != null && last.event === fix.event) {
+                      last.fixtures.push(fix);
+                    } else {
+                      groups.push({ event: fix.event, fixtures: [fix] });
+                    }
+                  }
+                  return groups.map((group, gIdx) => (
+                    <div key={gIdx} className="space-y-0.5">
+                      {group.fixtures.map((fixture, fIdx) => (
+                        <div key={fIdx} className="flex items-center justify-between p-1 bg-gray-50 rounded text-xs">
+                          <div className="flex items-center gap-2">
+                            <div className="font-medium flex items-center gap-1">
+                              GW{fixture.event || `+${gIdx + 1}`}
+                              {group.fixtures.length >= 2 && fIdx === 0 && (
+                                <span className="px-1 py-0.5 rounded text-[8px] font-bold bg-blue-500 text-white leading-none">DGW</span>
+                              )}
+                            </div>
+                            <TeamShirt team={fixture.opp} className="w-4 h-4" />
+                            <div>
+                              <span className="font-medium">{fixture.opp}</span>
+                              <span className="text-gray-500 ml-1">({fixture.H ? 'H' : 'A'})</span>
+                            </div>
+                          </div>
+                          <div className="font-bold">
+                            D:{fixture.diff}
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                    <div className="font-bold">
-                      D:{fixture.diff}
-                    </div>
-                  </div>
-                ))}
+                  ));
+                })()}
               </div>
             </div>
           )}

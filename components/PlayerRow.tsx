@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Plus } from "lucide-react";
-import { Player, getRealisticExpPoints } from "@/lib/data";
+import { Player, getRealisticExpPoints, getFixturesForWeek, formatFixtureText } from "@/lib/data";
 import { cn, getFPLDisplayName } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -75,13 +75,24 @@ export function PlayerRow({ player, onAdd }: { player: Player; onAdd: (p: Player
 
           {/* Bottom section - Compact fixtures and points */}
           <div className="flex items-center justify-between">
-            {/* Next 3 fixtures - compact format */}
-            <div className="flex gap-2 text-xs font-medium text-gray-600">
-              {player.nextFixtures.slice(0, 3).map((f, i) => (
-                <span key={i}>
-                  {f.opp} ({f.H ? 'H' : 'A'})
-                </span>
-              ))}
+            {/* Next 3 fixtures - compact format, DGW aware */}
+            <div className="flex gap-2 text-xs font-medium text-gray-600 items-center">
+              {(() => {
+                const gw0 = getFixturesForWeek(player, 0);
+                const isDGW = gw0.length >= 2;
+                const isBlank = gw0.length === 0;
+                return (
+                  <>
+                    {isDGW && (
+                      <span className="px-1 py-0.5 rounded text-[9px] font-bold bg-blue-500 text-white leading-none">DGW</span>
+                    )}
+                    {isBlank && (
+                      <span className="px-1 py-0.5 rounded text-[9px] font-bold bg-slate-400 text-white leading-none">BLANK</span>
+                    )}
+                    <span>{formatFixtureText(gw0) || player.team}</span>
+                  </>
+                );
+              })()}
             </div>
             
             {/* Expected Points - smaller */}

@@ -27,18 +27,36 @@ function MobileFixtureBadges({ fixtures, maxShow = 5 }: { fixtures: Fixture[]; m
     return <span className="text-[10px] text-slate-400">No fixtures</span>;
   }
 
+  // Group fixtures by event for DGW display
+  const groups: { event: number | undefined; fixtures: Fixture[] }[] = [];
+  for (const fix of displayFixtures) {
+    const last = groups[groups.length - 1];
+    if (last && fix.event != null && last.event === fix.event) {
+      last.fixtures.push(fix);
+    } else {
+      groups.push({ event: fix.event, fixtures: [fix] });
+    }
+  }
+
   return (
     <div className="flex items-center gap-0.5 mt-1">
-      {displayFixtures.map((fix, idx) => (
-        <div
-          key={idx}
-          className={cn(
-            "rounded text-[8px] px-1 py-0.5 min-w-[24px] font-semibold text-center uppercase",
-            getFDRColor(fix.diff)
-          )}
-        >
-          {fix.opp}
-          <span className="text-[6px] opacity-80 ml-0.5">{fix.H ? "H" : "A"}</span>
+      {groups.map((group, gIdx) => (
+        <div key={gIdx} className={cn(
+          "flex items-center gap-0.5",
+          group.fixtures.length >= 2 && "ring-1 ring-blue-400 rounded px-0.5"
+        )}>
+          {group.fixtures.map((fix, fIdx) => (
+            <div
+              key={fIdx}
+              className={cn(
+                "rounded text-[8px] px-1 py-0.5 min-w-[24px] font-semibold text-center uppercase",
+                getFDRColor(fix.diff)
+              )}
+            >
+              {fix.opp}
+              <span className="text-[6px] opacity-80 ml-0.5">{fix.H ? "H" : "A"}</span>
+            </div>
+          ))}
         </div>
       ))}
     </div>

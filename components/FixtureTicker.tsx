@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Player, Fixture } from "@/lib/data";
+import { Player, Fixture, getFixturesForWeek } from "@/lib/data";
 import { cn } from "@/lib/utils";
 import { Home, Plane, TrendingUp, TrendingDown, Minus, Shield, Calendar } from "lucide-react";
 
@@ -123,53 +123,72 @@ export function FixtureTicker({
         </div>
       )}
 
-      {/* Fixture Ticker */}
+      {/* Fixture Ticker - grouped by gameweek */}
       <div className="space-y-2">
-        {fixtures.map((fix, idx) => (
-          <div
-            key={idx}
-            className={cn(
-              "flex items-center gap-3 p-3 rounded-lg border transition-all hover:shadow-md",
-              getDifficultyBg(fix.diff)
-            )}
-          >
-            {/* GW Number */}
-            <div className="flex items-center gap-1">
-              <Calendar className="h-3 w-3 text-muted-foreground" />
-              <span className="text-xs font-medium text-muted-foreground">
-                {fix.event ? `GW${fix.event}` : `GW+${idx + 1}`}
-              </span>
-            </div>
+        {(() => {
+          // Group fixtures by event number for DGW display
+          const groups: { event: number | undefined; fixtures: Fixture[] }[] = [];
+          for (const fix of fixtures) {
+            const last = groups[groups.length - 1];
+            if (last && fix.event != null && last.event === fix.event) {
+              last.fixtures.push(fix);
+            } else {
+              groups.push({ event: fix.event, fixtures: [fix] });
+            }
+          }
+          return groups.map((group, gIdx) => (
+            <div key={gIdx} className="space-y-1">
+              {group.fixtures.map((fix, fIdx) => (
+                <div
+                  key={fIdx}
+                  className={cn(
+                    "flex items-center gap-3 p-3 rounded-lg border transition-all hover:shadow-md",
+                    getDifficultyBg(fix.diff)
+                  )}
+                >
+                  {/* GW Number + DGW badge */}
+                  <div className="flex items-center gap-1">
+                    <Calendar className="h-3 w-3 text-muted-foreground" />
+                    <span className="text-xs font-medium text-muted-foreground">
+                      {fix.event ? `GW${fix.event}` : `GW+${gIdx + 1}`}
+                    </span>
+                    {group.fixtures.length >= 2 && fIdx === 0 && (
+                      <span className="px-1 py-0.5 rounded text-[9px] font-bold bg-blue-500 text-white leading-none">DGW</span>
+                    )}
+                  </div>
 
-            {/* Home/Away Icon */}
-            <div className={cn(
-              "p-1.5 rounded",
-              fix.H ? "bg-blue-100 text-blue-700" : "bg-purple-100 text-purple-700"
-            )}>
-              {fix.H ? (
-                <Home className="h-3 w-3" />
-              ) : (
-                <Plane className="h-3 w-3" />
-              )}
-            </div>
+                  {/* Home/Away Icon */}
+                  <div className={cn(
+                    "p-1.5 rounded",
+                    fix.H ? "bg-blue-100 text-blue-700" : "bg-purple-100 text-purple-700"
+                  )}>
+                    {fix.H ? (
+                      <Home className="h-3 w-3" />
+                    ) : (
+                      <Plane className="h-3 w-3" />
+                    )}
+                  </div>
 
-            {/* Opponent */}
-            <div className="flex-1">
-              <div className="font-semibold text-sm">{fix.opp}</div>
-              <div className="text-xs text-muted-foreground">
-                {fix.H ? 'Home' : 'Away'}
-              </div>
-            </div>
+                  {/* Opponent */}
+                  <div className="flex-1">
+                    <div className="font-semibold text-sm">{fix.opp}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {fix.H ? 'Home' : 'Away'}
+                    </div>
+                  </div>
 
-            {/* Difficulty Badge */}
-            <div className="flex items-center gap-2">
-              <div className="text-xs text-muted-foreground">Diff</div>
-              <Badge className={cn("font-bold min-w-[2rem] justify-center", getDifficultyColor(fix.diff))}>
-                {fix.diff}
-              </Badge>
+                  {/* Difficulty Badge */}
+                  <div className="flex items-center gap-2">
+                    <div className="text-xs text-muted-foreground">Diff</div>
+                    <Badge className={cn("font-bold min-w-[2rem] justify-center", getDifficultyColor(fix.diff))}>
+                      {fix.diff}
+                    </Badge>
+                  </div>
+                </div>
+              ))}
             </div>
-          </div>
-        ))}
+          ));
+        })()}
       </div>
 
       {/* Legend */}
@@ -213,21 +232,41 @@ export function FixtureTickerHorizontal({
     return <div className="text-xs text-muted-foreground italic">No fixtures</div>;
   }
 
+  // Group fixtures by event for DGW display
+  const groups: { event: number | undefined; fixtures: Fixture[] }[] = [];
+  for (const fix of fixtures) {
+    const last = groups[groups.length - 1];
+    if (last && fix.event != null && last.event === fix.event) {
+      last.fixtures.push(fix);
+    } else {
+      groups.push({ event: fix.event, fixtures: [fix] });
+    }
+  }
+
   return (
     <div className="flex items-center gap-1 overflow-x-auto pb-1 scrollbar-thin scrollbar-thumb-gray-300">
-      {fixtures.map((fix, idx) => (
+      {groups.map((group, gIdx) => (
         <div
-          key={idx}
+          key={gIdx}
           className={cn(
-            "flex-shrink-0 px-2 py-1.5 rounded-lg text-center min-w-[50px]",
-            getDifficultyColor(fix.diff)
+            "flex-shrink-0 px-2 py-1.5 rounded-lg text-center",
+            group.fixtures.length >= 2 ? "min-w-[90px] border-2 border-blue-400" : "min-w-[50px]",
+            getDifficultyColor(Math.round(group.fixtures.reduce((s, f) => s + f.diff, 0) / group.fixtures.length))
           )}
-          title={`${fix.opp} (${fix.H ? 'Home' : 'Away'}) - Difficulty: ${fix.diff}/5`}
+          title={group.fixtures.map(f => `${f.opp} (${f.H ? 'Home' : 'Away'}) - Difficulty: ${f.diff}/5`).join(' | ')}
         >
-          <div className="text-xs font-bold">{fix.opp}</div>
+          <div className="text-xs font-bold">
+            {group.fixtures.map(f => f.opp).join(', ')}
+          </div>
           <div className="text-[10px] opacity-90 flex items-center justify-center gap-0.5">
-            {fix.H ? <Home className="h-2 w-2" /> : <Plane className="h-2 w-2" />}
-            <span className="text-[9px]">{fix.event ? `GW${fix.event}` : idx + 1}</span>
+            {group.fixtures.length >= 2 ? (
+              <span className="text-[9px] font-bold">DGW{group.event || ''}</span>
+            ) : (
+              <>
+                {group.fixtures[0].H ? <Home className="h-2 w-2" /> : <Plane className="h-2 w-2" />}
+                <span className="text-[9px]">{group.event ? `GW${group.event}` : gIdx + 1}</span>
+              </>
+            )}
           </div>
         </div>
       ))}

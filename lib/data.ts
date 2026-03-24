@@ -88,6 +88,61 @@ export type Squad = {
 // Small helper to build fixtures
 const F = (opp: string, H: boolean, diff: number): Fixture => ({ opp, H, diff });
 
+/**
+ * Get all fixtures for a player at a given week offset, grouped by event.
+ * Handles DGW (returns 2+ fixtures), single GW (1 fixture), and blank GW (0 fixtures).
+ * 
+ * The nextFixtures array is a flat list sorted by event. For DGW, two entries share
+ * the same event number. This function groups them properly.
+ */
+export function getFixturesForWeek(player: Player, weekOffset: number): Fixture[] {
+  const fixtures = player.nextFixtures;
+  if (!fixtures?.length) return [];
+
+  // If fixtures have event numbers, group by distinct events
+  const hasEvents = fixtures.some(f => typeof f.event === 'number');
+  if (hasEvents) {
+    // Collect distinct event numbers in order
+    const events: number[] = [];
+    for (const f of fixtures) {
+      if (typeof f.event === 'number' && !events.includes(f.event)) {
+        events.push(f.event);
+      }
+    }
+    if (weekOffset < events.length) {
+      const targetEvent = events[weekOffset];
+      return fixtures.filter(f => f.event === targetEvent);
+    }
+    return [];
+  }
+
+  // Fallback: no event numbers, treat each fixture as a separate week
+  const f = fixtures[weekOffset];
+  return f ? [f] : [];
+}
+
+/**
+ * Format fixture text for display on player tiles.
+ * Single fixture: "BRE (A)"
+ * Double GW: "BRE (A), WOL (A)"
+ * Blank GW: ""
+ */
+export function formatFixtureText(fixtures: Fixture[]): string {
+  if (!fixtures.length) return '';
+  return fixtures.map(f => `${f.opp} (${f.H ? 'H' : 'A'})`).join(', ');
+}
+
+/**
+ * Get the worst (highest) FDR from a set of fixtures.
+ * For DGW, returns the average difficulty for coloring purposes.
+ */
+export function getFixtureDifficulty(fixtures: Fixture[]): number {
+  if (!fixtures.length) return 3;
+  if (fixtures.length === 1) return fixtures[0].diff;
+  // For DGW, use average difficulty (rounded) for the color band
+  return Math.round(fixtures.reduce((sum, f) => sum + f.diff, 0) / fixtures.length);
+}
+
 // Playing style multipliers for expected points adjustment
 export const PLAYING_STYLE_FACTORS: Record<PlayingStyle, number> = {
   // Defenders

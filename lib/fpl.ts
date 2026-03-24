@@ -5,6 +5,7 @@ import {
   TEAM_STRENGTH,
   PENALTY_TAKERS,
 } from "@/lib/constants";
+import { getLiveEvent } from "@/lib/liveWindow";
 
 function mapStatus(s: string): Player["status"] {
   // FPL: a=available, d=doubtful, i=injured, s=suspended, n=not in squad, u=unknown
@@ -31,10 +32,31 @@ export async function fetchFplPlayers(preset?: CalPresetName | string | null): P
   
   console.log('[FPL] Fetching player data...');
 
+  const teams: Array<{ id: number; short_name: string; name: string }> = bootstrap.teams || [];
+  const teamShort: Record<number, string> = Object.fromEntries(
+    teams.map((t: any) => [t.id, t.short_name])
+  );
+
+  // Determine the target event id — prefer current when GW is in live window
+  const events: Array<any> = bootstrap.events || [];
+  const live = await getLiveEvent(events);
+  let nextEvent: any = null;
+  const gwIsLive = !!live;
+  if (live) {
+    nextEvent = live.event;
+  } else {
+    nextEvent = events.find((e) => e.is_next) || events.find((e) => e.is_current) || events.find((e) => !e.finished);
+  }
+  const nextEventId: number | undefined = nextEvent?.id;
+
   // Fetch fixtures best-effort (tolerate failures by using empty list)
+  // When GW is live, fetch ALL fixtures so current GW opponents appear on player tiles
   let fixtures: any[] = [];
   try {
-    const fixturesRes = await fetch("https://fantasy.premierleague.com/api/fixtures/?future=1", { next: { revalidate: 900 } });
+    const fixturesUrl = gwIsLive
+      ? "https://fantasy.premierleague.com/api/fixtures/"
+      : "https://fantasy.premierleague.com/api/fixtures/?future=1";
+    const fixturesRes = await fetch(fixturesUrl, { next: { revalidate: 900 } });
     if (fixturesRes.ok) {
       fixtures = await fixturesRes.json();
     } else {
@@ -45,16 +67,6 @@ export async function fetchFplPlayers(preset?: CalPresetName | string | null): P
     // eslint-disable-next-line no-console
     console.warn("FPL fixtures fetch failed, proceeding without fixtures:", (err as Error).message);
   }
-
-  const teams: Array<{ id: number; short_name: string; name: string }> = bootstrap.teams || [];
-  const teamShort: Record<number, string> = Object.fromEntries(
-    teams.map((t: any) => [t.id, t.short_name])
-  );
-
-  // Determine the next event id to prioritize very near fixtures
-  const events: Array<any> = bootstrap.events || [];
-  const nextEvent = events.find((e) => e.is_next) || events.find((e) => e.is_current) || events.find((e) => !e.finished);
-  const nextEventId: number | undefined = nextEvent?.id;
   
   console.log('[FPL] Current/Next Event ID:', nextEventId, 'Total events:', events.length);
   console.log('[FPL] Next event details:', nextEvent ? { id: nextEvent.id, name: nextEvent.name, deadline: nextEvent.deadline_time } : 'None');
@@ -303,16 +315,20 @@ export async function fetchFplPlayers(preset?: CalPresetName | string | null): P
     }
 
     // Apply ALL factors to expected points (form, minutes, penalties, injury)
+    // NOTE: FPL's ep_next ALREADY includes DGW — e.g. a DGW defender might have
+    // ep_next=10.4 (sum of both fixtures). We do NOT multiply by fixture count.
     const rawPrediction = baseExp * positionFactor * calib.CAL * formFactor * penaltyBoost * minutesFactor * injuryPenalty;
-    
+
     // Position-based realistic caps (prevent impossible predictions)
-    const positionCaps: Record<Position, number> = {
-      GK: 7.0,   // Goalkeepers rarely score above 7
-      DEF: 10.0, // Defenders cap at 10 (clean sheet + attacking returns)
-      MID: 12.0, // Midfielders cap at 12
-      FWD: 14.0, // Forwards cap at 14 (hat-trick + bonus)
+    // Scale caps by DGW fixture count so DGW predictions aren't clipped to single-GW levels
+    const dgwCount = (typeof nextEventFixtureCount === 'number' && nextEventFixtureCount >= 2) ? nextEventFixtureCount : 1;
+    const positionCapsBase: Record<Position, number> = {
+      GK: 7.0,   // Goalkeepers rarely score above 7 per game
+      DEF: 10.0, // Defenders cap at 10 per game (clean sheet + attacking returns)
+      MID: 12.0, // Midfielders cap at 12 per game
+      FWD: 14.0, // Forwards cap at 14 per game (hat-trick + bonus)
     };
-    const maxAllowed = positionCaps[position];
+    const maxAllowed = positionCapsBase[position] * dgwCount;
     
     // Apply cap and round
     const refined = Math.max(0, Math.min(maxAllowed, Math.round(rawPrediction * 10) / 10));

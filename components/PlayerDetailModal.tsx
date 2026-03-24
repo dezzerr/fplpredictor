@@ -5,7 +5,7 @@ import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Player, Position } from "@/lib/data";
+import { Player, Position, Fixture } from "@/lib/data";
 import { useSquadStore } from "@/store/squad";
 import { weeklyExp } from "@/lib/optimizer";
 import { toast } from "sonner";
@@ -556,59 +556,99 @@ export function PlayerDetailModal({
                 <Card className="p-4">
                   <div className="text-sm font-medium mb-3">Upcoming Fixtures</div>
                   <div className="space-y-2">
-                    {player.nextFixtures.slice(0, 5).map((fixture, i) => (
-                      <div
-                        key={i}
-                        className="flex items-center justify-between p-3 bg-slate-50 rounded-lg"
-                      >
-                        <div className="flex items-center gap-3">
-                          <Badge className="text-xs bg-slate-100 border-slate-300">
-                            GW{(fixture.event || (21 + weekOffset + i))}
-                          </Badge>
-                          {fixture.H ? (
-                            <Badge className="bg-blue-100 text-blue-700 border-blue-300 text-xs">
-                              <Home className="h-3 w-3 mr-1" />
-                              Home
-                            </Badge>
-                          ) : (
-                            <Badge className="bg-purple-100 text-purple-700 border-purple-300 text-xs">
-                              <Plane className="h-3 w-3 mr-1" />
-                              Away
-                            </Badge>
-                          )}
+                    {(() => {
+                      const fixtures = player.nextFixtures.slice(0, 8);
+                      const groups: { event: number | undefined; fixtures: Fixture[] }[] = [];
+                      for (const fix of fixtures) {
+                        const last = groups[groups.length - 1];
+                        if (last && fix.event != null && last.event === fix.event) {
+                          last.fixtures.push(fix);
+                        } else {
+                          groups.push({ event: fix.event, fixtures: [fix] });
+                        }
+                      }
+                      return groups.slice(0, 5).map((group, gIdx) => (
+                        <div key={gIdx} className="space-y-1">
+                          {group.fixtures.map((fixture, fIdx) => (
+                            <div
+                              key={fIdx}
+                              className="flex items-center justify-between p-3 bg-slate-50 rounded-lg"
+                            >
+                              <div className="flex items-center gap-3">
+                                <Badge className="text-xs bg-slate-100 border-slate-300">
+                                  GW{(fixture.event || (21 + weekOffset + gIdx))}
+                                </Badge>
+                                {group.fixtures.length >= 2 && fIdx === 0 && (
+                                  <Badge className="text-[9px] bg-blue-500 text-white border-blue-600 px-1 py-0">DGW</Badge>
+                                )}
+                                {fixture.H ? (
+                                  <Badge className="bg-blue-100 text-blue-700 border-blue-300 text-xs">
+                                    <Home className="h-3 w-3 mr-1" />
+                                    Home
+                                  </Badge>
+                                ) : (
+                                  <Badge className="bg-purple-100 text-purple-700 border-purple-300 text-xs">
+                                    <Plane className="h-3 w-3 mr-1" />
+                                    Away
+                                  </Badge>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-3">
+                                <span className="font-medium">{fixture.opp}</span>
+                                <div className={cn(
+                                  "px-2 py-1 rounded text-xs font-bold",
+                                  getFdrColor(fixture.diff),
+                                  getFdrTextColor(fixture.diff)
+                                )}>
+                                  FDR {fixture.diff}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
                         </div>
-                        <div className="flex items-center gap-3">
-                          <span className="font-medium">{fixture.opp}</span>
-                          <div className={cn(
-                            "px-2 py-1 rounded text-xs font-bold",
-                            getFdrColor(fixture.diff),
-                            getFdrTextColor(fixture.diff)
-                          )}>
-                            FDR {fixture.diff}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
+                      ));
+                    })()}
                   </div>
                 </Card>
 
-                {/* Fixture Difficulty Summary */}
+                {/* Fixture Difficulty Summary - grouped by event */}
                 <Card className="p-4">
                   <div className="text-sm font-medium mb-3">Fixture Difficulty</div>
                   <div className="flex gap-1.5">
-                    {player.nextFixtures.slice(0, 5).map((fixture, i) => (
-                      <div
-                        key={i}
-                        className={cn(
-                          "flex-1 px-1.5 py-2 rounded text-center",
-                          getFdrColor(fixture.diff),
-                          getFdrTextColor(fixture.diff)
-                        )}
-                      >
-                        <div className="text-sm font-bold">{fixture.opp}</div>
-                        <div className="text-[10px] opacity-90">{fixture.H ? 'H' : 'A'}</div>
-                      </div>
-                    ))}
+                    {(() => {
+                      const fixtures = player.nextFixtures.slice(0, 8);
+                      const groups: { event: number | undefined; fixtures: Fixture[] }[] = [];
+                      for (const fix of fixtures) {
+                        const last = groups[groups.length - 1];
+                        if (last && fix.event != null && last.event === fix.event) {
+                          last.fixtures.push(fix);
+                        } else {
+                          groups.push({ event: fix.event, fixtures: [fix] });
+                        }
+                      }
+                      return groups.slice(0, 5).map((group, gIdx) => (
+                        <div key={gIdx} className="flex-1 space-y-0.5">
+                          {group.fixtures.length >= 2 && (
+                            <div className="text-center">
+                              <span className="px-1 py-0.5 rounded text-[8px] font-bold bg-blue-500 text-white leading-none">DGW</span>
+                            </div>
+                          )}
+                          {group.fixtures.map((fixture, fIdx) => (
+                            <div
+                              key={fIdx}
+                              className={cn(
+                                "px-1.5 py-2 rounded text-center",
+                                getFdrColor(fixture.diff),
+                                getFdrTextColor(fixture.diff)
+                              )}
+                            >
+                              <div className="text-sm font-bold">{fixture.opp}</div>
+                              <div className="text-[10px] opacity-90">{fixture.H ? 'H' : 'A'}</div>
+                            </div>
+                          ))}
+                        </div>
+                      ));
+                    })()}
                   </div>
                 </Card>
 

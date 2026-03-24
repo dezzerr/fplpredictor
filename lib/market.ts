@@ -57,7 +57,7 @@ export async function fetchPlayersWithMarket(preset?: CalPresetName | string | n
     }));
   }
 
-  // Helper: get ONLY the next fixture for a team in a given event (FPL teams play once per gameweek)
+  // Helper: get all fixtures for a team in a given event (supports DGW with 2+ fixtures)
   function teamFixturesForEvent(event: number, team: string): Array<{ o: TeamOdds; teamIsHome: boolean } > {
     const arr = teamOddsByEvent[event] || [];
     const out: Array<{ o: TeamOdds; teamIsHome: boolean }> = [];
@@ -65,8 +65,7 @@ export async function fetchPlayersWithMarket(preset?: CalPresetName | string | n
       if (o.fixture.home === team) out.push({ o, teamIsHome: true });
       else if (o.fixture.away === team) out.push({ o, teamIsHome: false });
     }
-    // Return only the first fixture to avoid double-counting
-    return out.slice(0, 1);
+    return out;
   }
 
   const goalPtsByPos: Record<Position, number> = { GK: 6, DEF: 6, MID: 5, FWD: 4 };
