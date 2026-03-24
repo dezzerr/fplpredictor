@@ -107,6 +107,17 @@
   padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
 }
 
+/* Below-fold content visibility optimization for LCP */
+.cv-auto {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 600px;
+}
+
+/* GPU-promote animated elements */
+.will-change-transform {
+  will-change: transform;
+}
+
 /* Focus ring high-contrast */
 :focus-visible {
   outline: none;
