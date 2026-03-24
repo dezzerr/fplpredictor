@@ -5,21 +5,21 @@ import {urlForImage} from '@/lib/sanity/image'
 
 export const portableTextComponents: PortableTextComponents = {
   block: {
-    h2: ({children}: {children: React.ReactNode}) => <h2 className="mt-10 text-2xl font-semibold text-white">{children}</h2>,
-    h3: ({children}: {children: React.ReactNode}) => <h3 className="mt-8 text-xl font-semibold text-white">{children}</h3>,
-    normal: ({children}: {children: React.ReactNode}) => <p className="mt-5 text-base leading-8 text-slate-300">{children}</p>,
-    blockquote: ({children}: {children: React.ReactNode}) => <blockquote className="mt-6 border-l-2 border-fuchsia-500 pl-4 text-slate-200 italic">{children}</blockquote>,
+    h2: ({children}) => <h2 className="mt-10 text-2xl font-semibold text-white">{children}</h2>,
+    h3: ({children}) => <h3 className="mt-8 text-xl font-semibold text-white">{children}</h3>,
+    normal: ({children}) => <p className="mt-5 text-base leading-8 text-slate-300">{children}</p>,
+    blockquote: ({children}) => <blockquote className="mt-6 border-l-2 border-fuchsia-500 pl-4 text-slate-200 italic">{children}</blockquote>,
   },
   list: {
-    bullet: ({children}: {children: React.ReactNode}) => <ul className="mt-5 space-y-3 pl-5 text-slate-300">{children}</ul>,
-    number: ({children}: {children: React.ReactNode}) => <ol className="mt-5 space-y-3 pl-5 text-slate-300">{children}</ol>,
+    bullet: ({children}) => <ul className="mt-5 space-y-3 pl-5 text-slate-300">{children}</ul>,
+    number: ({children}) => <ol className="mt-5 space-y-3 pl-5 text-slate-300">{children}</ol>,
   },
   listItem: {
-    bullet: ({children}: {children: React.ReactNode}) => <li className="list-disc">{children}</li>,
-    number: ({children}: {children: React.ReactNode}) => <li className="list-decimal">{children}</li>,
+    bullet: ({children}) => <li className="list-disc">{children}</li>,
+    number: ({children}) => <li className="list-decimal">{children}</li>,
   },
   marks: {
-    link: ({children, value}: {children: React.ReactNode; value: {href: string | undefined}}) => {
+    link: ({children, value}) => {
       const href = value?.href || '#'
       const external = href.startsWith('http')
 
