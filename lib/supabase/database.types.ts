@@ -134,6 +134,35 @@ export interface Database {
           created_at?: string
         }
       }
+      fpl_sessions: {
+        Row: {
+          id: string
+          user_id: string
+          manager_id: number
+          encrypted_cookies: string
+          expires_at: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          manager_id: number
+          encrypted_cookies: string
+          expires_at: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          manager_id?: number
+          encrypted_cookies?: string
+          expires_at?: string
+          created_at?: string
+          updated_at?: string
+        }
+      }
     }
   }
 }

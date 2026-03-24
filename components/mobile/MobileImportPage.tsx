@@ -1,10 +1,12 @@
 "use client";
 
 import { useState, useTransition, useEffect } from "react";
-import { ArrowLeft, Search, Rocket, Download } from "lucide-react";
+import { ArrowLeft, Search, Rocket, Download, Link2, ChevronRight } from "lucide-react";
 import { useSquadStore } from "@/store/squad";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
+import { useFPLConnection } from "@/hooks/useFPLConnection";
+import { FPLConnectModal } from "@/components/FPLConnectModal";
 
 interface MobileImportPageProps {
   onBack: () => void;
@@ -17,6 +19,8 @@ export function MobileImportPage({ onBack, onSuccess }: MobileImportPageProps) {
   const [entryId, setEntryId] = useState("");
   const [savedTeamId, setSavedTeamId] = useState<number | null>(null);
   const [pending, startTransition] = useTransition();
+  const [showFPLConnectModal, setShowFPLConnectModal] = useState(false);
+  const { connected, managerId, loading: fplLoading } = useFPLConnection();
 
   // Load saved FPL team ID from profile on mount
   useEffect(() => {
@@ -100,6 +104,30 @@ export function MobileImportPage({ onBack, onSuccess }: MobileImportPageProps) {
               <p className="text-sm text-white/80">Sync your squad from Fantasy Premier League</p>
             </div>
           </div>
+        </div>
+
+        {/* FPL Direct Connect Option */}
+        <div className="px-4 pt-4">
+          <button
+            onClick={() => setShowFPLConnectModal(true)}
+            className="w-full bg-gradient-to-r from-fuchsia-500/10 to-cyan-500/10 border border-fuchsia-500/30 rounded-xl p-4 flex items-center gap-4 hover:from-fuchsia-500/20 hover:to-cyan-500/20 transition-all"
+          >
+            <div className="p-2.5 bg-gradient-to-br from-fuchsia-500 to-cyan-500 rounded-lg">
+              <Link2 className="w-5 h-5 text-white" />
+            </div>
+            <div className="flex-1 text-left">
+              <p className="font-semibold text-slate-900">
+                {connected ? 'FPL Account Connected' : 'Connect FPL Account'}
+              </p>
+              <p className="text-sm text-slate-600">
+                {connected 
+                  ? `Team ID: ${managerId} • Tap to manage`
+                  : 'Sign in directly for automatic sync'
+                }
+              </p>
+            </div>
+            <ChevronRight className="w-5 h-5 text-slate-400" />
+          </button>
         </div>
 
         <div className="px-4 py-6 space-y-6">
@@ -205,6 +233,16 @@ export function MobileImportPage({ onBack, onSuccess }: MobileImportPageProps) {
           )}
         </button>
       </div>
+
+      {/* FPL Connect Modal */}
+      <FPLConnectModal
+        isOpen={showFPLConnectModal}
+        onClose={() => setShowFPLConnectModal(false)}
+        onSuccess={() => {
+          toast.success("FPL account connected!");
+          // Auto-import if we now have a manager ID
+        }}
+      />
     </div>
   );
 }

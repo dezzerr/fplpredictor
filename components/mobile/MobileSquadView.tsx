@@ -12,9 +12,12 @@ import { MobileOptimisePage } from "./MobileOptimisePage";
 import { MobileComparePage } from "./MobileComparePage";
 import { useSquadStore } from "@/store/squad";
 import { formatDeadline } from "@/lib/date";
-import { ChevronLeft, ChevronRight, Undo2, Download, TrendingUp, GitCompare, RefreshCw } from "lucide-react";
+import { ChevronLeft, ChevronRight, Undo2, Download, TrendingUp, GitCompare, RefreshCw, Link2 } from "lucide-react";
+import { useFPLConnection } from "@/hooks/useFPLConnection";
+import { FPLConnectModal } from "@/components/FPLConnectModal";
 import { toast } from "sonner";
 import { Player, Position } from "@/lib/data";
+import { LiveScoreTicker } from "@/components/LiveScoreTicker";
 
 interface MobileSquadViewProps {
   currentGw: number;
@@ -36,6 +39,8 @@ export function MobileSquadView({ currentGw, gwOffset, deadline, onGwChange }: M
   const [compareMode, setCompareMode] = useState(false);
   const [substituteMode, setSubstituteMode] = useState(false);
   const [substitutePlayer, setSubstitutePlayer] = useState<Player | null>(null);
+  const [fplConnectOpen, setFplConnectOpen] = useState(false);
+  const { connected: fplConnected } = useFPLConnection();
   
   const autoSelectBestXI = useSquadStore((s) => s.autoSelectBestXI);
   const selectPlayer = useSquadStore((s) => s.selectPlayer);
@@ -186,6 +191,14 @@ export function MobileSquadView({ currentGw, gwOffset, deadline, onGwChange }: M
             <Download className="w-4 h-4 text-indigo-600" />
           </button>
 
+          {/* FPL Connect Button */}
+          <button
+            onClick={() => setFplConnectOpen(true)}
+            className={`p-2 rounded-full ${fplConnected ? 'bg-emerald-100 hover:bg-emerald-200' : 'bg-fuchsia-100 hover:bg-fuchsia-200'}`}
+          >
+            <Link2 className={`w-4 h-4 ${fplConnected ? 'text-emerald-600' : 'text-fuchsia-600'}`} />
+          </button>
+
           {/* Optimise Button */}
           <button
             onClick={() => setOptimiseMode(true)}
@@ -215,6 +228,9 @@ export function MobileSquadView({ currentGw, gwOffset, deadline, onGwChange }: M
 
       {/* Main Content */}
       <div className="px-3">
+        {/* Live Score Ticker */}
+        <LiveScoreTicker className="mb-2 mt-2" />
+
         {/* Pitch */}
         <MobilePitch 
           onPlayerClick={handlePlayerClick}
@@ -316,6 +332,16 @@ export function MobileSquadView({ currentGw, gwOffset, deadline, onGwChange }: M
           weekOffset={localGwOffset}
         />
       )}
+
+      {/* FPL Connect Modal */}
+      <FPLConnectModal
+        isOpen={fplConnectOpen}
+        onClose={() => setFplConnectOpen(false)}
+        onSuccess={() => {
+          toast.success("FPL account connected!");
+          setFplConnectOpen(false);
+        }}
+      />
     </div>
   );
 }
