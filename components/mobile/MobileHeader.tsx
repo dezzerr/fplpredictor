@@ -2,6 +2,8 @@
 
 import { ChevronLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useLiveGwContext } from "@/components/LiveGwProvider";
+import { LiveBadge } from "@/components/LiveBadge";
 
 interface MobileHeaderProps {
   title: string;
@@ -12,6 +14,7 @@ interface MobileHeaderProps {
 
 export function MobileHeader({ title, gameweek, deadline, showBack = true }: MobileHeaderProps) {
   const router = useRouter();
+  const { isLive } = useLiveGwContext();
 
   return (
     <header className="sticky top-0 z-50 bg-white">
@@ -34,10 +37,13 @@ export function MobileHeader({ title, gameweek, deadline, showBack = true }: Mob
       
       {/* Gameweek Info */}
       <div className="px-4 py-2 text-center border-b border-gray-100">
-        <p className="text-sm font-semibold text-purple-700">
-          Gameweek {gameweek}
-          <span className="mx-2 text-gray-400">•</span>
-          <span className="font-normal text-gray-600">Deadline: {deadline}</span>
+        <p className="text-sm font-semibold text-purple-700 flex items-center justify-center gap-2">
+          <span>
+            Gameweek {gameweek}
+            <span className="mx-2 text-gray-400">•</span>
+            <span className="font-normal text-gray-600">{isLive ? '' : 'Deadline: '}{deadline}</span>
+          </span>
+          {isLive && <LiveBadge size="md" />}
         </p>
       </div>
     </header>

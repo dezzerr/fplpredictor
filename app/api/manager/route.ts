@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getLiveEvent } from "@/lib/liveWindow";
 
 // Validate entryId is a valid FPL team ID (numeric, reasonable range)
 function isValidEntryId(id: string | null): boolean {
@@ -43,9 +44,17 @@ export async function GET(req: NextRequest) {
     if (bootstrapRes.ok) {
       const bootstrap = await bootstrapRes.json();
       totalPlayers = bootstrap.total_players || 0;
-      const nextEvent = bootstrap.events?.find((e: any) => e.is_next) || 
-                        bootstrap.events?.find((e: any) => e.is_current);
-      currentEvent = nextEvent?.id || 1;
+      const evts = bootstrap.events || [];
+      // When a GW is in its live window, use current event so GW points match
+      const live = await getLiveEvent(evts);
+      let targetEv: any = null;
+      if (live) {
+        targetEv = live.event;
+      }
+      if (!targetEv) {
+        targetEv = evts.find((e: any) => e.is_next) || evts.find((e: any) => e.is_current);
+      }
+      currentEvent = targetEv?.id || 1;
     }
 
     // Fetch current gameweek history for GW points

@@ -3,8 +3,9 @@
 import { memo, useMemo } from "react";
 import { cn, getFPLDisplayName } from "@/lib/utils";
 import { TeamShirt } from "@/components/TeamShirt";
-import { Player } from "@/lib/data";
+import { Player, getFixturesForWeek, formatFixtureText, getFixtureDifficulty } from "@/lib/data";
 import { weeklyExp } from "@/lib/optimizer";
+import { useLiveGwContext } from "@/components/LiveGwProvider";
 
 interface MobilePlayerTileProps {
   player: Player;
@@ -27,10 +28,14 @@ export const MobilePlayerTile = memo(function MobilePlayerTile({
   showPrice = false,
   variant = "starter",
 }: MobilePlayerTileProps) {
-  const f0 = player.nextFixtures?.[weekOffset];
-  const fixText = useMemo(() => {
-    return f0 ? `${f0.opp} (${f0.H ? "H" : "A"})` : "";
-  }, [f0]);
+  const { isLive, livePoints } = useLiveGwContext();
+  const showLive = isLive && weekOffset === 0;
+  const livePlayerPts = showLive ? (livePoints[player.id] ?? null) : null;
+
+  const gwFixtures = useMemo(() => getFixturesForWeek(player, weekOffset), [player.nextFixtures, weekOffset]);
+  const fixText = useMemo(() => formatFixtureText(gwFixtures), [gwFixtures]);
+  const isDGW = gwFixtures.length >= 2;
+  const isBlank = gwFixtures.length === 0;
 
   const weekPts = useMemo(
     () => weeklyExp(player, weekOffset),
@@ -43,8 +48,8 @@ export const MobilePlayerTile = memo(function MobilePlayerTile({
   const hasFlag = rawStatus && rawStatus !== "a";
 
   // Fixture difficulty for coloring (diff is 1-5 scale)
-  const fdr = f0?.diff ?? 3;
-  const fdrColor = fdr <= 2 ? "bg-green-600" : fdr === 3 ? "bg-gray-500" : fdr === 4 ? "bg-orange-500" : "bg-red-600";
+  const fdr = useMemo(() => getFixtureDifficulty(gwFixtures), [gwFixtures]);
+  const fdrColor = isBlank ? "bg-slate-400" : fdr <= 2 ? "bg-green-600" : fdr === 3 ? "bg-gray-500" : fdr === 4 ? "bg-orange-500" : "bg-red-600";
 
   return (
     <button
@@ -87,6 +92,16 @@ export const MobilePlayerTile = memo(function MobilePlayerTile({
           </div>
         )}
 
+        {/* DGW badge */}
+        {isDGW && (
+          <div className={cn(
+            "absolute z-10 w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold text-white shadow-md bg-blue-500 border border-white",
+            hasFlag ? "-right-2 bottom-0" : "-right-2 top-0"
+          )}>
+            {gwFixtures.length}
+          </div>
+        )}
+
         <TeamShirt team={player.team} className="w-14 h-14 drop-shadow-md" />
       </div>
 
@@ -106,17 +121,36 @@ export const MobilePlayerTile = memo(function MobilePlayerTile({
         </div>
         {/* Fixture row with FDR color */}
         <div className={cn(
-          "px-1.5 py-0.5 text-center",
+          "px-1 py-0.5 text-center",
           fdrColor
         )}>
-          <div className="text-[9px] font-medium text-white leading-tight" suppressHydrationWarning>
-            {fixText || player.team}
+          <div className={cn(
+            "font-medium text-white leading-tight",
+            isDGW ? "text-[7px]" : "text-[9px]"
+          )} suppressHydrationWarning>
+            {isBlank ? 'BLANK' : fixText || player.team}
           </div>
         </div>
-        {/* Predicted points row */}
-        <div className="bg-slate-700 px-1.5 py-0.5 text-center">
-          <div className="text-[10px] font-bold text-emerald-400 leading-tight" suppressHydrationWarning>
-            {weekPts.toFixed(1)}
+        {/* Points row - live or predicted */}
+        <div className={cn(
+          "px-1.5 py-0.5 text-center",
+          livePlayerPts !== null ? "bg-emerald-700" : "bg-slate-700"
+        )}>
+          <div className={cn(
+            "text-[10px] font-bold leading-tight",
+            livePlayerPts !== null ? "text-white" : "text-emerald-400"
+          )} suppressHydrationWarning>
+            {livePlayerPts !== null ? (
+              <span className="flex items-center justify-center gap-0.5">
+                <span className="relative flex h-1.5 w-1.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-300 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-200" />
+                </span>
+                {livePlayerPts}
+              </span>
+            ) : (
+              weekPts.toFixed(1)
+            )}
           </div>
         </div>
       </div>

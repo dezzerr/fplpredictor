@@ -1,11 +1,16 @@
 import { NextResponse } from "next/server";
 import { fetchPlayersWithMarket } from "@/lib/market";
+import { getLiveEvent } from "@/lib/liveWindow";
 import type { Player, Position, Squad } from "@/lib/data";
 
 export const revalidate = 0; // Always fetch fresh data for imports
 export const dynamic = 'force-dynamic'; // Disable all caching
 
-function pickEventId(events: any[]): number | undefined {
+async function pickEventId(events: any[]): Promise<number | undefined> {
+  // When a GW is in its live window (first kickoff → 1 day after last match),
+  // load the current event's squad so it matches live points
+  const live = await getLiveEvent(events);
+  if (live) return live.event.id;
   const next = events.find((e: any) => e.is_next);
   if (next) return next.id;
   const current = events.find((e: any) => e.is_current);
@@ -52,7 +57,7 @@ export async function GET(req: Request) {
     if (!bootstrapRes.ok) throw new Error("Failed to load FPL bootstrap");
     const bootstrap = await bootstrapRes.json();
     const events: any[] = bootstrap.events || [];
-    const eventId: number | undefined = pickEventId(events);
+    const eventId: number | undefined = await pickEventId(events);
     
     if (process.env.NODE_ENV === 'development') {
       console.log('[IMPORT] Detected event ID:', eventId, 'from events:', events.map((e: any) => ({ id: e.id, name: e.name, is_current: e.is_current, is_next: e.is_next, finished: e.finished })));

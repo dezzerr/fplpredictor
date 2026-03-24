@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getLiveEvent } from "@/lib/liveWindow";
 
 // This route is cheap and needs to be accurate, so we disable caching and
 // mirror the bootstrap fetch pattern used in lib/fpl.ts
@@ -24,14 +25,20 @@ export async function GET() {
     const data = await res.json();
     const events = data.events || [];
 
-    // Mirror the event selection logic from lib/fpl.ts so all parts of the app
-    // agree on what the "current" gameweek is.
-    const nextEvent =
-      events.find((e: any) => e.is_next) ||
-      events.find((e: any) => e.is_current) ||
-      events.find((e: any) => !e.finished);
-
-    const targetEvent = nextEvent || events[0];
+    // When a GW is in its live window (first kickoff → 1 day after last match),
+    // show the current event info so it matches live points display
+    const live = await getLiveEvent(events);
+    let targetEvent: any = null;
+    if (live) {
+      targetEvent = live.event;
+    }
+    if (!targetEvent) {
+      targetEvent =
+        events.find((e: any) => e.is_next) ||
+        events.find((e: any) => e.is_current) ||
+        events.find((e: any) => !e.finished) ||
+        events[0];
+    }
 
     if (targetEvent?.deadline_time) {
       return NextResponse.json({

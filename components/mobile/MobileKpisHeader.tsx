@@ -1,6 +1,7 @@
 "use client";
 
 import { useSquadStore } from "@/store/squad";
+import { useLiveGwContext } from "@/components/LiveGwProvider";
 
 interface MobileKpisHeaderProps {
   weekOffset?: number;
@@ -11,11 +12,13 @@ export function MobileKpisHeader({ weekOffset = 0 }: MobileKpisHeaderProps) {
   const gwRatingForWeek = useSquadStore((s) => s.gwRatingForWeek);
   const totalExpForWeek = useSquadStore((s) => s.totalExpForWeek);
   const squad = useSquadStore((s) => s.squad);
+  const { isLive, managerLivePoints } = useLiveGwContext();
 
   const teamRating = teamRatingForWeek(weekOffset);
   const gwRating = gwRatingForWeek(weekOffset);
   const predictedPts = totalExpForWeek(weekOffset);
   const bank = squad.bank;
+  const showLive = isLive && weekOffset === 0;
 
   // Color coding for ratings
   const getRatingColor = (rating: number) => {
@@ -40,10 +43,22 @@ export function MobileKpisHeader({ weekOffset = 0 }: MobileKpisHeaderProps) {
         </span>
       </div>
       <div className="flex flex-col items-center">
-        <span className="text-[9px] text-slate-400 uppercase tracking-wide">Pts</span>
-        <span className="text-sm font-bold text-white" suppressHydrationWarning>
-          {predictedPts.toFixed(1)}
+        <span className="text-[9px] text-slate-400 uppercase tracking-wide">
+          {showLive ? "Live Pts" : "Pts"}
         </span>
+        {showLive && managerLivePoints !== null ? (
+          <span className="text-sm font-bold text-emerald-300 flex items-center gap-1" suppressHydrationWarning>
+            <span className="relative flex h-1.5 w-1.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-red-500" />
+            </span>
+            {managerLivePoints}
+          </span>
+        ) : (
+          <span className="text-sm font-bold text-white" suppressHydrationWarning>
+            {predictedPts.toFixed(1)}
+          </span>
+        )}
       </div>
       <div className="flex flex-col items-center">
         <span className="text-[9px] text-slate-400 uppercase tracking-wide">Bank</span>

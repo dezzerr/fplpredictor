@@ -7,6 +7,14 @@ import { useSquadStore } from "@/store/squad";
 import { ChevronLeft, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { useLiveGwContext } from "@/components/LiveGwProvider";
+import { LiveBadge } from "@/components/LiveBadge";
+
+function HeaderLiveBadge() {
+  const { isLive } = useLiveGwContext();
+  if (!isLive) return null;
+  return <LiveBadge size="md" />;
+}
 
 export function HeaderKpis({ compact = false, onGwChange, weekPredPts }: { compact?: boolean; onGwChange?: (offset: number) => void; weekPredPts?: number } = {}) {
   const [mounted, setMounted] = useState(false);
@@ -111,10 +119,13 @@ export function HeaderKpis({ compact = false, onGwChange, weekPredPts }: { compa
       {!compact && (
         <div className="max-w-xl mx-auto px-4" suppressHydrationWarning>
           <div className="bg-emerald-50 rounded-lg px-4 py-2 mt-2 text-center">
-            <p className="text-sm font-semibold text-emerald-700">
-              <span suppressHydrationWarning>Gameweek {currentGw + gwOffset}</span>
-              <span className="mx-2 text-emerald-400">•</span>
-              <span className="font-normal text-emerald-600" suppressHydrationWarning>Deadline: {deadlineText}</span>
+            <p className="text-sm font-semibold text-emerald-700 flex items-center justify-center gap-2">
+              <span>
+                <span suppressHydrationWarning>Gameweek {currentGw + gwOffset}</span>
+                <span className="mx-2 text-emerald-400">•</span>
+                <span className="font-normal text-emerald-600" suppressHydrationWarning>Deadline: {deadlineText}</span>
+              </span>
+              <HeaderLiveBadge />
             </p>
           </div>
         </div>

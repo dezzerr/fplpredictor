@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getLiveEvent } from "@/lib/liveWindow";
 
 export const revalidate = 900; // 15 minutes
 export const dynamic = 'force-dynamic';
@@ -61,10 +62,16 @@ export async function GET() {
     const teams: FPLTeam[] = bootstrap.teams || [];
     const events = bootstrap.events || [];
 
-    // Find current/next event
-    const currentEvent = events.find((e: any) => e.is_current)?.id;
-    const nextEvent = events.find((e: any) => e.is_next)?.id;
-    const targetEvent = nextEvent || currentEvent || 1;
+    // Find current/next event — prefer current when GW is in live window
+    const live = await getLiveEvent(events);
+    let targetEvent: number = 1;
+    if (live) {
+      targetEvent = live.event.id;
+    } else {
+      const nextEvent = events.find((e: any) => e.is_next)?.id;
+      const curEv = events.find((e: any) => e.is_current)?.id;
+      targetEvent = nextEvent || curEv || 1;
+    }
 
     if (process.env.NODE_ENV === 'development') {
       console.log('[FIXTURES] Target event:', targetEvent);

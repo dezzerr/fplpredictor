@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import { useSquadStore } from "@/store/squad";
 import { Shield, ChevronRight, TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { useLiveGwContext } from "@/components/LiveGwProvider";
+import { LiveBadge } from "@/components/LiveBadge";
 
 interface ManagerData {
   teamName: string;
@@ -27,6 +29,7 @@ export function ManagerSidebar() {
   const [data, setData] = useState<ManagerData | null>(null);
   const [loading, setLoading] = useState(true);
   const lastImport = useSquadStore((s) => s.lastImport);
+  const { isLive, managerLivePoints, leagues: liveLeagues } = useLiveGwContext();
 
   useEffect(() => {
     if (!lastImport?.entryId) {
@@ -102,7 +105,10 @@ export function ManagerSidebar() {
         {/* Points & Rankings */}
         <div className="space-y-1">
           <div className="flex items-center justify-between">
-            <h3 className="font-semibold text-slate-800 text-sm">Points & Rankings</h3>
+            <h3 className="font-semibold text-slate-800 text-sm flex items-center gap-2">
+              Points & Rankings
+              {isLive && <LiveBadge />}
+            </h3>
             <button className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 px-2 py-1 rounded flex items-center gap-1 transition-colors">
               History
               <ChevronRight className="w-3 h-3" />
@@ -123,20 +129,35 @@ export function ManagerSidebar() {
               <span className="font-bold text-slate-900">{formatNumber(data.totalPlayers)}</span>
             </div>
             <div className="flex justify-between items-center py-1.5">
-              <span className="text-slate-500 text-sm">Gameweek points</span>
-              <span className="font-bold text-indigo-600">{formatNumber(data.gwPoints)}</span>
+              <span className="text-slate-500 text-sm">
+                {isLive ? "Live GW points" : "Gameweek points"}
+              </span>
+              {isLive && managerLivePoints !== null ? (
+                <span className="font-bold text-emerald-600 flex items-center gap-1">
+                  <span className="relative flex h-1.5 w-1.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" />
+                  </span>
+                  {formatNumber(managerLivePoints)}
+                </span>
+              ) : (
+                <span className="font-bold text-indigo-600">{formatNumber(data.gwPoints)}</span>
+              )}
             </div>
           </div>
         </div>
       </div>
 
       {/* Classic Leagues */}
-      {data.classicLeagues.length > 0 && (
+      {(isLive && liveLeagues.length > 0 ? liveLeagues : data.classicLeagues).length > 0 && (
         <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
-          <h3 className="font-semibold text-slate-800 text-sm mb-3">Classic Leagues</h3>
+          <h3 className="font-semibold text-slate-800 text-sm mb-3 flex items-center gap-2">
+            Classic Leagues
+            {isLive && liveLeagues.length > 0 && <LiveBadge />}
+          </h3>
           
           <div className="space-y-1">
-            {data.classicLeagues.map((league) => (
+            {(isLive && liveLeagues.length > 0 ? liveLeagues : data.classicLeagues).map((league) => (
               <div
                 key={league.id}
                 className="flex justify-between items-center py-1.5 border-b border-slate-100 last:border-0"
