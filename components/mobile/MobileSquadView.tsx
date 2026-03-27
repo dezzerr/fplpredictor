@@ -126,7 +126,7 @@ export function MobileSquadView({ currentGw, gwOffset, deadline, onGwChange }: M
       />
 
       {/* Action Bar - below header */}
-      <div className="bg-white border-b border-slate-200 px-3 py-2">
+      <div className="bg-slate-50 border-b border-slate-200 px-3 py-2">
         <div className="flex items-center justify-between max-w-md mx-auto gap-1.5">
           {/* Live Team Button */}
           <button

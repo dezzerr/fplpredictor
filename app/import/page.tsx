@@ -1,6 +1,9 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { AppNavbar } from "@/components/AppNavbar";
+import { GwInfoBar } from "@/components/GwInfoBar";
+import { LiveGwProvider } from "@/components/LiveGwProvider";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -49,6 +52,10 @@ export default function ImportPage() {
   };
 
   return (
+    <LiveGwProvider>
+    <div className="min-h-dvh bg-slate-50">
+      <AppNavbar />
+      <GwInfoBar />
     <main className="container py-6">
       <div className="mb-4 text-xl font-semibold">Import Squad</div>
       <Card className="max-w-xl p-4">
@@ -82,5 +89,7 @@ export default function ImportPage() {
         </div>
       </Card>
     </main>
+    </div>
+    </LiveGwProvider>
   );
 }

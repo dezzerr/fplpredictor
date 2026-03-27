@@ -1,15 +1,19 @@
 "use client";
 
-import { HeaderKpis } from "@/components/HeaderKpis";
+import { AppNavbar } from "@/components/AppNavbar";
+import { GwInfoBar } from "@/components/GwInfoBar";
 import { TeamFixtureMatrix } from "@/components/TeamFixtureMatrix";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { LiveGwProvider } from "@/components/LiveGwProvider";
 import { Calendar } from "lucide-react";
 
 export default function FixturesPage() {
   return (
-    <div className="min-h-dvh">
-      <ErrorBoundary compact name="HeaderKpis">
-        <HeaderKpis />
+    <LiveGwProvider>
+    <div className="min-h-dvh bg-slate-50">
+      <ErrorBoundary compact name="AppNavbar">
+        <AppNavbar />
+        <GwInfoBar />
       </ErrorBoundary>
       <main className="container py-4 sm:py-6 px-3 sm:px-4">
         {/* Header */}
@@ -33,5 +37,6 @@ export default function FixturesPage() {
         </ErrorBoundary>
       </main>
     </div>
+    </LiveGwProvider>
   );
 }

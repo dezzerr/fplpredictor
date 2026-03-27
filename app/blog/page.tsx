@@ -3,6 +3,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import {ArrowRight, CalendarDays} from 'lucide-react'
 
+import {PublicNavbar} from '@/components/PublicNavbar'
 import {Badge} from '@/components/ui/badge'
 import {Card, CardContent, CardHeader, CardTitle} from '@/components/ui/card'
 import {getAllPosts, type BlogCategory, type BlogPostPreview} from '@/lib/sanity/client'
@@ -37,11 +38,14 @@ export default async function BlogIndexPage() {
   const posts = await getAllPosts()
 
   return (
-    <main className="min-h-screen bg-slate-950 text-white">
-      <section className="border-b border-slate-800 bg-[radial-gradient(circle_at_top,_rgba(217,70,239,0.18),_transparent_40%),radial-gradient(circle_at_top_right,_rgba(99,102,241,0.16),_transparent_30%)]">
-        <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
+    <main className="min-h-screen">
+      <PublicNavbar />
+      <section className="relative border-b border-slate-800 overflow-hidden">
+        <div className="absolute inset-0 bg-slate-950" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(217,70,239,0.18),_transparent_40%),radial-gradient(circle_at_top_right,_rgba(99,102,241,0.16),_transparent_30%)]" />
+        <div className="relative mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
           <Badge className="border-fuchsia-500/30 bg-fuchsia-500/10 text-fuchsia-200">FPL Content Hub</Badge>
-          <h1 className="mt-6 max-w-3xl text-4xl font-bold tracking-tight sm:text-5xl">FPL guides, captain picks, and transfer strategy that support your next move.</h1>
+          <h1 className="mt-6 max-w-3xl text-4xl font-bold tracking-tight text-white sm:text-5xl">FPL guides, captain picks, and transfer strategy that support your next move.</h1>
           <p className="mt-6 max-w-2xl text-lg text-slate-300">Use the blog to capture search traffic around gameweek questions and connect readers directly to your comparison, fixture, and optimization tools.</p>
           <div className="mt-8 flex flex-wrap gap-4">
             <Link href="/login" className="inline-flex items-center rounded-xl bg-white px-5 py-3 font-semibold text-slate-950 transition-colors hover:bg-slate-100">
@@ -55,71 +59,72 @@ export default async function BlogIndexPage() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-6xl px-4 py-14 sm:px-6 lg:px-8">
+      <section className="bg-slate-50 py-14">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
         {posts.length === 0 ? (
-          <Card className="border-slate-800 bg-slate-900/70">
+          <Card className="border-slate-200 bg-white">
             <CardHeader>
-              <CardTitle>No blog posts published yet</CardTitle>
+              <CardTitle className="text-slate-900">No blog posts published yet</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4 text-slate-300">
+            <CardContent className="space-y-4 text-slate-600">
               <p>Your Sanity integration is live. Publish your first article in the Studio and it will appear here automatically.</p>
               <div className="flex flex-wrap gap-3">
                 <Link href="/login" className="inline-flex items-center rounded-lg bg-fuchsia-600 px-4 py-2 font-medium text-white transition-colors hover:bg-fuchsia-500">
                   Go to app
                 </Link>
-                <Link href="/fixtures" className="inline-flex items-center rounded-lg border border-slate-700 px-4 py-2 font-medium text-white transition-colors hover:bg-slate-800">
+                <Link href="/fixtures" className="inline-flex items-center rounded-lg border border-slate-300 px-4 py-2 font-medium text-slate-700 transition-colors hover:bg-slate-100">
                   Explore fixtures
                 </Link>
               </div>
             </CardContent>
           </Card>
         ) : (
-          <div className="grid gap-6 lg:grid-cols-2">
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {posts.map((post: BlogPostPreview) => {
-              const coverImageUrl = post.coverImage?.asset ? urlForImage(post.coverImage).width(1200).height(675).fit('crop').auto('format').url() : null
+              const coverImageUrl = post.coverImage?.asset ? urlForImage(post.coverImage).width(800).height(450).fit('crop').auto('format').url() : null
 
               return (
                 <Link key={post._id} href={`/blog/${post.slug}` as Route} className="group block">
-                  <Card className="h-full overflow-hidden border-slate-800 bg-slate-900/70 transition-all duration-200 hover:border-fuchsia-500/40 hover:bg-slate-900">
-                    <div className="relative aspect-[16/9] overflow-hidden border-b border-slate-800 bg-gradient-to-br from-fuchsia-900/30 via-slate-900 to-indigo-900/30">
+                  <Card className="h-full overflow-hidden border-slate-200 bg-white shadow-sm transition-all duration-200 hover:border-fuchsia-300 hover:shadow-md">
+                    <div className="relative aspect-[16/9] overflow-hidden border-b border-slate-100 bg-gradient-to-br from-fuchsia-50 to-indigo-50">
                       {coverImageUrl ? (
                         <Image
                           src={coverImageUrl}
                           alt={post.title}
-                          width={1200}
-                          height={675}
+                          width={800}
+                          height={450}
                           className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
                         />
                       ) : (
-                        <div className="flex h-full items-end bg-[radial-gradient(circle_at_top_left,_rgba(217,70,239,0.22),_transparent_35%),radial-gradient(circle_at_bottom_right,_rgba(99,102,241,0.2),_transparent_30%)] p-6 text-sm font-medium text-slate-300">
+                        <div className="flex h-full items-end bg-gradient-to-br from-fuchsia-100 to-indigo-100 p-4 text-sm font-medium text-slate-500">
                           FPL Companion Blog
                         </div>
                       )}
                     </div>
-                    <CardHeader className="space-y-4">
-                      <div className="flex flex-wrap items-center gap-3 text-sm text-slate-400">
-                        <span className="inline-flex items-center gap-2">
-                          <CalendarDays className="h-4 w-4" />
+                    <CardHeader className="space-y-2 p-4">
+                      <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                        <span className="inline-flex items-center gap-1">
+                          <CalendarDays className="h-3 w-3" />
                           {formatDate(post.publishedAt)}
                         </span>
                         {post.author?.name ? <span>By {post.author.name}</span> : null}
                       </div>
-                      <CardTitle className="text-2xl text-white transition-colors group-hover:text-fuchsia-200">{post.title}</CardTitle>
-                      <p className="text-base leading-7 text-slate-300">{post.excerpt}</p>
+                      <CardTitle className="text-base font-semibold text-slate-900 leading-snug transition-colors group-hover:text-fuchsia-600">{post.title}</CardTitle>
+                      <p className="text-sm leading-relaxed text-slate-600 line-clamp-2">{post.excerpt}</p>
                     </CardHeader>
-                    <CardContent className="space-y-4">
+                    <CardContent className="px-4 pb-4 pt-0 space-y-3">
                       {post.categories?.length ? (
-                        <div className="flex flex-wrap gap-2">
+                        <div className="flex flex-wrap gap-1.5">
                           {post.categories.map((category: BlogCategory) => (
-                            <Badge key={`${post._id}-${category.title}`} className="border-slate-700 bg-slate-800 text-slate-200">
+                            <Badge key={`${post._id}-${category.title}`} className="border-slate-200 bg-slate-100 text-slate-600 text-[10px] px-2 py-0.5">
                               {category.title}
                             </Badge>
                           ))}
                         </div>
                       ) : null}
-                      <div className="inline-flex items-center gap-2 font-medium text-fuchsia-300 transition-colors group-hover:text-fuchsia-200">
+                      <div className="inline-flex items-center gap-1.5 text-sm font-medium text-fuchsia-600 transition-colors group-hover:text-fuchsia-500">
                         Read article
-                        <ArrowRight className="h-4 w-4" />
+                        <ArrowRight className="h-3.5 w-3.5" />
                       </div>
                     </CardContent>
                   </Card>
@@ -128,6 +133,7 @@ export default async function BlogIndexPage() {
             })}
           </div>
         )}
+        </div>
       </section>
     </main>
   )

@@ -22,6 +22,14 @@ import {
   Shield,
   Zap,
   ArrowLeftRight,
+  Brain,
+  CheckCircle2,
+  XCircle,
+  AlertTriangle,
+  Flame,
+  Snowflake,
+  RotateCcw,
+  Crosshair,
 } from "lucide-react";
 
 // FDR color mapping
@@ -422,6 +430,60 @@ export function PlayerDetailModal({
                       ))}
                     </div>
                   </Card>
+
+                  {/* AI Signals */}
+                  {player.expExplain?.signals && player.expExplain.signals.length > 0 && (
+                    <Card className="p-4 bg-gradient-to-br from-purple-50 to-indigo-50 border-purple-200">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Brain className="h-4 w-4 text-purple-600" />
+                        <span className="text-sm font-medium">AI Signals</span>
+                        {player.expExplain.signalMultiplier != null && (
+                          <Badge className={cn(
+                            "text-[10px] px-1.5 py-0",
+                            player.expExplain.signalMultiplier > 1
+                              ? "bg-emerald-100 text-emerald-700 border-emerald-300"
+                              : player.expExplain.signalMultiplier < 1
+                              ? "bg-red-100 text-red-700 border-red-300"
+                              : "bg-slate-100 text-slate-600 border-slate-300"
+                          )}>
+                            {player.expExplain.signalMultiplier > 1 ? "+" : ""}
+                            {((player.expExplain.signalMultiplier - 1) * 100).toFixed(0)}% adj
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="space-y-2">
+                        {player.expExplain.signals.map((sig, idx) => {
+                          const iconMap: Record<string, any> = {
+                            starts: CheckCircle2, benched: XCircle, injured: AlertTriangle,
+                            returning: CheckCircle2, hot_form: Flame, cold_form: Snowflake,
+                            rotation_risk: RotateCcw, set_piece_change: Crosshair,
+                          };
+                          const colorMap: Record<string, string> = {
+                            starts: "text-emerald-600", benched: "text-red-600", injured: "text-red-600",
+                            returning: "text-blue-600", hot_form: "text-orange-600", cold_form: "text-sky-600",
+                            rotation_risk: "text-amber-600", set_piece_change: "text-purple-600",
+                          };
+                          const SigIcon = iconMap[sig.signal] || AlertTriangle;
+                          return (
+                            <div key={idx} className="flex items-start gap-2 bg-white/60 rounded-lg p-2">
+                              <SigIcon className={cn("h-3.5 w-3.5 mt-0.5 shrink-0", colorMap[sig.signal] || "text-slate-500")} />
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-xs font-medium capitalize">{sig.signal.replace(/_/g, ' ')}</span>
+                                  <span className={cn("text-[10px] font-bold",
+                                    sig.adjustment > 0 ? "text-emerald-600" : sig.adjustment < 0 ? "text-red-600" : "text-slate-500"
+                                  )}>
+                                    {sig.adjustment > 0 ? "+" : ""}{(sig.adjustment * 100).toFixed(0)}%
+                                  </span>
+                                </div>
+                                <p className="text-[11px] text-muted-foreground line-clamp-2">{sig.reason}</p>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </Card>
+                  )}
                 </div>
               )}
             </TabsContent>

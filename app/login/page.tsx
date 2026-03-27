@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { ArrowRight, ArrowLeft } from 'lucide-react'
+import { PublicNavbar } from '@/components/PublicNavbar'
 
 export default function LoginPage() {
   const [supabase] = useState(() => createClient())
@@ -33,19 +34,7 @@ export default function LoginPage() {
       <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-cyan-500/30 rounded-full blur-3xl" />
       
       {/* Header */}
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
-        <div className="flex justify-between items-center">
-          <Link href="/" className="flex items-center gap-2 group">
-            <ArrowLeft className="w-5 h-5 text-slate-400 group-hover:text-white transition-colors" />
-            <div className="flex items-center gap-2">
-              <div className="w-10 h-10 bg-gradient-to-br from-fuchsia-500 to-cyan-500 rounded-lg flex items-center justify-center">
-                <ArrowRight className="w-6 h-6 text-white transform rotate-[-45deg]" />
-              </div>
-              <span className="text-2xl font-bold text-white">FPL Companion</span>
-            </div>
-          </Link>
-        </div>
-      </div>
+      <PublicNavbar />
 
       {/* Main Content */}
       <div className="relative flex min-h-[calc(100vh-100px)] flex-col items-center justify-center px-4">

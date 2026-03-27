@@ -1,10 +1,12 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { HeaderKpis } from "@/components/HeaderKpis";
+import { AppNavbar } from "@/components/AppNavbar";
+import { GwInfoBar } from "@/components/GwInfoBar";
 import { AutoTeamOptimizer } from "@/components/AutoTeamOptimizer";
 import { TeamOfTheWeek } from "@/components/TeamOfTheWeek";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { LiveGwProvider } from "@/components/LiveGwProvider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Users, TrendingUp } from "lucide-react";
 import { useSquadStore } from "@/store/squad";
@@ -21,9 +23,11 @@ export default function OptimizePage() {
   }, [squad, gwOffset]);
 
   return (
-    <div className="min-h-dvh">
-      <ErrorBoundary compact name="HeaderKpis">
-        <HeaderKpis onGwChange={setGwOffset} weekPredPts={weekPredPts} />
+    <LiveGwProvider>
+    <div className="min-h-dvh bg-slate-50">
+      <ErrorBoundary compact name="AppNavbar">
+        <AppNavbar />
+        <GwInfoBar gwOffset={gwOffset} />
       </ErrorBoundary>
       <main className="container py-6">
         <div className="mb-6">
@@ -59,5 +63,6 @@ export default function OptimizePage() {
         </Tabs>
       </main>
     </div>
+    </LiveGwProvider>
   );
 }

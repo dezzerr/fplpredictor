@@ -49,6 +49,16 @@ export type ExpExplain = {
   news?: string;
   newsAdded?: string;
 
+  // AI news/sentiment signals
+  signals?: Array<{
+    signal: string;
+    adjustment: number;
+    confidence: string;
+    reason: string;
+    sourceType?: string;
+  }>;
+  signalMultiplier?: number; // combined multiplier from all signals (e.g. 1.05)
+
   // Market-first additions
   source?: 'market' | 'fpl'; // which projection source produced expPoints/eventEP
   eventEP?: number[]; // per-event expected points if computed from market model

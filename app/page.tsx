@@ -3,10 +3,11 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
+import { PublicNavbar } from '@/components/PublicNavbar'
 import HomeHero from '@/components/home/HomeHero'
 import HomeFeatures from '@/components/home/HomeFeatures'
 import HomeHowItWorks from '@/components/home/HomeHowItWorks'
-import HomeWhyChoose from '@/components/home/HomeWhyChoose'
+import HomeBlog from '@/components/home/HomeBlog'
 import HomeCTA from '@/components/home/HomeCTA'
 
 export default function RootPage() {
@@ -54,11 +55,12 @@ export default function RootPage() {
 
   // Show home page for non-authenticated users
   return (
-    <div className="min-h-screen bg-slate-950 selection:bg-fuchsia-500/30">
+    <div className="min-h-screen selection:bg-fuchsia-500/30">
+      <PublicNavbar />
       <HomeHero />
       <HomeFeatures />
       <HomeHowItWorks />
-      <HomeWhyChoose />
+      <HomeBlog />
       <HomeCTA />
     </div>
   )

@@ -15,28 +15,8 @@ export default function HomeHero() {
       {/* Grid pattern overlay */}
       <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMSIgY3k9IjEiIHI9IjEiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC4wNSkiLz48L3N2Zz4=')] [mask-image:linear-gradient(to_bottom,white,transparent)]" />
 
-      {/* Header/Navigation */}
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-16">
-        <div className="flex justify-between items-center">
-          <div className="flex items-center gap-2">
-            <div className="w-10 h-10 bg-gradient-to-br from-fuchsia-500 to-indigo-500 rounded-xl flex items-center justify-center shadow-lg shadow-fuchsia-500/20">
-              <ArrowRight className="w-6 h-6 text-white transform rotate-[-45deg]" />
-            </div>
-            <span className="text-2xl font-bold text-white tracking-tight">FPL Companion</span>
-          </div>
-          <div className="flex items-center gap-4">
-            <Link href={'/blog' as Route} className="hidden sm:block text-sm font-medium text-slate-300 hover:text-white transition-colors">
-              Blog
-            </Link>
-            <Link href="/login" className="hidden sm:block text-sm font-medium text-slate-300 hover:text-white transition-colors">
-              Sign In
-            </Link>
-            <Link href="/login" className="px-5 py-2.5 bg-white text-slate-950 rounded-lg font-semibold text-sm hover:bg-slate-100 transition-colors">
-              Get Started
-            </Link>
-          </div>
-        </div>
-      </div>
+      {/* Header/Navigation — handled by PublicNavbar in parent, add spacing */}
+      <div className="relative mb-16" />
 
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid lg:grid-cols-2 gap-12 items-center">
