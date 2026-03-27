@@ -6,6 +6,45 @@ import {
   PENALTY_TAKERS,
 } from "@/lib/constants";
 import { getLiveEvent } from "@/lib/liveWindow";
+import { createClient } from '@supabase/supabase-js';
+
+/** Cached signals for the current request (avoid repeated DB calls) */
+type SignalRow = {
+  player_id: string;
+  player_name: string;
+  team: string;
+  signal: string;
+  adjustment: number;
+  confidence: string;
+  reason: string;
+  source_type?: string;
+};
+
+async function fetchSignalsForGw(gw: number): Promise<Map<string, SignalRow[]>> {
+  const map = new Map<string, SignalRow[]>();
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !key || !gw) return map;
+
+  try {
+    const sb = createClient(url, key);
+    const { data } = await sb
+      .from('player_signals')
+      .select('player_id,player_name,team,signal,adjustment,confidence,reason,source_type')
+      .eq('gameweek', gw);
+    if (data) {
+      for (const row of data as SignalRow[]) {
+        if (!row.player_id) continue;
+        const arr = map.get(row.player_id) || [];
+        arr.push(row);
+        map.set(row.player_id, arr);
+      }
+    }
+  } catch (err) {
+    console.warn('[FPL] Failed to fetch signals:', (err as Error).message);
+  }
+  return map;
+}
 
 function mapStatus(s: string): Player["status"] {
   // FPL: a=available, d=doubtful, i=injured, s=suspended, n=not in squad, u=unknown
@@ -99,6 +138,9 @@ export async function fetchFplPlayers(preset?: CalPresetName | string | null): P
   const elements: Array<any> = bootstrap.elements || [];
   const calib = getCalibration(preset as any);
 
+  // Fetch AI news/sentiment signals for the current GW (best-effort, empty map on failure)
+  const signalsMap = await fetchSignalsForGw(typeof nextEventId === 'number' ? nextEventId : 0);
+
   // Build team form map (recent results) - use team strength for now, enhance later with API
   const teamFormMap: Record<number, number> = {};
   for (const t of teams) {
@@ -141,33 +183,33 @@ export async function fetchFplPlayers(preset?: CalPresetName | string | null): P
     if (news.includes('loan') || news.includes('transfer') || news.includes('joined')) {
       minutesProb = 0.05; // Essentially unavailable
     } else {
-      // Base probability from season average minutes (slightly more generous)
+      // Base probability from season average minutes (conservative calibration)
       let baseProb: number;
-      if (avgMinutesPerGame >= 75) baseProb = 0.95;        // nailed starter
-      else if (avgMinutesPerGame >= 65) baseProb = 0.88;   // regular starter
-      else if (avgMinutesPerGame >= 50) baseProb = 0.75;   // frequent starter
-      else if (avgMinutesPerGame >= 35) baseProb = 0.60;   // rotation risk
-      else if (avgMinutesPerGame >= 20) baseProb = 0.40;   // super-sub
-      else if (avgMinutesPerGame >= 10) baseProb = 0.25;   // fringe
-      else baseProb = 0.15;                                // bench warmer
+      if (avgMinutesPerGame >= 75) baseProb = 0.90;        // nailed starter
+      else if (avgMinutesPerGame >= 65) baseProb = 0.83;   // regular starter
+      else if (avgMinutesPerGame >= 50) baseProb = 0.70;   // frequent starter
+      else if (avgMinutesPerGame >= 35) baseProb = 0.55;   // rotation risk
+      else if (avgMinutesPerGame >= 20) baseProb = 0.36;   // super-sub
+      else if (avgMinutesPerGame >= 10) baseProb = 0.22;   // fringe
+      else baseProb = 0.12;                                // bench warmer
 
       // Blend with FPL's chance_of_playing when present (do not let it dominate)
       if (chance !== null) {
         const chanceDec = Math.max(0, Math.min(1, chance / 100));
-        baseProb = 0.6 * baseProb + 0.4 * chanceDec;
+        baseProb = 0.7 * baseProb + 0.3 * chanceDec;
       }
 
       // Status adjustments
-      if (statusCode === 'd') baseProb = Math.min(baseProb, 0.75);
+      if (statusCode === 'd') baseProb = Math.min(baseProb, 0.65);
       if (statusCode !== 'a' && statusCode !== 'd' && statusCode !== 'u') baseProb *= 0.25; // injured/suspended
 
       // Form adjustment - poor form increases rotation risk especially for non-starters
-      if (formVal < 1.5 && avgMinutesPerGame < 60) baseProb *= 0.85;
+      if (formVal < 1.5 && avgMinutesPerGame < 60) baseProb *= 0.82;
 
       // Very low ownership + low minutes => out of favor
-      if (ownPct < 1.0 && avgMinutesPerGame < 45) baseProb *= 0.85;
+      if (ownPct < 1.0 && avgMinutesPerGame < 45) baseProb *= 0.8;
 
-      minutesProb = Math.max(0.05, Math.min(0.95, baseProb));
+      minutesProb = Math.max(0.03, Math.min(0.90, baseProb));
     }
     const ownership = ownPct || undefined;
 
@@ -263,25 +305,25 @@ export async function fetchFplPlayers(preset?: CalPresetName | string | null): P
 
     // Enhanced form factor combining player form, team form, and recent points
     const normForm = Math.max(0, Math.min(10, formVal));
-    const playerFormFactor = 0.90 + 0.20 * (normForm / 10); // 0.90 to 1.10 (more conservative)
+    const playerFormFactor = 0.92 + 0.14 * (normForm / 10); // 0.92 to 1.06
     
     // Team form factor (helps players from in-form teams)
-    const teamFormFactor = 0.95 + 0.10 * (teamForm / 10); // 0.95 to 1.05 (reduced impact)
+    const teamFormFactor = 0.97 + 0.06 * (teamForm / 10); // 0.97 to 1.03
     
     // Recent points momentum (if player scoring more than expected)
     const momentumFactor = (() => {
       if (baseExp < 0.1 || pointsPerGame < 0.1) return 1.0;
       const ratio = pointsPerGame / Math.max(0.1, baseExp);
       // Boost players overperforming, slight penalty for underperforming
-      if (ratio > 1.25) return 1.08; // hot streak (reduced from 1.10)
-      if (ratio > 1.15) return 1.04; // good run (reduced from 1.05)
-      if (ratio < 0.8) return 0.96; // cold streak (less harsh)
+      if (ratio > 1.25) return 1.05; // hot streak
+      if (ratio > 1.15) return 1.025; // good run
+      if (ratio < 0.8) return 0.95; // cold streak
       return 1.0;
     })();
     
     // Cap combined form factor at reasonable limits (prevent runaway multipliers)
     const rawFormFactor = playerFormFactor * teamFormFactor * momentumFactor;
-    const formFactor = Math.max(0.80, Math.min(1.25, rawFormFactor)); // Cap at 0.80-1.25x
+    const formFactor = Math.max(0.85, Math.min(1.12, rawFormFactor)); // Cap at 0.85-1.12x
 
     // Minutes factor - scale points by playing time probability
     const minutesFactor = Math.max(0, Math.min(1.2, calib.minutes.base + calib.minutes.scale * minutesProb));
@@ -305,28 +347,36 @@ export async function fetchFplPlayers(preset?: CalPresetName | string | null): P
       }
     }
     let penaltyBoost = 1.0;
-    if (penaltyTakerRank === 0) penaltyBoost = 1.15;      // primary taker
-    else if (penaltyTakerRank === 1) penaltyBoost = 1.08; // secondary
-    else if (penaltyTakerRank === 2) penaltyBoost = 1.04; // tertiary
+    if (penaltyTakerRank === 0) penaltyBoost = 1.08;      // primary taker
+    else if (penaltyTakerRank === 1) penaltyBoost = 1.04; // secondary
+    else if (penaltyTakerRank === 2) penaltyBoost = 1.02; // tertiary
     else {
       // Fallback to FPL's penalties_order if exposed
       const po = parseInt((el as any).penalties_order ?? "99") || 99;
-      if (po === 1) penaltyBoost = 1.10;
+      if (po === 1) penaltyBoost = 1.05;
     }
 
-    // Apply ALL factors to expected points (form, minutes, penalties, injury)
+    // AI news/sentiment signal multiplier
+    const playerSignals = signalsMap.get(String(el.id)) || [];
+    let signalMultiplier = 1.0;
+    if (playerSignals.length > 0) {
+      const totalAdj = playerSignals.reduce((sum: number, s: SignalRow) => sum + (Number(s.adjustment) || 0), 0);
+      signalMultiplier = Math.max(0.75, Math.min(1.12, 1 + totalAdj * 0.8));
+    }
+
+    // Apply ALL factors to expected points (form, minutes, penalties, injury, signals)
     // NOTE: FPL's ep_next ALREADY includes DGW — e.g. a DGW defender might have
     // ep_next=10.4 (sum of both fixtures). We do NOT multiply by fixture count.
-    const rawPrediction = baseExp * positionFactor * calib.CAL * formFactor * penaltyBoost * minutesFactor * injuryPenalty;
+    const rawPrediction = baseExp * positionFactor * calib.CAL * formFactor * penaltyBoost * minutesFactor * injuryPenalty * signalMultiplier;
 
     // Position-based realistic caps (prevent impossible predictions)
     // Scale caps by DGW fixture count so DGW predictions aren't clipped to single-GW levels
     const dgwCount = (typeof nextEventFixtureCount === 'number' && nextEventFixtureCount >= 2) ? nextEventFixtureCount : 1;
     const positionCapsBase: Record<Position, number> = {
-      GK: 7.0,   // Goalkeepers rarely score above 7 per game
-      DEF: 10.0, // Defenders cap at 10 per game (clean sheet + attacking returns)
-      MID: 12.0, // Midfielders cap at 12 per game
-      FWD: 14.0, // Forwards cap at 14 per game (hat-trick + bonus)
+      GK: 6.5,   // Goalkeepers rarely score above this in expectation
+      DEF: 9.0,  // Defenders cap in expectation
+      MID: 11.0, // Midfielders cap in expectation
+      FWD: 12.0, // Forwards cap in expectation
     };
     const maxAllowed = positionCapsBase[position] * dgwCount;
     
@@ -379,6 +429,14 @@ export async function fetchFplPlayers(preset?: CalPresetName | string | null): P
         blendedFixtureFactor,
         eventFixtureCounts,
         nextEventFixtureCount,
+        signals: playerSignals.length > 0 ? playerSignals.map((s: SignalRow) => ({
+          signal: s.signal,
+          adjustment: s.adjustment,
+          confidence: s.confidence,
+          reason: s.reason,
+          sourceType: s.source_type,
+        })) : undefined,
+        signalMultiplier: playerSignals.length > 0 ? signalMultiplier : undefined,
         source: 'fpl',
         final: refined,
       },

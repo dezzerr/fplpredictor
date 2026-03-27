@@ -160,10 +160,10 @@ export const BENCH_DEF_MAX = 2;
 // ============================================================================
 
 /** Points per slot for 100% team rating */
-export const TEAM_RATING_BENCHMARK = 6.5;
+export const TEAM_RATING_BENCHMARK = 8.5;
 
 /** Points per starter for 100% GW rating */
-export const GW_RATING_BENCHMARK = 6.0;
+export const GW_RATING_BENCHMARK = 7.5;
 
 // ============================================================================
 // FPL API MAPPINGS

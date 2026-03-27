@@ -12,7 +12,7 @@ export type Calibration = {
 
 const BASELINE: Calibration = {
   name: "Baseline",
-  CAL: 1.0, // Reduced to 1.0 - FPL's ep_next is already a good baseline
+  CAL: 0.93, // Slightly dampen raw EP to avoid systematic over-projection
   minutes: { base: 0, scale: 1.0 }, // Direct scaling: minutesFactor = minutesProb (no artificial floor)
   injury: { flaggedLowMin: 0.9, severe: 0.6 },
   posFactor: { GK: 1.0, DEF: 1.0, MID: 1.0, FWD: 1.0 }, // Remove position inflation
@@ -22,7 +22,7 @@ const BASELINE: Calibration = {
 
 const CONSERVATIVE: Calibration = {
   name: "Conservative",
-  CAL: 0.85, // Conservative - expects fewer points
+  CAL: 0.8, // Conservative - expects fewer points
   minutes: { base: 0, scale: 0.95 }, // Slightly more cautious on minutes
   injury: { flaggedLowMin: 0.85, severe: 0.5 },
   posFactor: { GK: 1.0, DEF: 1.0, MID: 1.0, FWD: 1.0 },
@@ -32,7 +32,7 @@ const CONSERVATIVE: Calibration = {
 
 const AGGRESSIVE: Calibration = {
   name: "Aggressive",
-  CAL: 1.15, // Slightly optimistic
+  CAL: 1.03, // Kept optimistic but no longer extreme
   minutes: { base: 0.1, scale: 1.0 }, // More optimistic on minutes (10% floor)
   injury: { flaggedLowMin: 0.95, severe: 0.7 },
   posFactor: { GK: 1.0, DEF: 1.0, MID: 1.0, FWD: 1.0 },

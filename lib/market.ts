@@ -9,6 +9,8 @@ import { lambdasFromTeamOdds, cleanSheetFromLambdas, lambdaGFromAnytime, estimat
 // compute per-event expected points from market data. Until then, it falls
 // back to the calibrated FPL-based players while keeping the same Player shape.
 export async function fetchPlayersWithMarket(preset?: CalPresetName | string | null): Promise<Player[]> {
+  const MARKET_EP_SCALE = 0.88;
+
   const hasOdds = Boolean(
     process.env.ODDS_API_KEY ||
     process.env.API_FOOTBALL_KEY ||
@@ -118,7 +120,7 @@ export async function fetchPlayersWithMarket(preset?: CalPresetName | string | n
         const appearanceEP = 2 * p60 + 1 * cameoProb;
         const attackEP = p60 * (lambdaGf * goalPtsByPos[p.position] + lambdaAf * assistPts);
         const csEP = p60 * expectedCsPoints(p.position, lambdaOpp);
-        const ep = appearanceEP + attackEP + csEP;
+        const ep = (appearanceEP + attackEP + csEP) * MARKET_EP_SCALE;
 
         epSum += ep;
         lambdaGSum += lambdaGf;

@@ -1,4 +1,4 @@
-import type { TeamOdds, GoalscorerOdds } from "@/lib/odds";
+import type { TeamOdds } from "@/lib/odds";
 import type { Position } from "@/lib/data";
 
 // Derive team goal intensities (Poisson lambdas) from team-level markets.
@@ -26,14 +26,14 @@ export function cleanSheetFromLambdas(lambdaForOpp: number): number {
 export function lambdaGFromAnytime(pAnytime: number): number {
   const p = clamp01(pAnytime);
   if (p <= 0) return 0;
-  if (p >= 1) return 10; // huge
-  return -Math.log(1 - p);
+  if (p >= 1) return 1.4;
+  return Math.min(-Math.log(1 - p), 1.4);
 }
 
 // Placeholder assist intensity estimator. If you have xA90, prefer it.
 // As a fallback, relate λa to λg with a mild factor.
 export function estimateLambdaA(lambdaG: number, pos: Position): number {
-  const f = pos === 'FWD' ? 0.5 : pos === 'MID' ? 0.8 : 0.3;
+  const f = pos === 'FWD' ? 0.35 : pos === 'MID' ? 0.45 : 0.2;
   return Math.max(lambdaG * f, 0);
 }
 

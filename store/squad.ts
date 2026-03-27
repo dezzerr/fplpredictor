@@ -545,8 +545,8 @@ export const useSquadStore = create<SquadState>()(persist((set, get) => ({
   },
 
   teamRating: () => {
-    // heuristic: compare exp points per slot, scaled for realistic ratings
-    const perSlot = get().totalExpPoints() / 11;
+    // heuristic: compare exp points per effective slot (captain double = 12th slot)
+    const perSlot = get().totalExpPoints() / 12;
     const rating = Math.min(100, Math.max(0, (perSlot / TEAM_RATING_BENCHMARK) * 100));
     return Math.round(rating);
   },
@@ -562,7 +562,7 @@ export const useSquadStore = create<SquadState>()(persist((set, get) => ({
 
   // Week-aware rating methods (use weeklyExp for accurate future gameweek ratings)
   teamRatingForWeek: (weekOffset: number) => {
-    const perSlot = get().totalExpForWeek(weekOffset) / 11;
+    const perSlot = get().totalExpForWeek(weekOffset) / 12;
     const rating = Math.min(100, Math.max(0, (perSlot / TEAM_RATING_BENCHMARK) * 100));
     return Math.round(rating);
   },
