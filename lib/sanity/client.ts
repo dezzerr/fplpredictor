@@ -54,12 +54,41 @@ export const sanityClient = createClient({
   useCdn: process.env.NODE_ENV === 'production',
 })
 
+function textFromPortable(value: unknown): string {
+  if (typeof value === 'string') return value
+  if (Array.isArray(value)) return value.map(textFromPortable).join(' ').trim()
+  if (value && typeof value === 'object') {
+    const obj = value as {text?: unknown; children?: unknown[]}
+    if (typeof obj.text === 'string') return obj.text
+    if (Array.isArray(obj.children)) return obj.children.map(textFromPortable).join(' ').trim()
+  }
+  return ''
+}
+
+function normalizeExcerpt(value: unknown): string {
+  return textFromPortable(value).replace(/\s+/g, ' ').trim()
+}
+
+function normalizePostPreview(post: BlogPostPreview): BlogPostPreview {
+  return {
+    ...post,
+    excerpt: normalizeExcerpt(post.excerpt),
+  }
+}
+
+function normalizePost(post: BlogPost): BlogPost {
+  return {
+    ...post,
+    excerpt: normalizeExcerpt(post.excerpt),
+  }
+}
+
 const postPreviewProjection = groq`{
   _id,
   _updatedAt,
   title,
   "slug": slug.current,
-  excerpt,
+  "excerpt": coalesce(pt::text(excerpt), excerpt, ""),
   publishedAt,
   coverImage,
   "author": author->{name, slug, xHandle},
@@ -73,7 +102,7 @@ const postBySlugQuery = groq`*[_type == "post" && slug.current == $slug][0] {
   _updatedAt,
   title,
   "slug": slug.current,
-  excerpt,
+  "excerpt": coalesce(pt::text(excerpt), excerpt, ""),
   publishedAt,
   coverImage,
   body,
@@ -94,7 +123,8 @@ const sitemapPostsQuery = groq`*[_type == "post" && defined(slug.current)][]{
 
 export async function getAllPosts() {
   try {
-    return await sanityClient.fetch<BlogPostPreview[]>(allPostsQuery)
+    const posts = await sanityClient.fetch<BlogPostPreview[]>(allPostsQuery)
+    return posts.map(normalizePostPreview)
   } catch (error) {
     console.error('Failed to fetch Sanity blog posts', error)
     return []
@@ -103,7 +133,8 @@ export async function getAllPosts() {
 
 export async function getPostBySlug(slug: string) {
   try {
-    return await sanityClient.fetch<BlogPost | null>(postBySlugQuery, {slug})
+    const post = await sanityClient.fetch<BlogPost | null>(postBySlugQuery, {slug})
+    return post ? normalizePost(post) : null
   } catch (error) {
     console.error(`Failed to fetch Sanity post for slug ${slug}`, error)
     return null
