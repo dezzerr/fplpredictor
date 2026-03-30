@@ -63,7 +63,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'GEMINI_API_KEY not configured' }, { status: 500 });
   }
 
-  console.log(`[Insights Generate] API key present (${apiKey.length} chars, starts with ${apiKey.slice(0, 8)}...)`);
+  console.log('[Insights Generate] GEMINI_API_KEY present');
 
   let body: any;
   try {
