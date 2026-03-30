@@ -1,6 +1,7 @@
 import "./globals.css";
 import type { Metadata } from "next";
 import { ReactNode } from "react";
+import Script from "next/script";
 import { Providers } from "@/components/providers";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { cn } from "@/lib/utils";
@@ -57,10 +58,29 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
+  const gaId = process.env.NEXT_PUBLIC_GA_ID;
+  const shouldEnableGa = process.env.NODE_ENV === "production" && Boolean(gaId);
+
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
         <StructuredData />
+        {shouldEnableGa && gaId ? (
+          <>
+            <Script
+              src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`}
+              strategy="afterInteractive"
+            />
+            <Script id="google-analytics" strategy="afterInteractive">
+              {`
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){dataLayer.push(arguments);}
+                gtag('js', new Date());
+                gtag('config', '${gaId}');
+              `}
+            </Script>
+          </>
+        ) : null}
       </head>
       <body className={cn("min-h-dvh bg-background font-sans antialiased")}> 
         <Providers>
