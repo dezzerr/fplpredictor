@@ -212,6 +212,14 @@ export async function fetchFplPlayers(preset?: CalPresetName | string | null): P
       minutesProb = Math.max(0.03, Math.min(0.90, baseProb));
     }
     const ownership = ownPct || undefined;
+    const rawPriceChangeEvent = Number(el.cost_change_event);
+    const priceChangeEvent = Number.isFinite(rawPriceChangeEvent)
+      ? Math.round((rawPriceChangeEvent / 10) * 10) / 10
+      : undefined;
+    const rawTransfersInEvent = Number(el.transfers_in_event);
+    const transfersInEvent = Number.isFinite(rawTransfersInEvent) ? rawTransfersInEvent : undefined;
+    const rawTransfersOutEvent = Number(el.transfers_out_event);
+    const transfersOutEvent = Number.isFinite(rawTransfersOutEvent) ? rawTransfersOutEvent : undefined;
 
     // Build nextFixtures: take first five upcoming for the player's team, compute opp and diff for that team side
     const tf = (teamFixtures[teamId] || []).slice(0, 5);
@@ -407,6 +415,9 @@ export async function fetchFplPlayers(preset?: CalPresetName | string | null): P
       ownership,
       photo,
       eoRisk,
+      priceChangeEvent,
+      transfersInEvent,
+      transfersOutEvent,
       expExplain: {
         base: baseExp,
         minutesProb,

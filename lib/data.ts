@@ -85,6 +85,9 @@ export type Player = {
   ownership?: number; // % selected
   photo?: string; // optional
   eoRisk?: number; // expPoints * (1 - ownership%)
+  priceChangeEvent?: number; // official FPL event price delta in £m (e.g. +0.1, -0.1)
+  transfersInEvent?: number; // official FPL transfers in this event
+  transfersOutEvent?: number; // official FPL transfers out this event
   expExplain?: ExpExplain;
 };
 export type Squad = {

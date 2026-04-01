@@ -9,7 +9,6 @@ import {
   ChevronDown,
   ChevronUp,
   Sparkles,
-  AlertTriangle,
   Crown,
   Flame,
   Snowflake,
@@ -20,6 +19,7 @@ import {
   Loader2,
   Zap,
   Target,
+  type LucideIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 import type { Player } from "@/lib/data";
@@ -31,6 +31,11 @@ interface Insight {
   title: string;
   detail: string;
   sentiment: "positive" | "negative" | "neutral";
+  expectedGain?: number;
+  confidence?: "high" | "medium" | "low";
+  source?: "model" | "gemini";
+  transferOut?: string;
+  transferIn?: string;
 }
 
 interface InsightPanelProps {
@@ -40,7 +45,7 @@ interface InsightPanelProps {
   className?: string;
 }
 
-const TYPE_CONFIG: Record<string, { icon: any; color: string; bg: string }> = {
+const TYPE_CONFIG: Record<string, { icon: LucideIcon; color: string; bg: string }> = {
   captain:        { icon: Crown,          color: "text-yellow-600",  bg: "bg-yellow-50 border-yellow-200" },
   form_hot:       { icon: Flame,          color: "text-orange-600",  bg: "bg-orange-50 border-orange-200" },
   form_cold:      { icon: Snowflake,      color: "text-sky-600",     bg: "bg-sky-50 border-sky-200" },
@@ -51,6 +56,7 @@ const TYPE_CONFIG: Record<string, { icon: any; color: string; bg: string }> = {
   transfer_in:    { icon: ArrowRightLeft, color: "text-emerald-600", bg: "bg-emerald-50 border-emerald-200" },
   differential:   { icon: Zap,            color: "text-purple-600",  bg: "bg-purple-50 border-purple-200" },
   value_pick:     { icon: Target,         color: "text-indigo-600",  bg: "bg-indigo-50 border-indigo-200" },
+  price_watch:    { icon: TrendingUp,     color: "text-amber-600",   bg: "bg-amber-50 border-amber-200" },
 };
 
 const SENTIMENT_DOT: Record<string, string> = {
@@ -64,6 +70,7 @@ export function InsightPanel({ gameweek, players, bank, className }: InsightPane
   const [loading, setLoading] = useState(false);
   const [expanded, setExpanded] = useState(true);
   const [hasGenerated, setHasGenerated] = useState(false);
+  const [meta, setMeta] = useState<{ source?: string; geminiTimedOut?: boolean; latencyMs?: number } | null>(null);
 
   const generate = useCallback(async () => {
     if (!players || players.length === 0) {
@@ -81,6 +88,9 @@ export function InsightPanel({ gameweek, players, bank, className }: InsightPane
         expPoints: p.expPoints,
         minutesProb: p.minutesProb,
         ownership: p.ownership,
+        priceChangeEvent: p.priceChangeEvent,
+        transfersInEvent: p.transfersInEvent,
+        transfersOutEvent: p.transfersOutEvent,
         fixtures: (p.nextFixtures || []).slice(0, 5).map((f) => ({
           opp: f.opp,
           H: f.H,
@@ -97,9 +107,11 @@ export function InsightPanel({ gameweek, players, bank, className }: InsightPane
       if (res.ok) {
         const data = await res.json();
         setInsights(data.insights || []);
+        setMeta({ source: data.source, geminiTimedOut: data.geminiTimedOut, latencyMs: data.latencyMs });
         setHasGenerated(true);
         if ((data.insights || []).length > 0) {
-          toast.success(`${data.insights.length} insights generated`);
+          const mode = data.source === "hybrid" ? "Hybrid" : "Fast";
+          toast.success(`${data.insights.length} ${mode} insights generated`);
         }
       } else {
         const err = await res.json().catch(() => ({}));
@@ -159,6 +171,7 @@ export function InsightPanel({ gameweek, players, bank, className }: InsightPane
               {(!players || players.length === 0) && (
                 <p className="text-xs text-muted-foreground mt-2">Import a squad first</p>
               )}
+              <p className="text-[11px] text-slate-500 mt-2">Fast model picks first, with optional AI enrichment.</p>
             </div>
           )}
 
@@ -167,7 +180,7 @@ export function InsightPanel({ gameweek, players, bank, className }: InsightPane
             <div className="p-4 space-y-3">
               <div className="flex items-center gap-2 text-sm text-purple-600 font-medium">
                 <Loader2 className="h-4 w-4 animate-spin" />
-                Analysing your squad...
+                Building transfer, differential, and price-watch insights...
               </div>
               {[1, 2, 3, 4].map((i) => (
                 <div key={i} className="animate-pulse space-y-2">
@@ -228,12 +241,40 @@ export function InsightPanel({ gameweek, players, bank, className }: InsightPane
                           <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
                             {ins.detail}
                           </p>
+                          {(typeof ins.expectedGain === "number" || ins.confidence || ins.source) && (
+                            <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                              {typeof ins.expectedGain === "number" && (
+                                <Badge className="text-[9px] bg-emerald-100 text-emerald-700 border-emerald-200 px-1.5 py-0">
+                                  +{ins.expectedGain.toFixed(1)} pts
+                                </Badge>
+                              )}
+                              {ins.confidence && (
+                                <Badge className="text-[9px] bg-slate-100 text-slate-600 border-slate-200 px-1.5 py-0 capitalize">
+                                  {ins.confidence} confidence
+                                </Badge>
+                              )}
+                              {ins.source && (
+                                <Badge className="text-[9px] bg-purple-100 text-purple-700 border-purple-200 px-1.5 py-0 uppercase">
+                                  {ins.source}
+                                </Badge>
+                              )}
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
                   );
                 })}
               </div>
+              {meta && (
+                <div className="border-t px-3 py-2 text-[11px] text-slate-500 flex items-center justify-between">
+                  <span>
+                    {meta.source === "hybrid" ? "Hybrid insights" : "Fast deterministic insights"}
+                    {meta.geminiTimedOut ? " · AI enrichment timed out" : ""}
+                  </span>
+                  {typeof meta.latencyMs === "number" && <span>{Math.round(meta.latencyMs / 100) / 10}s</span>}
+                </div>
+              )}
               {/* Refresh button */}
               <div className="border-t p-3">
                 <button
