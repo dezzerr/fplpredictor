@@ -18,10 +18,19 @@ export default function HomeBlog() {
   const [loaded, setLoaded] = useState(false)
 
   useEffect(() => {
-    fetch('/api/blog-posts')
-      .then((res) => res.json())
+    fetch('/api/blog-posts', {
+      cache: 'no-store',
+      headers: {
+        'Cache-Control': 'no-cache',
+      },
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error(`Failed to fetch blog posts: ${res.status}`)
+        return res.json()
+      })
       .then((data) => {
-        setPosts(data ?? [])
+        const nextPosts = Array.isArray(data) ? (data as BlogPostPreview[]) : []
+        setPosts(nextPosts.slice(0, 4))
         setLoaded(true)
       })
       .catch((err) => {
@@ -32,7 +41,7 @@ export default function HomeBlog() {
 
   if (!loaded || !posts.length) return null
 
-  const [featured, ...rest] = posts
+  const [featured, ...rest] = posts.slice(0, 4)
   const latest = rest.slice(0, 3)
   const featuredImage = featured.coverImage?.asset
     ? urlForImage(featured.coverImage).width(1200).height(675).fit('crop').auto('format').url()
