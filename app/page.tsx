@@ -12,12 +12,12 @@ import HomeCTA from '@/components/home/HomeCTA'
 
 export default function RootPage() {
   const [isChecking, setIsChecking] = useState(true)
-  const [supabase] = useState(() => createClient())
   const router = useRouter()
 
   useEffect(() => {
     const checkAuth = async () => {
       try {
+        const supabase = createClient()
         const { data: { session } } = await supabase.auth.getSession()
         
         if (session) {
@@ -35,7 +35,7 @@ export default function RootPage() {
     }
 
     checkAuth()
-  }, [supabase, router])
+  }, [router])
 
   // Show loading state while checking auth
   if (isChecking) {

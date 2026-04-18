@@ -8,12 +8,25 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { ArrowRight, ArrowLeft } from 'lucide-react'
 import { PublicNavbar } from '@/components/PublicNavbar'
+import type { SupabaseClient } from '@supabase/supabase-js'
 
 export default function LoginPage() {
-  const [supabase] = useState(() => createClient())
+  const [supabase, setSupabase] = useState<SupabaseClient | null>(null)
+  const [clientInitError, setClientInitError] = useState<string | null>(null)
   const router = useRouter()
 
   useEffect(() => {
+    try {
+      setSupabase(createClient())
+    } catch (error) {
+      console.error('Supabase client initialization failed:', error)
+      setClientInitError('Authentication is temporarily unavailable. Please try again later.')
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!supabase) return
+
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event) => {
@@ -59,57 +72,63 @@ export default function LoginPage() {
             
             {/* Card */}
             <div className="relative bg-slate-800/80 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-8 shadow-2xl">
-              <Auth
-                supabaseClient={supabase}
-                appearance={{
-                  theme: ThemeSupa,
-                  variables: {
-                    default: {
-                      colors: {
-                        brand: '#d946ef',
-                        brandAccent: '#c026d3',
-                        brandButtonText: 'white',
-                        defaultButtonBackground: '#1e293b',
-                        defaultButtonBackgroundHover: '#334155',
-                        defaultButtonBorder: '#475569',
-                        defaultButtonText: 'white',
-                        dividerBackground: '#475569',
-                        inputBackground: '#1e293b',
-                        inputBorder: '#475569',
-                        inputBorderHover: '#64748b',
-                        inputBorderFocus: '#d946ef',
-                        inputText: 'white',
-                        inputPlaceholder: '#94a3b8',
-                      },
-                      space: {
-                        spaceSmall: '8px',
-                        spaceMedium: '12px',
-                        spaceLarge: '16px',
-                      },
-                      borderWidths: {
-                        buttonBorderWidth: '1px',
-                        inputBorderWidth: '1px',
-                      },
-                      radii: {
-                        borderRadiusButton: '8px',
-                        buttonBorderRadius: '8px',
-                        inputBorderRadius: '8px',
+              {clientInitError ? (
+                <p className="text-sm text-red-300">{clientInitError}</p>
+              ) : supabase ? (
+                <Auth
+                  supabaseClient={supabase}
+                  appearance={{
+                    theme: ThemeSupa,
+                    variables: {
+                      default: {
+                        colors: {
+                          brand: '#d946ef',
+                          brandAccent: '#c026d3',
+                          brandButtonText: 'white',
+                          defaultButtonBackground: '#1e293b',
+                          defaultButtonBackgroundHover: '#334155',
+                          defaultButtonBorder: '#475569',
+                          defaultButtonText: 'white',
+                          dividerBackground: '#475569',
+                          inputBackground: '#1e293b',
+                          inputBorder: '#475569',
+                          inputBorderHover: '#64748b',
+                          inputBorderFocus: '#d946ef',
+                          inputText: 'white',
+                          inputPlaceholder: '#94a3b8',
+                        },
+                        space: {
+                          spaceSmall: '8px',
+                          spaceMedium: '12px',
+                          spaceLarge: '16px',
+                        },
+                        borderWidths: {
+                          buttonBorderWidth: '1px',
+                          inputBorderWidth: '1px',
+                        },
+                        radii: {
+                          borderRadiusButton: '8px',
+                          buttonBorderRadius: '8px',
+                          inputBorderRadius: '8px',
+                        },
                       },
                     },
-                  },
-                  className: {
-                    container: 'auth-container',
-                    label: 'text-slate-300',
-                    button: 'font-semibold',
-                    anchor: 'text-fuchsia-400 hover:text-fuchsia-300',
-                  },
-                }}
-                theme="dark"
-                providers={['google']}
-                redirectTo={`${typeof window !== 'undefined' ? window.location.origin : ''}/auth/callback`}
-                showLinks={true}
-                view="sign_in"
-              />
+                    className: {
+                      container: 'auth-container',
+                      label: 'text-slate-300',
+                      button: 'font-semibold',
+                      anchor: 'text-fuchsia-400 hover:text-fuchsia-300',
+                    },
+                  }}
+                  theme="dark"
+                  providers={['google']}
+                  redirectTo={`${typeof window !== 'undefined' ? window.location.origin : ''}/auth/callback`}
+                  showLinks={true}
+                  view="sign_in"
+                />
+              ) : (
+                <p className="text-sm text-slate-300">Preparing sign-in...</p>
+              )}
             </div>
           </div>
 
