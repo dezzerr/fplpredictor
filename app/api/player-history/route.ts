@@ -3,6 +3,39 @@ import { NextResponse } from "next/server";
 export const revalidate = 900; // 15 minutes
 export const dynamic = 'force-dynamic';
 
+function emptyHistoryPayload(error?: string) {
+  return {
+    lastFiveGWs: [],
+    avgPoints: 0,
+    homeAvg: 0,
+    awayAvg: 0,
+    totalPoints: 0,
+    trend: 'stable' as const,
+    homeGamesCount: 0,
+    awayGamesCount: 0,
+    seasonStats: {
+      goals: 0,
+      assists: 0,
+      cleanSheets: 0,
+      bonus: 0,
+      minutes: 0,
+      yellowCards: 0,
+      redCards: 0,
+      saves: 0,
+      penaltiesSaved: 0,
+      penaltiesMissed: 0,
+      ownGoals: 0,
+      totalPoints: 0,
+      gamesPlayed: 0,
+    },
+    defcon: {
+      points: 0,
+      timesEarned: 0,
+    },
+    ...(error ? { error } : {}),
+  };
+}
+
 // Validate playerId is numeric and reasonable
 function isValidPlayerId(id: string | null): boolean {
   if (!id) return false;
@@ -38,7 +71,9 @@ export async function GET(req: Request) {
     );
 
     if (!res.ok) {
-      throw new Error(`Failed to fetch player history (status: ${res.status})`);
+      return NextResponse.json(
+        emptyHistoryPayload(`Failed to fetch player history (status: ${res.status})`)
+      );
     }
 
     const data = await res.json();
@@ -147,9 +182,6 @@ export async function GET(req: Request) {
     });
   } catch (error: any) {
     console.error('[PLAYER-HISTORY] Error:', error);
-    return NextResponse.json(
-      { error: error?.message || 'Failed to fetch player history' },
-      { status: 500 }
-    );
+    return NextResponse.json(emptyHistoryPayload(error?.message || 'Failed to fetch player history'));
   }
 }

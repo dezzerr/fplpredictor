@@ -21,20 +21,34 @@ export async function GET(req: NextRequest) {
     const timestamp = Date.now();
 
     // 1. Bootstrap to detect current event status
-    const bootstrapRes = await fetch(
-      `https://fantasy.premierleague.com/api/bootstrap-static/?t=${timestamp}`,
-      {
-        cache: "no-store",
-        headers: {
-          "Cache-Control": "no-cache, no-store, must-revalidate",
-          Pragma: "no-cache",
-          Expires: "0",
-        },
-      }
-    );
+    let bootstrap: any;
+    try {
+      const bootstrapRes = await fetch(
+        `https://fantasy.premierleague.com/api/bootstrap-static/?t=${timestamp}`,
+        {
+          cache: "no-store",
+          headers: {
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            Pragma: "no-cache",
+            Expires: "0",
+          },
+        }
+      );
 
-    if (!bootstrapRes.ok) throw new Error("Failed to fetch bootstrap");
-    const bootstrap = await bootstrapRes.json();
+      if (!bootstrapRes.ok) throw new Error(`Bootstrap fetch failed (${bootstrapRes.status})`);
+      bootstrap = await bootstrapRes.json();
+    } catch (bootstrapError: any) {
+      return NextResponse.json({
+        isLive: false,
+        eventId: null,
+        eventName: null,
+        livePoints: {},
+        managerLive: null,
+        fixtures: [],
+        error: bootstrapError?.message || "Failed to fetch bootstrap",
+      });
+    }
+
     const events: any[] = bootstrap.events || [];
 
     // Find the current (live) event
@@ -46,7 +60,7 @@ export async function GET(req: NextRequest) {
     const eventId: number = currentEvent.id;
 
     // 2. Fetch fixtures + live data for this event
-    const [liveRes, fixturesRes] = await Promise.all([
+    const [liveResSettled, fixturesResSettled] = await Promise.allSettled([
       fetch(`https://fantasy.premierleague.com/api/event/${eventId}/live/`, {
         cache: "no-store",
       }),
@@ -55,6 +69,8 @@ export async function GET(req: NextRequest) {
         { cache: "no-store" }
       ),
     ]);
+    const liveRes = liveResSettled.status === "fulfilled" ? liveResSettled.value : null;
+    const fixturesRes = fixturesResSettled.status === "fulfilled" ? fixturesResSettled.value : null;
 
     // Build fixture summaries
     let fixtures: any[] = [];
@@ -62,7 +78,7 @@ export async function GET(req: NextRequest) {
     const teamName: Record<number, string> = {};
     for (const t of teams) teamName[t.id] = t.short_name;
 
-    if (fixturesRes.ok) {
+    if (fixturesRes?.ok) {
       const raw: any[] = await fixturesRes.json();
       fixtures = raw.map((fx: any) => ({
         id: fx.id,
@@ -117,7 +133,7 @@ export async function GET(req: NextRequest) {
 
     // Build live points map
     const livePoints: Record<string, number> = {};
-    if (liveRes.ok) {
+    if (liveRes?.ok) {
       const liveData = await liveRes.json();
       const elements: any[] = liveData.elements || [];
       for (const el of elements) {
@@ -137,7 +153,6 @@ export async function GET(req: NextRequest) {
         );
         if (picksRes.ok) {
           const picksData = await picksRes.json();
-          const entryHistory = picksData.entry_history || {};
           const picks = (picksData.picks || []).map((pk: any) => ({
             element: pk.element,
             position: pk.position,
@@ -177,8 +192,15 @@ export async function GET(req: NextRequest) {
       console.error("[LIVE] Error:", error);
     }
     return NextResponse.json(
-      { isLive: false, eventId: null, livePoints: {}, error: error?.message },
-      { status: 500 }
+      {
+        isLive: false,
+        eventId: null,
+        eventName: null,
+        livePoints: {},
+        managerLive: null,
+        fixtures: [],
+        error: error?.message || "Failed to fetch live data",
+      }
     );
   }
 }

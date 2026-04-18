@@ -2,13 +2,14 @@
 
 import { useState } from "react";
 import { Plus } from "lucide-react";
-import { Player, getRealisticExpPoints, getFixturesForWeek, formatFixtureText } from "@/lib/data";
+import { Player, getFixturesForWeek, formatFixtureText } from "@/lib/data";
 import { cn, getFPLDisplayName } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { TeamShirt } from "@/components/TeamShirt";
 import { useSquadStore } from "@/store/squad";
+import { weeklyExp } from "@/lib/optimizer";
 
 export function PlayerRow({ player, onAdd }: { player: Player; onAdd: (p: Player) => void }) {
   const [hover, setHover] = useState(false);
@@ -102,7 +103,7 @@ export function PlayerRow({ player, onAdd }: { player: Player; onAdd: (p: Player
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <span className="cursor-help text-sm font-bold text-green-600">
-                        {getRealisticExpPoints(player).toFixed(1)}
+                        {weeklyExp(player, 0).toFixed(1)}
                       </span>
                     </TooltipTrigger>
                     <TooltipContent className="max-w-xs text-xs">
@@ -139,7 +140,7 @@ export function PlayerRow({ player, onAdd }: { player: Player; onAdd: (p: Player
                 </TooltipProvider>
               ) : (
                 <span className="text-sm font-bold text-green-600">
-                  {getRealisticExpPoints(player).toFixed(1)}
+                  {weeklyExp(player, 0).toFixed(1)}
                 </span>
               )}
               

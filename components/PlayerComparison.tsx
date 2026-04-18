@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Player } from "@/lib/data";
 import { weeklyExp } from "@/lib/optimizer";
 import { PlayerPerformanceHistory } from "@/components/PlayerPerformanceHistory";
@@ -463,6 +463,9 @@ export function PlayerComparison() {
               <BarChart3 className="h-5 w-5" />
               {selectedPlayerForHistory?.name} - Performance History
             </DialogTitle>
+            <DialogDescription className="sr-only">
+              Recent gameweek performance summary and trend details for {selectedPlayerForHistory?.name}.
+            </DialogDescription>
           </DialogHeader>
           {selectedPlayerForHistory && (
             <PlayerPerformanceHistory player={selectedPlayerForHistory} />

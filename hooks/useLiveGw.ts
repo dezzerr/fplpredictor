@@ -88,7 +88,17 @@ export function useLiveGw(): LiveGwData {
         ? `/api/live?entryId=${encodeURIComponent(entryId)}`
         : "/api/live";
       const res = await fetch(url);
-      if (!res.ok) throw new Error("Failed to fetch live data");
+      if (!res.ok) {
+        setIsLive(false);
+        setEventId(null);
+        setEventName(null);
+        setLivePoints({});
+        setFixtures([]);
+        setActiveChip(null);
+        setManagerLivePoints(null);
+        setLeagues([]);
+        return;
+      }
       const data = await res.json();
 
       setIsLive(!!data.isLive);

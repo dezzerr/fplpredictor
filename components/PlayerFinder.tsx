@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { getRealisticExpPoints, Fixture } from "@/lib/data";
+import { Fixture } from "@/lib/data";
 import type { Player } from "@/lib/data";
 import { useFilters, MIN_PRICE, MAX_PRICE } from "@/store/filters";
 import { useSquadStore } from "@/store/squad";
@@ -16,6 +16,7 @@ import { PlayerRow } from "@/components/PlayerRow";
 import { getFPLDisplayName } from "@/lib/utils";
 import { Search, RotateCcw, Info, ChevronDown, ChevronUp, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
+import { weeklyExp } from "@/lib/optimizer";
 
 function PlayerModal({ player }: { player: Player }) {
   const [activeTab, setActiveTab] = useState<'history' | 'fixtures'>('history');
@@ -35,7 +36,7 @@ function PlayerModal({ player }: { player: Player }) {
           </div>
           <div className="text-right">
             <div className="text-xs opacity-90">£{player.price.toFixed(1)}m</div>
-            <div className="text-sm font-bold">{getRealisticExpPoints(player).toFixed(1)} pts</div>
+            <div className="text-sm font-bold">{weeklyExp(player, 0).toFixed(1)} pts</div>
           </div>
         </div>
       </div>
@@ -285,10 +286,10 @@ export function PlayerFinder() {
     } else if (sort === "OWNERSHIP") {
       list = list.slice().sort((a, b) => (b.ownership ?? 0) - (a.ownership ?? 0));
     } else {
-      // EXP_POINTS default - use realistic expected points with minutes probability
+      // EXP_POINTS default - use weekly expected points (DGW/blank aware)
       list = list.slice().sort((a, b) => {
-        const aExp = getRealisticExpPoints(a);
-        const bExp = getRealisticExpPoints(b);
+        const aExp = weeklyExp(a, 0);
+        const bExp = weeklyExp(b, 0);
         return bExp - aExp;
       });
     }
