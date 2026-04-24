@@ -47,20 +47,37 @@ type Insight = {
   transferIn?: string;
 };
 
+type ChipCode = 'TC' | 'BB' | 'FH' | 'WC';
+
+type ChipUsage = {
+  usedCounts: Record<ChipCode, number>;
+  available: ChipCode[];
+  playedThisGw: ChipCode | null;
+};
+
+const CHIP_ORDER: ChipCode[] = ['TC', 'BB', 'FH', 'WC'];
+
+const CHIP_LABEL: Record<ChipCode, string> = {
+  TC: 'Triple Captain',
+  BB: 'Bench Boost',
+  FH: 'Free Hit',
+  WC: 'Wildcard',
+};
+
 const PROMPT = `You are an elite Fantasy Premier League analyst.
 Generate EXTRA actionable insights (2 to 4) that complement an existing deterministic baseline.
 
 Return JSON only in this exact shape: {"insights":[...]}.
 
 Each insight object must include:
-- type: one of "form_hot", "form_cold", "fixture_easy", "fixture_hard", "rotation_risk", "differential", "value_pick", "price_watch"
+- type: one of "form_hot", "form_cold", "fixture_easy", "fixture_hard", "rotation_risk", "differential", "value_pick", "price_watch", "chip_advice"
 - playerName
 - team
 - title (max 10 words)
 - detail (1-2 concrete sentences, include useful numbers where possible)
 - sentiment: "positive" | "negative" | "neutral"
 
-Do not repeat transfer and captain tips already in baseline.
+Do not repeat transfer, captain, or chip tips already in baseline.
 Do not include markdown or commentary outside JSON.`;
 
 const INSIGHT_ITEM_SCHEMA = {
@@ -101,6 +118,88 @@ function clamp(n: number, min: number, max: number): number {
 
 function round1(n: number): number {
   return Math.round(n * 10) / 10;
+}
+
+function chipLabel(chip: ChipCode): string {
+  return CHIP_LABEL[chip];
+}
+
+function isValidEntryId(value: unknown): value is string {
+  if (typeof value !== 'string') return false;
+  return /^\d+$/.test(value) && value.length > 0;
+}
+
+function normalizeChipName(raw: unknown): ChipCode | null {
+  const name = String(raw || '').toLowerCase();
+  if (name === '3xc' || name === 'triplecaptain' || name === 'triple_captain') return 'TC';
+  if (name === 'bboost' || name === 'benchboost' || name === 'bench_boost') return 'BB';
+  if (name === 'freehit' || name === 'free_hit') return 'FH';
+  if (name === 'wildcard' || name === 'wild_card') return 'WC';
+  return null;
+}
+
+function formatChipList(chips: ChipCode[]): string {
+  if (!chips.length) return 'none';
+  return chips.map(chipLabel).join(', ');
+}
+
+function formatUsedChipSummary(usedCounts: Record<ChipCode, number>): string {
+  const used = CHIP_ORDER.filter((chip) => usedCounts[chip] > 0).map((chip) => {
+    const count = usedCounts[chip];
+    if (chip === 'WC') return count > 1 ? `${chipLabel(chip)} x${count}` : chipLabel(chip);
+    return chipLabel(chip);
+  });
+  return used.length ? used.join(', ') : 'none';
+}
+
+async function fetchManagerChipUsage(entryId: string, gameweek?: number): Promise<ChipUsage | null> {
+  try {
+    const res = await fetch(`https://fantasy.premierleague.com/api/entry/${entryId}/history/`, {
+      cache: 'no-store',
+    });
+    if (!res.ok) return null;
+
+    const history = await res.json();
+    const chips: Array<{ name?: string; event?: number }> = Array.isArray(history?.chips)
+      ? history.chips
+      : [];
+
+    const usedCounts: Record<ChipCode, number> = { TC: 0, BB: 0, FH: 0, WC: 0 };
+    let playedThisGw: ChipCode | null = null;
+
+    for (const chipPlay of chips) {
+      const chip = normalizeChipName(chipPlay?.name);
+      if (!chip) continue;
+      usedCounts[chip] += 1;
+
+      const event = Number(chipPlay?.event);
+      if (typeof gameweek === 'number' && Number.isFinite(event) && event === gameweek) {
+        playedThisGw = chip;
+      }
+    }
+
+    const wildcardAvailable =
+      usedCounts.WC === 0 ||
+      (usedCounts.WC === 1 && typeof gameweek === 'number' && gameweek >= 20);
+
+    const available = CHIP_ORDER.filter((chip) => {
+      if (chip === 'WC') return wildcardAvailable;
+      return usedCounts[chip] === 0;
+    });
+
+    return { usedCounts, available, playedThisGw };
+  } catch {
+    return null;
+  }
+}
+
+function buildChipContextText(chipUsage: ChipUsage | null, gameweek?: number): string {
+  if (!chipUsage) return 'Manager chip history unavailable.';
+  const gwLabel = typeof gameweek === 'number' ? `GW${gameweek}` : 'this gameweek';
+  const now = chipUsage.playedThisGw
+    ? `${chipLabel(chipUsage.playedThisGw)} already played in ${gwLabel}`
+    : `No chip played yet in ${gwLabel}`;
+  return `${now}. Available chips: ${formatChipList(chipUsage.available)}. Used so far: ${formatUsedChipSummary(chipUsage.usedCounts)}.`;
 }
 
 function confidenceFromGain(gain: number): 'high' | 'medium' | 'low' {
@@ -216,12 +315,170 @@ function buildUniverseFallback(squadPlayers: InputPlayer[]): Player[] {
   }));
 }
 
+function buildChipAdviceInsight(params: {
+  squadPlayers: InputPlayer[];
+  gameweek?: number;
+  chipUsage?: ChipUsage | null;
+}): Insight | null {
+  const { squadPlayers, gameweek, chipUsage } = params;
+  if (!chipUsage) return null;
+
+  const gwLabel = typeof gameweek === 'number' ? `GW${gameweek}` : 'this gameweek';
+  const usedSummary = formatUsedChipSummary(chipUsage.usedCounts);
+  const availableSummary = formatChipList(chipUsage.available);
+
+  if (chipUsage.playedThisGw) {
+    const activeChip = chipLabel(chipUsage.playedThisGw);
+    return {
+      type: 'chip_advice',
+      playerName: '',
+      team: '',
+      title: `${activeChip} already active`,
+      detail: `You already activated ${activeChip} in ${gwLabel}, so no extra chip can be played now. Remaining chips: ${availableSummary}. Used so far: ${usedSummary}.`,
+      sentiment: 'neutral',
+      source: 'model',
+    };
+  }
+
+  if (chipUsage.available.length === 0) {
+    return {
+      type: 'chip_advice',
+      playerName: '',
+      team: '',
+      title: 'No chips remaining',
+      detail: `All major chips are already used. Focus ${gwLabel} on transfers and captaincy only. Used so far: ${usedSummary}.`,
+      sentiment: 'neutral',
+      source: 'model',
+    };
+  }
+
+  const weighted = [...squadPlayers]
+    .map((p) => ({
+      p,
+      weightedExp:
+        toNum(p.expPoints, 0) * (0.6 + 0.4 * clamp(toNum(p.minutesProb, 0.75), 0, 1)),
+    }))
+    .sort((a, b) => b.weightedExp - a.weightedExp);
+
+  const starters = weighted.slice(0, 11).map((x) => x.p);
+  const bench = weighted.slice(11).map((x) => x.p);
+  const captain = starters[0];
+
+  const captainProjection = captain
+    ? round1(
+        toNum(captain.expPoints, 0) *
+          (0.7 + 0.3 * clamp(toNum(captain.minutesProb, 0.75), 0, 1))
+      )
+    : 0;
+
+  const benchProjection = round1(
+    bench.reduce(
+      (sum, p) =>
+        sum +
+        toNum(p.expPoints, 0) * (0.55 + 0.45 * clamp(toNum(p.minutesProb, 0.75), 0, 1)),
+      0
+    )
+  );
+
+  const weakStarters = starters.filter(
+    (p) =>
+      p.status !== 'fit' ||
+      toNum(p.expPoints, 0) < 3.4 ||
+      clamp(toNum(p.minutesProb, 0.75), 0, 1) < 0.65
+  ).length;
+
+  const hardFixtureStarters = starters.filter(
+    (p) => avgFixtureDiff(inputFixtures(p)) >= 3.7
+  ).length;
+
+  const squadWeak = squadPlayers.filter(
+    (p) =>
+      p.status !== 'fit' ||
+      toNum(p.expPoints, 0) < 3.3 ||
+      clamp(toNum(p.minutesProb, 0.75), 0, 1) < 0.65
+  ).length;
+
+  type ChipScore = {
+    chip: ChipCode;
+    ratio: number;
+    rationale: string;
+  };
+
+  const candidates: ChipScore[] = [];
+
+  if (chipUsage.available.includes('TC') && captain) {
+    const threshold = 7.5;
+    candidates.push({
+      chip: 'TC',
+      ratio: captainProjection / threshold,
+      rationale: `${captain.name} projects around ${captainProjection.toFixed(1)} pts as your captain.`,
+    });
+  }
+
+  if (chipUsage.available.includes('BB')) {
+    const threshold = 11.5;
+    candidates.push({
+      chip: 'BB',
+      ratio: benchProjection / threshold,
+      rationale: `Your weighted bench projection is ${benchProjection.toFixed(1)} pts this week.`,
+    });
+  }
+
+  if (chipUsage.available.includes('FH')) {
+    const fhPressure = weakStarters * 1.9 + hardFixtureStarters * 0.8;
+    const threshold = 8;
+    candidates.push({
+      chip: 'FH',
+      ratio: fhPressure / threshold,
+      rationale: `${weakStarters} weak-risk starters and ${hardFixtureStarters} hard-fixture starters increase Free Hit value.`,
+    });
+  }
+
+  if (chipUsage.available.includes('WC')) {
+    const threshold = 8;
+    candidates.push({
+      chip: 'WC',
+      ratio: squadWeak / threshold,
+      rationale: `${squadWeak} players show low projection or minutes risk across your 15.`,
+    });
+  }
+
+  if (!candidates.length) return null;
+
+  const best = [...candidates].sort((a, b) => b.ratio - a.ratio)[0];
+  if (!best || best.ratio < 1) {
+    const bestLabel = chipLabel(best?.chip || 'TC');
+    return {
+      type: 'chip_advice',
+      playerName: '',
+      team: '',
+      title: `Hold chips for now`,
+      detail: `No chip clears a strong trigger for ${gwLabel}. Best candidate is ${bestLabel}, but metrics suggest waiting. Available chips: ${availableSummary}. Used so far: ${usedSummary}.`,
+      sentiment: 'neutral',
+      source: 'model',
+    };
+  }
+
+  const bestLabel = chipLabel(best.chip);
+  return {
+    type: 'chip_advice',
+    playerName: '',
+    team: '',
+    title: `Chip call: ${bestLabel}`,
+    detail: `${bestLabel} is the strongest play for ${gwLabel}. ${best.rationale} Available chips: ${availableSummary}. Used so far: ${usedSummary}.`,
+    sentiment: 'positive',
+    source: 'model',
+  };
+}
+
 function buildDeterministicInsights(params: {
   squadPlayers: InputPlayer[];
   universePlayers: Player[];
   bank: number;
+  gameweek?: number;
+  chipUsage?: ChipUsage | null;
 }): Insight[] {
-  const { squadPlayers, universePlayers, bank } = params;
+  const { squadPlayers, universePlayers, bank, gameweek, chipUsage } = params;
   const squadIds = new Set(squadPlayers.map((p) => playerKey(p)));
   const isInSquad = (p: Player) => squadIds.has(playerKey(p));
 
@@ -299,6 +556,11 @@ function buildDeterministicInsights(params: {
     })[0];
 
   const out: Insight[] = [];
+
+  const chipAdvice = buildChipAdviceInsight({ squadPlayers, gameweek, chipUsage });
+  if (chipAdvice) {
+    out.push(chipAdvice);
+  }
 
   if (captain) {
     out.push({
@@ -489,13 +751,20 @@ export async function POST(request: Request) {
 
   const gameweek = Number.isFinite(bodyObj.gameweek) ? Number(bodyObj.gameweek) : undefined;
   const bank = Number.isFinite(bodyObj.bank) ? Number(bodyObj.bank) : 0;
+  const entryIdRaw = typeof bodyObj.entryId === 'string' ? bodyObj.entryId.trim() : '';
+  const entryId = isValidEntryId(entryIdRaw) ? entryIdRaw : null;
 
-  const universePlayers = await fetchUniverseWithTimeout(squadPlayers, 3500);
+  const [universePlayers, chipUsage] = await Promise.all([
+    fetchUniverseWithTimeout(squadPlayers, 3500),
+    entryId ? fetchManagerChipUsage(entryId, gameweek) : Promise.resolve(null),
+  ]);
 
   const deterministic = buildDeterministicInsights({
     squadPlayers,
     universePlayers,
     bank,
+    gameweek,
+    chipUsage,
   });
 
   const positions = { GK: 0, DEF: 0, MID: 0, FWD: 0 };
@@ -517,7 +786,7 @@ export async function POST(request: Request) {
     .map((ins) => `- [${ins.type}] ${ins.title}: ${ins.detail}`)
     .join('\n');
 
-  const geminiPrompt = `${PROMPT}\n\nSQUAD CONTEXT (GW${gameweek ?? '?'}, Bank £${bank.toFixed(1)}m):\nFormation: ${positions.GK}-${positions.DEF}-${positions.MID}-${positions.FWD}\n\nPlayers:\n${summary}\n\nDETERMINISTIC BASELINE (do not duplicate):\n${baselineSummary}`;
+  const geminiPrompt = `${PROMPT}\n\nSQUAD CONTEXT (GW${gameweek ?? '?'}, Bank £${bank.toFixed(1)}m):\nFormation: ${positions.GK}-${positions.DEF}-${positions.MID}-${positions.FWD}\nCHIP CONTEXT: ${buildChipContextText(chipUsage, gameweek)}\n\nPlayers:\n${summary}\n\nDETERMINISTIC BASELINE (do not duplicate):\n${baselineSummary}`;
 
   const apiKey = (process.env.GEMINI_API_KEY || '').trim();
   let geminiInsights: Insight[] = [];

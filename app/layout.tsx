@@ -64,7 +64,6 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <StructuredData />
         {shouldEnableGa && gaId ? (
           <>
             <Script
@@ -83,6 +82,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         ) : null}
       </head>
       <body className={cn("min-h-dvh bg-background font-sans antialiased")}> 
+        <StructuredData />
         <Providers>
           <ErrorBoundary>
             {children}

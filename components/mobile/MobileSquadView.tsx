@@ -10,9 +10,11 @@ import { MobileAddPlayerPage } from "./MobileAddPlayerPage";
 import { MobileImportPage } from "./MobileImportPage";
 import { MobileOptimisePage } from "./MobileOptimisePage";
 import { MobileComparePage } from "./MobileComparePage";
+import { InsightPanel } from "@/components/InsightPanel";
+import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 import { useSquadStore } from "@/store/squad";
 import { formatDeadline } from "@/lib/date";
-import { ChevronLeft, ChevronRight, Undo2, Download, TrendingUp, GitCompare, RefreshCw, Link2 } from "lucide-react";
+import { Brain, ChevronLeft, ChevronRight, Undo2, Download, TrendingUp, GitCompare, RefreshCw, Link2 } from "lucide-react";
 import { useFPLConnection } from "@/hooks/useFPLConnection";
 import { FPLConnectModal } from "@/components/FPLConnectModal";
 import { toast } from "sonner";
@@ -40,12 +42,12 @@ export function MobileSquadView({ currentGw, gwOffset, deadline, onGwChange }: M
   const [substituteMode, setSubstituteMode] = useState(false);
   const [substitutePlayer, setSubstitutePlayer] = useState<Player | null>(null);
   const [fplConnectOpen, setFplConnectOpen] = useState(false);
+  const [insightsOpen, setInsightsOpen] = useState(false);
   const { connected: fplConnected } = useFPLConnection();
   
   const autoSelectBestXI = useSquadStore((s) => s.autoSelectBestXI);
   const selectPlayer = useSquadStore((s) => s.selectPlayer);
   const swapPlayers = useSquadStore((s) => s.swapPlayers);
-  const totalExpForWeek = useSquadStore((s) => s.totalExpForWeek);
   const canUndo = useSquadStore((s) => s.canUndo);
   const undo = useSquadStore((s) => s.undo);
   const squad = useSquadStore((s) => s.squad);
@@ -113,7 +115,16 @@ export function MobileSquadView({ currentGw, gwOffset, deadline, onGwChange }: M
   };
 
   const deadlineStr = formatDeadline(deadline, "").replace(/Gameweek \d+/, "").trim();
-  const predictedPts = totalExpForWeek(localGwOffset);
+  const insightPlayers = useMemo(
+    () => [
+      ...squad.starters.GK,
+      ...squad.starters.DEF,
+      ...squad.starters.MID,
+      ...squad.starters.FWD,
+      ...squad.bench,
+    ].filter(Boolean),
+    [squad]
+  );
 
   return (
     <div className="min-h-dvh bg-slate-50">
@@ -226,6 +237,23 @@ export function MobileSquadView({ currentGw, gwOffset, deadline, onGwChange }: M
         </div>
       </div>
 
+      {/* Mobile AI Insights tab */}
+      <div className="px-3 pt-2">
+        <div className="max-w-md mx-auto">
+          <button
+            onClick={() => setInsightsOpen(true)}
+            className="w-full rounded-xl border border-purple-200 bg-gradient-to-r from-purple-50 to-indigo-50 px-4 py-3 flex items-center justify-between active:scale-[0.995] transition"
+            aria-label="Open AI insights"
+          >
+            <div className="flex items-center gap-2">
+              <Brain className="w-4 h-4 text-purple-600" />
+              <span className="text-sm font-semibold text-purple-900">AI Insights</span>
+            </div>
+            <span className="text-xs font-medium text-purple-700">Tap to open</span>
+          </button>
+        </div>
+      </div>
+
       {/* Main Content */}
       <div className="px-3">
         {/* Live Score Ticker */}
@@ -332,6 +360,27 @@ export function MobileSquadView({ currentGw, gwOffset, deadline, onGwChange }: M
           weekOffset={localGwOffset}
         />
       )}
+
+      <Sheet open={insightsOpen} onOpenChange={setInsightsOpen}>
+        <SheetContent
+          side="bottom"
+          className="h-[85dvh] rounded-t-2xl rounded-l-none p-0 flex flex-col"
+        >
+          <div className="border-b border-slate-200 px-4 py-3">
+            <SheetTitle className="text-sm font-semibold text-slate-900">AI Insights</SheetTitle>
+            <SheetDescription className="text-xs text-slate-500">
+              Personalized tips for GW{currentGw + localGwOffset}
+            </SheetDescription>
+          </div>
+          <div className="flex-1 overflow-y-auto p-3">
+            <InsightPanel
+              gameweek={currentGw + localGwOffset}
+              players={insightPlayers}
+              bank={squad.bank}
+            />
+          </div>
+        </SheetContent>
+      </Sheet>
 
       {/* FPL Connect Modal */}
       <FPLConnectModal

@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import type { Player } from "@/lib/data";
+import { useSquadStore } from "@/store/squad";
 
 interface Insight {
   type: string;
@@ -57,6 +58,7 @@ const TYPE_CONFIG: Record<string, { icon: LucideIcon; color: string; bg: string 
   differential:   { icon: Zap,            color: "text-purple-600",  bg: "bg-purple-50 border-purple-200" },
   value_pick:     { icon: Target,         color: "text-indigo-600",  bg: "bg-indigo-50 border-indigo-200" },
   price_watch:    { icon: TrendingUp,     color: "text-amber-600",   bg: "bg-amber-50 border-amber-200" },
+  chip_advice:    { icon: Sparkles,       color: "text-cyan-600",    bg: "bg-cyan-50 border-cyan-200" },
 };
 
 const SENTIMENT_DOT: Record<string, string> = {
@@ -66,6 +68,7 @@ const SENTIMENT_DOT: Record<string, string> = {
 };
 
 export function InsightPanel({ gameweek, players, bank, className }: InsightPanelProps) {
+  const entryId = useSquadStore((s) => s.lastImport?.entryId ?? null);
   const [insights, setInsights] = useState<Insight[]>([]);
   const [loading, setLoading] = useState(false);
   const [expanded, setExpanded] = useState(true);
@@ -101,7 +104,7 @@ export function InsightPanel({ gameweek, players, bank, className }: InsightPane
       const res = await fetch("/api/insights/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ players: payload, gameweek, bank }),
+        body: JSON.stringify({ players: payload, gameweek, bank, entryId }),
       });
 
       if (res.ok) {
@@ -123,7 +126,7 @@ export function InsightPanel({ gameweek, players, bank, className }: InsightPane
     } finally {
       setLoading(false);
     }
-  }, [players, gameweek, bank]);
+  }, [players, gameweek, bank, entryId]);
 
   return (
     <Card className={cn("overflow-hidden", className)}>

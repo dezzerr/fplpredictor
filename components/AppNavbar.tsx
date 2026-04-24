@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import type { Route } from 'next'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { ArrowRight, ChevronDown, Search, RefreshCw, LogOut, Menu, X, Users, TrendingUp, Download, GitCompare, CalendarDays, BookOpen, BrainCircuit } from 'lucide-react'
+import { ArrowRight, ChevronDown, Search, RefreshCw, LogOut, Menu, X, Users, TrendingUp, Download, GitCompare, CalendarDays, BookOpen, BrainCircuit, Trophy } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useSquadStore } from '@/store/squad'
 import { createClient } from '@/lib/supabase/client'
@@ -106,6 +106,9 @@ function MobileDrawer({ open, onClose, onImport, onLogout }: { open: boolean; on
           <Link href="/optimize" onClick={onClose} className={linkCls('/optimize')}>
             <TrendingUp className="h-5 w-5" /> Optimize
           </Link>
+          <Link href="/team-of-the-week" onClick={onClose} className={linkCls('/team-of-the-week')}>
+            <Trophy className="h-5 w-5" /> Team of the Week
+          </Link>
           <Link href={aiTeamRoute} onClick={onClose} className={linkCls(aiTeamRoute)}>
             <BrainCircuit className="h-5 w-5" /> AI Team Rating
           </Link>
@@ -190,7 +193,7 @@ export function AppNavbar({ onImportOpen, onSearchOpen }: AppNavbarProps) {
     }
   }
 
-  const isTeamRoute = pathname === '/squad' || pathname === '/optimize'
+  const isTeamRoute = pathname === '/squad' || pathname === '/optimize' || pathname === '/team-of-the-week'
   const isToolRoute = pathname === '/compare' || pathname === '/fixtures'
   const isAiRoute = pathname === aiTeamRoute
 
@@ -212,6 +215,7 @@ export function AppNavbar({ onImportOpen, onSearchOpen }: AppNavbarProps) {
               <NavDropdown label="My Team" active={isTeamRoute}>
                 <DropdownItem href="/squad" icon={Users}>Pick Team</DropdownItem>
                 <DropdownItem href="/optimize" icon={TrendingUp}>Optimize</DropdownItem>
+                <DropdownItem href="/team-of-the-week" icon={Trophy}>Team of the Week</DropdownItem>
                 {onImportOpen && (
                   <DropdownItem icon={Download} onClick={onImportOpen}>Import Squad</DropdownItem>
                 )}

@@ -1,4 +1,4 @@
-import { Player, Position, Squad } from "@/lib/data";
+import { Player, Position, Squad, getFixturesForWeek } from "@/lib/data";
 
 export type Transfer = { outId: string; inPlayer: Player };
 export type Plan = { transfers: Transfer[]; weeks: number; hitCost: number };
@@ -210,10 +210,11 @@ export function pickXIForWeek(s: Squad, weekOffset: number): { xi: Player[]; ben
 
 // Build best XI from a candidate pool for a target week, obeying 3-per-club and formation bounds
 export function pickBestXIFromPool(pool: Player[], weekOffset: number): { xi: Player[]; capId: string; points: number } {
-  const gks = pool.filter(p => p.position === 'GK').sort((a,b)=> weeklyExp(b, weekOffset) - weeklyExp(a, weekOffset));
-  const defs = pool.filter(p => p.position === 'DEF').sort((a,b)=> weeklyExp(b, weekOffset) - weeklyExp(a, weekOffset));
-  const mids = pool.filter(p => p.position === 'MID').sort((a,b)=> weeklyExp(b, weekOffset) - weeklyExp(a, weekOffset));
-  const fwds = pool.filter(p => p.position === 'FWD').sort((a,b)=> weeklyExp(b, weekOffset) - weeklyExp(a, weekOffset));
+  const availablePool = pool.filter((p) => getFixturesForWeek(p, weekOffset).length > 0);
+  const gks = availablePool.filter(p => p.position === 'GK').sort((a,b)=> weeklyExp(b, weekOffset) - weeklyExp(a, weekOffset));
+  const defs = availablePool.filter(p => p.position === 'DEF').sort((a,b)=> weeklyExp(b, weekOffset) - weeklyExp(a, weekOffset));
+  const mids = availablePool.filter(p => p.position === 'MID').sort((a,b)=> weeklyExp(b, weekOffset) - weeklyExp(a, weekOffset));
+  const fwds = availablePool.filter(p => p.position === 'FWD').sort((a,b)=> weeklyExp(b, weekOffset) - weeklyExp(a, weekOffset));
 
   const xi: Player[] = [];
   const clubCount: Record<string, number> = {};

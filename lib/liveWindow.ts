@@ -1,7 +1,7 @@
 /**
  * Determines whether the current GW is in its "live window":
  *   - Starts when the first match of the GW has kicked off
- *   - Ends 1 day after the last match's kickoff time
+ *   - Ends as soon as all GW matches are finished/provisional-finished
  *
  * Returns the current event if live, otherwise null.
  */
@@ -11,7 +11,6 @@ export async function getLiveEvent(
   const current = events.find((e: any) => e.is_current);
   if (!current) return null;
 
-  // If the event is fully finished according to FPL, check fixtures for the 1-day grace
   // If deadline hasn't passed, definitely not live yet
   const deadlinePassed = new Date(current.deadline_time) < new Date();
   if (!deadlinePassed) return null;
@@ -39,18 +38,7 @@ export async function getLiveEvent(
       return { event: current, isLive: true };
     }
 
-    if (allFinished) {
-      // All done — stay live for 1 day after the last kickoff
-      const lastKickoff = fixtures
-        .filter((f: any) => f.kickoff_time)
-        .map((f: any) => new Date(f.kickoff_time).getTime())
-        .reduce((max: number, t: number) => Math.max(max, t), 0);
-      const oneDayAfterLast = lastKickoff + 24 * 60 * 60 * 1000;
-      if (now < oneDayAfterLast) {
-        return { event: current, isLive: true };
-      }
-      return null; // Grace period expired
-    }
+    if (allFinished) return null;
 
     // No matches started yet — check if first kickoff has passed
     const firstKickoff = fixtures

@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { fetchPlayersWithMarket } from "@/lib/market";
 import { players as demoPlayers } from "@/lib/data";
 
-export const revalidate = 900; // Re-enable caching for production (15 minutes)
+export const revalidate = 0;
+export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
   const url = new URL(req.url);
@@ -12,7 +13,7 @@ export async function GET(req: Request) {
     const source = players.some((p: any) => p?.expExplain?.source === 'market') ? 'market' : 'fpl';
     return NextResponse.json(players, {
       headers: {
-        "Cache-Control": "s-maxage=900, stale-while-revalidate=300",
+        "Cache-Control": "no-store, no-cache, must-revalidate",
         "X-Data-Source": source,
       },
     });
@@ -21,7 +22,7 @@ export async function GET(req: Request) {
     const msg = (e?.message || String(e || 'unknown')).slice(0, 200);
     return NextResponse.json(demoPlayers, {
       headers: {
-        "Cache-Control": "s-maxage=900, stale-while-revalidate=300",
+        "Cache-Control": "no-store, no-cache, must-revalidate",
         "X-Data-Source": "demo",
         "X-Error": msg,
       },

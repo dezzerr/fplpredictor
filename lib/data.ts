@@ -59,6 +59,11 @@ export type ExpExplain = {
   }>;
   signalMultiplier?: number; // combined multiplier from all signals (e.g. 1.05)
 
+  // Absolute gameweek number that weekOffset=0 refers to. Used to align
+  // fixture display across teams so blanks/DGWs render at the correct offset
+  // regardless of which specific events a given team plays in.
+  baseEvent?: number;
+
   // Market-first additions
   source?: 'market' | 'fpl'; // which projection source produced expPoints/eventEP
   eventEP?: number[]; // per-event expected points if computed from market model
@@ -112,10 +117,20 @@ export function getFixturesForWeek(player: Player, weekOffset: number): Fixture[
   const fixtures = player.nextFixtures;
   if (!fixtures?.length) return [];
 
-  // If fixtures have event numbers, group by distinct events
+  // Preferred path: filter by absolute event using baseEvent. This ensures
+  // weekOffset=0 maps to the same gameweek across all teams (so a blank
+  // correctly renders as empty, and DGWs show all fixtures for that event).
+  const baseEvent = player.expExplain?.baseEvent;
   const hasEvents = fixtures.some(f => typeof f.event === 'number');
+  if (typeof baseEvent === 'number' && hasEvents) {
+    const targetEvent = baseEvent + weekOffset;
+    return fixtures.filter(f => f.event === targetEvent);
+  }
+
+  // Legacy fallback: group by distinct events within this player's list.
+  // NOTE: may misalign across teams when blanks exist. Kept for demo data
+  // that lacks absolute event numbers.
   if (hasEvents) {
-    // Collect distinct event numbers in order
     const events: number[] = [];
     for (const f of fixtures) {
       if (typeof f.event === 'number' && !events.includes(f.event)) {

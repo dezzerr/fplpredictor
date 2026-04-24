@@ -221,8 +221,8 @@ export async function fetchFplPlayers(preset?: CalPresetName | string | null): P
     const rawTransfersOutEvent = Number(el.transfers_out_event);
     const transfersOutEvent = Number.isFinite(rawTransfersOutEvent) ? rawTransfersOutEvent : undefined;
 
-    // Build nextFixtures: take first five upcoming for the player's team, compute opp and diff for that team side
-    const tf = (teamFixtures[teamId] || []).slice(0, 5);
+    // Build nextFixtures: take upcoming 10 for the player's team, compute opp and diff for that team side
+    const tf = (teamFixtures[teamId] || []).slice(0, 10);
     const nextFixtures: Fixture[] = tf.map((fx: any) => {
       const isHome = fx.team_h === teamId;
       const oppId = isHome ? fx.team_a : fx.team_h;
@@ -271,7 +271,7 @@ export async function fetchFplPlayers(preset?: CalPresetName | string | null): P
         .filter((id:any)=> typeof id === 'number' && id >= nextEventId)
         .sort((a:number,b:number)=> a-b);
       const teamFx = (teamFixtures[teamId] || []).filter((fx: any) => typeof fx.event === "number");
-      for (let i=0; i<Math.min(3, allEvents.length); i++) {
+      for (let i=0; i<Math.min(10, allEvents.length); i++) {
         const ev = allEvents[i];
         const list = teamFx.filter((fx:any)=> fx.event === ev);
         if (list.length === 0) { out.push(0); continue; } // blank
@@ -302,7 +302,7 @@ export async function fetchFplPlayers(preset?: CalPresetName | string | null): P
         .sort((a:number,b:number)=> a-b);
       const teamFx = (teamFixtures[teamId] || []).filter((fx: any) => typeof fx.event === "number");
       const counts: number[] = [];
-      for (let i=0; i<Math.min(3, allEvents.length); i++) {
+      for (let i=0; i<Math.min(10, allEvents.length); i++) {
         const ev = allEvents[i];
         counts.push(teamFx.filter((fx:any)=> fx.event === ev).length);
       }
@@ -448,6 +448,7 @@ export async function fetchFplPlayers(preset?: CalPresetName | string | null): P
           sourceType: s.source_type,
         })) : undefined,
         signalMultiplier: playerSignals.length > 0 ? signalMultiplier : undefined,
+        baseEvent: typeof nextEventId === 'number' ? nextEventId : undefined,
         source: 'fpl',
         final: refined,
       },

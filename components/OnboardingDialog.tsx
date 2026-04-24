@@ -54,54 +54,88 @@ export function OnboardingDialog() {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
-          <DialogTitle className="text-2xl font-bold flex items-center gap-2">
-            <Rocket className="h-6 w-6 text-indigo-500" />
-            Welcome to FPL Companion
-          </DialogTitle>
-          <DialogDescription className="pt-2">
-            Let&apos;s get started by importing your Fantasy Premier League team. We&apos;ll sync your latest squad and prices.
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="grid gap-6 py-4">
-          <div className="space-y-3">
-            <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-              Enter your FPL Team ID
-            </label>
-            <div className="flex gap-2">
-              <Input
-                placeholder="e.g. 1234567"
-                value={entryId}
-                onChange={(e) => setEntryId(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && onImport()}
-                className="font-mono"
-                autoFocus
-              />
+      <DialogContent
+        className="sm:max-w-[440px] p-0 overflow-hidden [&>button[aria-label=Close]]:text-white/90 [&>button[aria-label=Close]]:hover:bg-white/15"
+      >
+        {/* Brand header */}
+        <div className="relative bg-gradient-to-br from-violet-600 via-indigo-600 to-blue-600 px-6 pt-6 pb-7 text-white">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-xl bg-white/15 backdrop-blur flex items-center justify-center ring-1 ring-white/25">
+              <Rocket className="h-5 w-5" />
             </div>
-            
-            <div className="bg-muted/50 rounded-md p-3 text-xs text-muted-foreground flex gap-3 items-start">
-              <Search className="h-4 w-4 mt-0.5 shrink-0" />
-              <div className="space-y-1">
-                <p className="font-medium text-foreground">Where do I find my ID?</p>
-                <p>
-                  Go to the Points tab on the FPL website. Your ID is the number in the URL:
+            <div className="min-w-0">
+              <DialogTitle className="text-lg sm:text-xl font-bold leading-tight">
+                Welcome to FPL Companion
+              </DialogTitle>
+              <DialogDescription className="text-[13px] text-white/80 mt-0.5">
+                Sync your squad in seconds.
+              </DialogDescription>
+            </div>
+          </div>
+        </div>
+
+        {/* Body */}
+        <div className="px-6 pt-5 pb-5 space-y-5">
+          <p className="text-sm text-slate-600 leading-relaxed">
+            Import your Fantasy Premier League team to unlock live scoring, AI insights and optimised lineups tailored to you.
+          </p>
+
+          <div className="space-y-2">
+            <label
+              htmlFor="fpl-entry-id"
+              className="text-xs font-semibold uppercase tracking-wide text-slate-700"
+            >
+              FPL Team ID
+            </label>
+            <Input
+              id="fpl-entry-id"
+              placeholder="e.g. 1234567"
+              value={entryId}
+              onChange={(e) => setEntryId(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && onImport()}
+              className="h-11 font-mono text-base"
+              inputMode="numeric"
+              autoFocus
+            />
+          </div>
+
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-3.5">
+            <div className="flex items-start gap-2.5">
+              <div className="mt-0.5 h-6 w-6 shrink-0 rounded-md bg-violet-100 text-violet-700 flex items-center justify-center">
+                <Search className="h-3.5 w-3.5" />
+              </div>
+              <div className="min-w-0 space-y-1.5">
+                <p className="text-[13px] font-semibold text-slate-900">
+                  Where do I find my ID?
                 </p>
-                <code className="bg-background px-1 py-0.5 rounded border block mt-1 overflow-x-auto">
-                  fantasy.premierleague.com/entry/<span className="text-indigo-500 font-bold">1234567</span>/event/...
-                </code>
+                <p className="text-[12px] text-slate-600 leading-relaxed">
+                  Open the <span className="font-medium text-slate-800">Points</span> tab on the FPL site — your ID is the number in the URL.
+                </p>
+                <div className="rounded-md border border-slate-200 bg-white px-2 py-1.5 font-mono text-[11px] text-slate-700 break-all">
+                  fantasy.premierleague.com/entry/
+                  <span className="font-bold text-violet-600">1234567</span>
+                  /event/…
+                </div>
               </div>
             </div>
           </div>
         </div>
 
-        <DialogFooter className="gap-2 sm:gap-0">
-          <Button variant="ghost" onClick={() => setOpen(false)}>
+        {/* Footer */}
+        <DialogFooter className="px-6 py-4 border-t border-slate-100 bg-slate-50/60 !mt-0 flex-row items-center justify-between gap-3 sm:space-x-0">
+          <Button
+            variant="ghost"
+            onClick={() => setOpen(false)}
+            className="text-slate-600 hover:text-slate-900"
+          >
             I&apos;ll do this later
           </Button>
-          <Button onClick={onImport} disabled={pending} className="bg-indigo-600 hover:bg-indigo-700">
-            {pending ? "Importing..." : "Import Team"}
+          <Button
+            onClick={onImport}
+            disabled={pending}
+            className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white shadow-sm px-5"
+          >
+            {pending ? "Importing…" : "Import Team"}
           </Button>
         </DialogFooter>
       </DialogContent>

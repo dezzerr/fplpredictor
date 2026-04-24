@@ -170,6 +170,7 @@ export async function fetchPlayersWithMarket(preset?: CalPresetName | string | n
         eventFactors: ex?.eventFactors,
         eventFixtureCounts: ex?.eventFixtureCounts,
         nextEventFixtureCount: ex?.nextEventFixtureCount,
+        baseEvent: ex?.baseEvent,
       },
     };
   });

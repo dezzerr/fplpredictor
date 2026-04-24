@@ -6,8 +6,21 @@ import type { Player, Position, Squad } from "@/lib/data";
 export const revalidate = 0; // Always fetch fresh data for imports
 export const dynamic = 'force-dynamic'; // Disable all caching
 
+type PicksResponse = {
+  picks?: Array<{
+    element: number;
+    position: number;
+    is_captain: boolean;
+    is_vice_captain: boolean;
+  }>;
+  entry_history?: {
+    bank?: number;
+  };
+  active_chip?: string | null;
+};
+
 async function pickEventId(events: any[]): Promise<number | undefined> {
-  // When a GW is in its live window (first kickoff → 1 day after last match),
+  // When a GW is in its live window, load the current event's squad so it matches live points
   // load the current event's squad so it matches live points
   const live = await getLiveEvent(events);
   if (live) return live.event.id;
@@ -65,44 +78,106 @@ export async function GET(req: Request) {
     
     if (!eventId) throw new Error("Could not determine current/next event");
 
-    // Try to load the picks for the chosen event
-    const picksUrl = `https://fantasy.premierleague.com/api/entry/${entryId}/event/${eventId}/picks/`;
-    if (process.env.NODE_ENV === 'development') {
-      console.log('[IMPORT] Fetching picks from:', picksUrl);
-    }
-    
-    let picksRes = await fetch(picksUrl, { next: { revalidate: 60 } });
-    
-    if (!picksRes.ok && events.find((e: any) => e.is_current)?.id) {
-      // fallback: try current event id if next failed
-      const cur = events.find((e: any) => e.is_current)?.id;
+    const currentEventId = events.find((e: any) => e.is_current)?.id as number | undefined;
+
+    const fetchPicksForEvent = async (targetEventId: number) => {
+      const picksUrl = `https://fantasy.premierleague.com/api/entry/${entryId}/event/${targetEventId}/picks/`;
       if (process.env.NODE_ENV === 'development') {
-        console.log('[IMPORT] First attempt failed (status:', picksRes.status, '), trying current event:', cur);
+        console.log('[IMPORT] Fetching picks from:', picksUrl);
       }
-      
-      if (cur && cur !== eventId) {
-        const fallbackUrl = `https://fantasy.premierleague.com/api/entry/${entryId}/event/${cur}/picks/`;
-        if (process.env.NODE_ENV === 'development') {
-          console.log('[IMPORT] Fallback URL:', fallbackUrl);
+
+      const res = await fetch(picksUrl, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          Pragma: 'no-cache',
+          Expires: '0',
+        },
+      });
+
+      if (!res.ok) {
+        return {
+          ok: false as const,
+          status: res.status,
+          eventId: targetEventId,
+          data: null,
+        };
+      }
+
+      const data = (await res.json()) as PicksResponse;
+      return {
+        ok: true as const,
+        status: res.status,
+        eventId: targetEventId,
+        data,
+      };
+    };
+
+    // Try to load the picks for the chosen event
+    const attempts: Array<{ eventId: number; status: number }> = [];
+
+    let resolvedEventId = eventId;
+    let picksJson: PicksResponse | null = null;
+
+    const primaryAttempt = await fetchPicksForEvent(eventId);
+    attempts.push({ eventId: primaryAttempt.eventId, status: primaryAttempt.status });
+
+    if (primaryAttempt.ok) {
+      picksJson = primaryAttempt.data;
+    } else if (currentEventId && currentEventId !== eventId) {
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[IMPORT] First attempt failed (status:', primaryAttempt.status, '), trying current event:', currentEventId);
+      }
+
+      const currentAttempt = await fetchPicksForEvent(currentEventId);
+      attempts.push({ eventId: currentAttempt.eventId, status: currentAttempt.status });
+
+      if (currentAttempt.ok) {
+        const currentActiveChip = String(currentAttempt.data?.active_chip || '').toLowerCase();
+
+        // Free Hit reverts to previous squad after the GW ends.
+        // If next-GW picks are not yet available and current GW used FH,
+        // prefer previous event picks rather than keeping the FH squad.
+        if (currentActiveChip === 'freehit' && currentEventId > 1) {
+          const previousEventId = currentEventId - 1;
+          if (process.env.NODE_ENV === 'development') {
+            console.log('[IMPORT] Current GW used Free Hit; attempting previous event for reverted squad:', previousEventId);
+          }
+
+          const previousAttempt = await fetchPicksForEvent(previousEventId);
+          attempts.push({ eventId: previousAttempt.eventId, status: previousAttempt.status });
+
+          if (previousAttempt.ok) {
+            picksJson = previousAttempt.data;
+            resolvedEventId = previousEventId;
+          } else {
+            picksJson = currentAttempt.data;
+            resolvedEventId = currentEventId;
+          }
+        } else {
+          picksJson = currentAttempt.data;
+          resolvedEventId = currentEventId;
         }
-        picksRes = await fetch(fallbackUrl, { next: { revalidate: 60 } });
       }
-    }
-    
-    if (!picksRes.ok) {
-      console.error('[IMPORT] Failed to load picks. Status:', picksRes.status);
-      const msg = picksRes.status === 404 
-        ? `FPL team ${entryId} not found or no picks available for GW${eventId}. Make sure your team ID is correct and you have made picks for this gameweek.` 
-        : "Failed to load entry picks";
-      return NextResponse.json({ error: msg, details: { entryId, eventId, status: picksRes.status } }, { status: picksRes.status || 500 });
     }
 
-    const picksJson = await picksRes.json();
+    if (!picksJson) {
+      const latestStatus = attempts[attempts.length - 1]?.status || 500;
+      console.error('[IMPORT] Failed to load picks. Attempts:', attempts);
+      const msg = latestStatus === 404 
+        ? `FPL team ${entryId} not found or no picks available for GW${eventId}. Make sure your team ID is correct and you have made picks for this gameweek.` 
+        : "Failed to load entry picks";
+      return NextResponse.json(
+        { error: msg, details: { entryId, eventId, attempts } },
+        { status: latestStatus }
+      );
+    }
+
     const picks: Array<{ element: number; position: number; is_captain: boolean; is_vice_captain: boolean }> = picksJson.picks || [];
     const entryHistory = picksJson.entry_history || {};
     
     if (process.env.NODE_ENV === 'development') {
-      console.log('[IMPORT] Successfully loaded', picks.length, 'picks for entry', entryId);
+      console.log('[IMPORT] Successfully loaded', picks.length, 'picks for entry', entryId, 'using event', resolvedEventId, 'active_chip:', picksJson.active_chip || null);
     }
 
     // Map of id -> Player

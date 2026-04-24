@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AppNavbar } from "@/components/AppNavbar";
 import { GwInfoBar } from "@/components/GwInfoBar";
 import { PitchCard } from "@/components/PitchCard";
@@ -113,6 +113,7 @@ export default function Page() {
   const lastImport = useSquadStore((s) => s.lastImport);
   const refresh = useSquadStore((s) => s.refresh);
   const loading = useSquadStore((s) => s.loading);
+  const lastDeadlineEventRef = useRef<number | null>(null);
   
   // Auto-load saved team ID
   const { savedTeamId, loading: loadingTeamId, autoLoadSquad } = useSavedTeamId();
@@ -143,7 +144,7 @@ export default function Page() {
   useEffect(() => {
     let active = true;
 
-    (async () => {
+    const syncDeadline = async () => {
       try {
         const res = await fetch('/api/deadline');
         if (!res.ok) return;
@@ -153,21 +154,44 @@ export default function Page() {
             ? data.eventId
             : parseInt(String(data.eventId), 10);
 
-        if (active && !Number.isNaN(gw)) {
+        if (!active) return;
+
+        if (!Number.isNaN(gw)) {
+          const previousGw = lastDeadlineEventRef.current;
           setCurrentGw(gw);
+
+          if (
+            previousGw !== null &&
+            gw !== previousGw &&
+            !!lastImport?.entryId
+          ) {
+            const result = await refresh();
+            if (result.ok) {
+              toast.success(`Gameweek updated to GW${gw}. Squad refreshed.`);
+            } else {
+              toast.error(result.error || "Failed to refresh squad after GW update");
+            }
+          }
+
+          lastDeadlineEventRef.current = gw;
         }
-        if (active && data.deadline) {
+
+        if (data.deadline) {
           setDeadline(new Date(data.deadline));
         }
       } catch (e) {
         console.error("Failed to fetch current gameweek:", e);
       }
-    })();
+    };
+
+    void syncDeadline();
+    const intervalId = setInterval(syncDeadline, 5 * 60_000);
 
     return () => {
       active = false;
+      clearInterval(intervalId);
     };
-  }, []);
+  }, [lastImport?.entryId, refresh]);
 
   const handleGwChange = (delta: number) => {
     const newOffset = Math.max(0, Math.min(9, gwOffset + delta));
