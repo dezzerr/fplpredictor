@@ -190,6 +190,9 @@ export async function GET(req: Request) {
       bench: [],
       captainId: undefined,
       viceId: undefined,
+      entryId: entryId || undefined,
+      importEventId: resolvedEventId,
+      activeChip: picksJson.active_chip || null,
     };
 
     // starters by position <= 11, keep formation by pushing into position groups

@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { FPLManagerLookup } from "@/components/FPLManagerLookup";
 import { useSquadStore } from "@/store/squad";
 import type { Squad, Player } from "@/lib/data";
 
@@ -15,6 +16,7 @@ export default function ImportPage() {
   const replaceSquad = useSquadStore((s) => s.replaceSquad);
   const syncPrices = useSquadStore((s) => s.syncPrices);
   const [pending, startTransition] = useTransition();
+  const [inputMode, setInputMode] = useState<"id" | "manager">("id");
   const [entryId, setEntryId] = useState("");
   const [preset, setPreset] = useState<string>("baseline");
   const [message, setMessage] = useState<string>("");
@@ -30,8 +32,8 @@ export default function ImportPage() {
         if (!res.ok) throw new Error(data?.error || "Failed to import squad");
         replaceSquad(data as Squad);
         setMessage(`Imported squad for ID ${id}.`);
-      } catch (e: any) {
-        setMessage(e?.message || "Import failed");
+      } catch (e: unknown) {
+        setMessage(e instanceof Error ? e.message : "Import failed");
       }
     });
   };
@@ -45,8 +47,8 @@ export default function ImportPage() {
         if (!res.ok) throw new Error(data?.error || "Failed to load players");
         syncPrices(data as Player[]);
         setMessage("Prices synced to latest FPL.");
-      } catch (e: any) {
-        setMessage(e?.message || "Price sync failed");
+      } catch (e: unknown) {
+        setMessage(e instanceof Error ? e.message : "Price sync failed");
       }
     });
   };
@@ -62,6 +64,40 @@ export default function ImportPage() {
         <div className="mb-3 text-sm text-muted-foreground">
           Enter your FPL team (entry) ID to load your current squad and bank. We&apos;ll use the latest prices and projections.
         </div>
+        <div className="mb-3 grid grid-cols-2 gap-2 rounded-lg bg-slate-100 p-1">
+          <button
+            type="button"
+            onClick={() => setInputMode("id")}
+            className={`rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+              inputMode === "id"
+                ? "bg-white text-slate-900 shadow-sm"
+                : "text-slate-600 hover:text-slate-900"
+            }`}
+          >
+            Enter Team ID
+          </button>
+          <button
+            type="button"
+            onClick={() => setInputMode("manager")}
+            className={`rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+              inputMode === "manager"
+                ? "bg-white text-slate-900 shadow-sm"
+                : "text-slate-600 hover:text-slate-900"
+            }`}
+          >
+            Search Manager Name
+          </button>
+        </div>
+        {inputMode === "manager" && (
+          <div className="mb-3">
+            <FPLManagerLookup
+              onSelect={(selectedEntryId) => {
+                setEntryId(selectedEntryId);
+                setMessage(`Selected Team ID ${selectedEntryId}.`);
+              }}
+            />
+          </div>
+        )}
         <div className="mb-3 grid grid-cols-1 gap-3 sm:grid-cols-[1fr,160px]">
           <Input placeholder="FPL Team ID (e.g. 1234567)" value={entryId} onChange={(e) => setEntryId(e.target.value)} inputMode="numeric" />
           <Select value={preset} onValueChange={setPreset}>

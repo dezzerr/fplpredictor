@@ -24,6 +24,7 @@ import { InsightPanel } from "@/components/InsightPanel";
 import { getMockDeadline, formatDeadline } from "@/lib/date";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { parseGameweek, resolveSelectedGameweek } from "@/lib/gameweek";
 
 // KPIs Header component - matches mobile design
 function KpisHeader({ weekOffset = 0 }: { weekOffset?: number }) {
@@ -91,7 +92,7 @@ function KpisHeader({ weekOffset = 0 }: { weekOffset?: number }) {
 
 export default function Page() {
   const [mounted, setMounted] = useState(false);
-  const [currentGw, setCurrentGw] = useState<number>(8);
+  const [currentGw, setCurrentGw] = useState<number | null>(null);
   const [deadline, setDeadline] = useState<Date>(getMockDeadline());
   const [isMobile, setIsMobile] = useState(false);
   const starters = useSquadStore((s) => s.squad.starters);
@@ -149,14 +150,11 @@ export default function Page() {
         const res = await fetch('/api/deadline');
         if (!res.ok) return;
         const data = await res.json();
-        const gw =
-          typeof data.eventId === "number"
-            ? data.eventId
-            : parseInt(String(data.eventId), 10);
+        const gw = parseGameweek(data.eventId);
 
         if (!active) return;
 
-        if (!Number.isNaN(gw)) {
+        if (gw !== null) {
           const previousGw = lastDeadlineEventRef.current;
           setCurrentGw(gw);
 
@@ -197,6 +195,8 @@ export default function Page() {
     const newOffset = Math.max(0, Math.min(9, gwOffset + delta));
     setGwOffset(newOffset);
   };
+
+  const selectedGameweek = resolveSelectedGameweek(currentGw, gwOffset, squad.importEventId);
 
   const handlePlayerClick = (id: string) => {
     // If in substitute mode, perform the swap
@@ -375,7 +375,7 @@ export default function Page() {
         {/* Right Sidebar - AI Insights */}
         <aside className="hidden xl:block w-[300px] flex-shrink-0 sticky top-24 self-start">
           <InsightPanel
-            gameweek={currentGw + gwOffset}
+            gameweek={selectedGameweek}
             players={[
               ...squad.starters.GK,
               ...squad.starters.DEF,

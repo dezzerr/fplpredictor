@@ -5,9 +5,11 @@ import Link from "next/link";
 import { PublicNavbar } from "@/components/PublicNavbar";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { FPLManagerLookup } from "@/components/FPLManagerLookup";
 import { cn } from "@/lib/utils";
 import type { Squad } from "@/lib/data";
 import { Search, Check, Loader2, Lock, ArrowRight } from "lucide-react";
+import { parseGameweek } from "@/lib/gameweek";
 
 interface TeamRatingResult {
   overallRating: number;
@@ -18,6 +20,7 @@ interface TeamRatingResult {
   captainPick: string;
   captainReason: string;
   projectedPoints: number;
+  chipAdvice?: string;
 }
 
 interface TransferSuggestion {
@@ -33,6 +36,8 @@ interface RatingApiResponse {
   source?: "gemini" | "fallback";
   warning?: string;
   error?: string;
+  managerContextAvailable?: boolean;
+  personalizationWarnings?: string[];
 }
 
 interface TransferApiResponse {
@@ -40,26 +45,25 @@ interface TransferApiResponse {
   source?: "gemini" | "optimizer_fallback";
   warning?: string;
   error?: string;
-}
-
-function parseEventId(raw: unknown): number | null {
-  if (typeof raw === "number" && Number.isFinite(raw)) return raw;
-  if (typeof raw === "string") {
-    const parsed = parseInt(raw, 10);
-    if (!Number.isNaN(parsed)) return parsed;
-  }
-  return null;
+  managerContextAvailable?: boolean;
+  personalizationWarnings?: string[];
 }
 
 export default function AiTeamRatingPage() {
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
+  const [inputMode, setInputMode] = useState<"id" | "manager">("id");
   const [entryId, setEntryId] = useState("");
-  const [currentGw, setCurrentGw] = useState(1);
+  const [currentGw, setCurrentGw] = useState<number | null>(null);
   const [squad, setSquad] = useState<Squad | null>(null);
 
   const [loadingTeam, setLoadingTeam] = useState(false);
   const [loadingRating, setLoadingRating] = useState(false);
   const [rating, setRating] = useState<TeamRatingResult | null>(null);
+  const [ratingMeta, setRatingMeta] = useState<{
+    managerContextAvailable?: boolean;
+    personalizationWarnings?: string[];
+    source?: RatingApiResponse["source"];
+  } | null>(null);
 
   const [transferLoading, setTransferLoading] = useState(false);
   const [analysisProgress, setAnalysisProgress] = useState(0);
@@ -82,7 +86,7 @@ export default function AiTeamRatingPage() {
         const res = await fetch("/api/deadline");
         if (!res.ok) return;
         const data = (await res.json()) as { eventId?: unknown };
-        const eventId = parseEventId(data.eventId);
+        const eventId = parseGameweek(data.eventId);
         if (active && eventId) setCurrentGw(eventId);
       } catch {}
     })();
@@ -118,8 +122,9 @@ export default function AiTeamRatingPage() {
 
     setErrorMessage("");
     setLoadingTeam(true);
-    setLoadingRating(true);
-    setAnalysisProgress(0);
+    setLoadingRating(false);
+    setErrorMessage("");
+    setRatingMeta(null);
     setAnalysisChecks({
       first11: false,
       bench: false,
@@ -147,7 +152,8 @@ export default function AiTeamRatingPage() {
         body: JSON.stringify({
           intent: "rating",
           squad: squadJson,
-          gameweek: currentGw,
+          gameweek: currentGw ?? undefined,
+          entryId: teamId,
         }),
       });
       const ratingJson = (await ratingRes.json()) as RatingApiResponse;
@@ -157,6 +163,11 @@ export default function AiTeamRatingPage() {
       }
 
       setRating(ratingJson.rating);
+      setRatingMeta({
+        managerContextAvailable: ratingJson.managerContextAvailable,
+        personalizationWarnings: ratingJson.personalizationWarnings || [],
+        source: ratingJson.source,
+      });
       setAnalysisProgress(100);
       setTimeout(() => {
         setLoadingTeam(false);
@@ -198,7 +209,8 @@ export default function AiTeamRatingPage() {
         body: JSON.stringify({
           intent: "transfers",
           squad,
-          gameweek: currentGw,
+          gameweek: currentGw ?? undefined,
+          entryId: entryId.trim(),
         }),
       });
       const transferJson = (await transferRes.json()) as TransferApiResponse;
@@ -297,6 +309,41 @@ export default function AiTeamRatingPage() {
             </p>
 
             <div className="max-w-md mx-auto space-y-4">
+              <div className="grid grid-cols-2 gap-2 rounded-lg bg-slate-900 p-1 border border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setInputMode("id")}
+                  className={`rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                    inputMode === "id"
+                      ? "bg-slate-800 text-white"
+                      : "text-slate-400 hover:text-slate-200"
+                  }`}
+                >
+                  Enter Team ID
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setInputMode("manager")}
+                  className={`rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                    inputMode === "manager"
+                      ? "bg-slate-800 text-white"
+                      : "text-slate-400 hover:text-slate-200"
+                  }`}
+                >
+                  Search Manager Name
+                </button>
+              </div>
+
+              {inputMode === "manager" && (
+                <FPLManagerLookup
+                  theme="dark"
+                  onSelect={(selectedEntryId) => {
+                    setEntryId(selectedEntryId);
+                    setErrorMessage(`Selected Team ID ${selectedEntryId}.`);
+                  }}
+                />
+              )}
+
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
                 <Input
@@ -331,16 +378,17 @@ export default function AiTeamRatingPage() {
                 </div>
               )}
 
-              <div className="flex items-center justify-center gap-2 text-sm text-slate-400">
-                <div className="w-10 h-5 bg-slate-700 rounded-full relative">
-                  <div className="w-4 h-4 bg-slate-500 rounded-full absolute left-0.5 top-0.5 shadow" />
-                </div>
-                <span>Include Manager Name</span>
+              <div className="text-xs text-slate-500">
+                Manager lookup uses official FPL endpoints only. If unavailable, enter Team ID directly.
               </div>
 
               <div className="pt-4 border-t border-slate-800">
-                <button className="text-fuchsia-400 hover:text-fuchsia-300 text-sm font-medium">
-                  Search by FPL ID
+                <button
+                  type="button"
+                  onClick={() => setInputMode("id")}
+                  className="text-fuchsia-400 hover:text-fuchsia-300 text-sm font-medium"
+                >
+                  Enter Team ID manually
                 </button>
               </div>
 
@@ -419,10 +467,51 @@ export default function AiTeamRatingPage() {
             <h1 className="text-3xl font-bold text-white mb-3">
               Your team is rated {rating.overallRating}/100
             </h1>
-            <p className="text-slate-400 mb-8">
-              To increase your team rating let our analysis give you some
-              recommended transfers
-            </p>
+            <p className="text-slate-400 mb-4">{rating.summary}</p>
+            {ratingMeta && (
+              <div className="mb-6 flex justify-center">
+                <div className={cn(
+                  "rounded-full border px-3 py-1 text-xs",
+                  ratingMeta.managerContextAvailable
+                    ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-200"
+                    : "border-amber-500/30 bg-amber-500/10 text-amber-200"
+                )}>
+                  {ratingMeta.managerContextAvailable
+                    ? "Personalized with official manager and chip context"
+                    : ratingMeta.personalizationWarnings?.[0] || "Squad-only analysis"}
+                </div>
+              </div>
+            )}
+
+            <div className="max-w-2xl mx-auto mb-8 grid gap-3 text-left sm:grid-cols-2">
+              <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-4">
+                <div className="text-sm font-semibold text-emerald-300 mb-2">Strengths</div>
+                <div className="space-y-1 text-sm text-slate-300">
+                  {rating.strengths.map((item) => (
+                    <div key={item}>- {item}</div>
+                  ))}
+                </div>
+              </div>
+              <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 p-4">
+                <div className="text-sm font-semibold text-amber-300 mb-2">Risks</div>
+                <div className="space-y-1 text-sm text-slate-300">
+                  {rating.risks.map((item) => (
+                    <div key={item}>- {item}</div>
+                  ))}
+                </div>
+              </div>
+              <div className="rounded-xl border border-fuchsia-500/20 bg-fuchsia-500/10 p-4">
+                <div className="text-sm font-semibold text-fuchsia-300 mb-1">Captain</div>
+                <div className="text-sm text-white font-medium">{rating.captainPick}</div>
+                <div className="text-xs text-slate-400">{rating.captainReason}</div>
+              </div>
+              {rating.chipAdvice && (
+                <div className="rounded-xl border border-cyan-500/20 bg-cyan-500/10 p-4">
+                  <div className="text-sm font-semibold text-cyan-300 mb-1">Chip advice</div>
+                  <div className="text-xs text-slate-300">{rating.chipAdvice}</div>
+                </div>
+              )}
+            </div>
 
             <Button
               onClick={() => {
@@ -434,61 +523,52 @@ export default function AiTeamRatingPage() {
               Recommend transfers
             </Button>
 
-            {/* Team pitch visualization */}
-            <div className="mt-8 pitch-bg rounded-lg p-8 min-h-[400px] relative overflow-hidden">
-              <div className="absolute inset-0 opacity-20">
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-20 border-2 border-white/40 rounded-b-full" />
-                <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-32 h-20 border-2 border-white/40 rounded-t-full" />
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 border-2 border-white/40 rounded-full" />
-                <div className="absolute top-1/2 left-0 right-0 h-px bg-white/40" />
-              </div>
-
-              <div className="relative z-10 grid grid-cols-5 gap-4 text-white text-xs">
-                <div className="col-span-5 flex justify-center gap-8 mb-4">
-                  <div className="text-center">
-                    <div className="w-12 h-12 bg-emerald-700 rounded-lg mx-auto mb-1" />
-                    <div className="font-semibold">Raya</div>
-                    <div className="text-emerald-200">£6.0m • ARS</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="w-12 h-12 bg-emerald-700 rounded-lg mx-auto mb-1" />
-                    <div className="font-semibold">Dúbravka</div>
-                    <div className="text-emerald-200">£4.0m • BUR</div>
-                  </div>
+            {squad && (
+              <div className="mt-8 pitch-bg rounded-lg p-6 min-h-[400px] relative overflow-hidden">
+                <div className="absolute inset-0 opacity-20">
+                  <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-20 border-2 border-white/40 rounded-b-full" />
+                  <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-32 h-20 border-2 border-white/40 rounded-t-full" />
+                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 border-2 border-white/40 rounded-full" />
+                  <div className="absolute top-1/2 left-0 right-0 h-px bg-white/40" />
                 </div>
 
-                <div className="col-span-5 flex justify-center gap-4 mb-4">
-                  {["Guéhi", "J.Timber", "Hill", "Hall", "Kerkez"].map(
-                    (name) => (
-                      <div key={name} className="text-center">
-                        <div className="w-10 h-10 bg-blue-600 rounded-lg mx-auto mb-1" />
-                        <div className="font-semibold">{name}</div>
-                      </div>
-                    )
-                  )}
-                </div>
-
-                <div className="col-span-5 flex justify-center gap-4 mb-4">
-                  {["B.Fernandes", "Semenyo", "Gordon", "Schade", "Rayan"].map(
-                    (name) => (
-                      <div key={name} className="text-center">
-                        <div className="w-10 h-10 bg-red-600 rounded-lg mx-auto mb-1" />
-                        <div className="font-semibold">{name}</div>
-                      </div>
-                    )
-                  )}
-                </div>
-
-                <div className="col-span-5 flex justify-center gap-8">
-                  {["Thiago", "Bowen", "Ekitiké"].map((name) => (
-                    <div key={name} className="text-center">
-                      <div className="w-10 h-10 bg-red-700 rounded-lg mx-auto mb-1" />
-                      <div className="font-semibold">{name}</div>
+                <div className="relative z-10 space-y-5 text-white text-xs">
+                  {[
+                    { label: "GK", players: squad.starters.GK, color: "bg-emerald-700" },
+                    { label: "DEF", players: squad.starters.DEF, color: "bg-blue-600" },
+                    { label: "MID", players: squad.starters.MID, color: "bg-red-600" },
+                    { label: "FWD", players: squad.starters.FWD, color: "bg-red-700" },
+                  ].map((row) => (
+                    <div key={row.label} className="flex flex-wrap justify-center gap-3">
+                      {row.players.map((player) => (
+                        <div key={player.id} className="w-20 text-center">
+                          <div className={cn("w-11 h-11 rounded-lg mx-auto mb-1 flex items-center justify-center text-[10px] font-bold", row.color)}>
+                            {player.position}
+                          </div>
+                          <div className="font-semibold truncate" title={player.name}>{player.name}</div>
+                          <div className="text-slate-200 truncate">£{player.price.toFixed(1)}m • {player.team}</div>
+                        </div>
+                      ))}
                     </div>
                   ))}
+                  {squad.bench.length > 0 && (
+                    <div className="border-t border-white/20 pt-4">
+                      <div className="mb-2 text-[10px] uppercase tracking-wide text-white/70">Bench</div>
+                      <div className="flex flex-wrap justify-center gap-3">
+                        {squad.bench.map((player) => (
+                          <div key={player.id} className="w-20 text-center opacity-80">
+                            <div className="w-10 h-10 bg-slate-700 rounded-lg mx-auto mb-1 flex items-center justify-center text-[10px] font-bold">
+                              {player.position}
+                            </div>
+                            <div className="font-semibold truncate" title={player.name}>{player.name}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
-            </div>
+            )}
           </div>
         )}
 

@@ -101,6 +101,9 @@ export type Squad = {
   bench: Player[]; // order: GK, DEF, MID, FWD
   captainId?: string;
   viceId?: string;
+  entryId?: string;
+  importEventId?: number;
+  activeChip?: string | null;
 };
 
 // Small helper to build fixtures

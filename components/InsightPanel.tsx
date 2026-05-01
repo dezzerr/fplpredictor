@@ -40,7 +40,7 @@ interface Insight {
 }
 
 interface InsightPanelProps {
-  gameweek: number;
+  gameweek?: number | null;
   players?: Player[];
   bank?: number;
   className?: string;
@@ -58,6 +58,7 @@ const TYPE_CONFIG: Record<string, { icon: LucideIcon; color: string; bg: string 
   differential:   { icon: Zap,            color: "text-purple-600",  bg: "bg-purple-50 border-purple-200" },
   value_pick:     { icon: Target,         color: "text-indigo-600",  bg: "bg-indigo-50 border-indigo-200" },
   price_watch:    { icon: TrendingUp,     color: "text-amber-600",   bg: "bg-amber-50 border-amber-200" },
+  chip_plan:      { icon: Sparkles,       color: "text-indigo-600",   bg: "bg-indigo-50 border-indigo-200" },
   chip_advice:    { icon: Sparkles,       color: "text-cyan-600",    bg: "bg-cyan-50 border-cyan-200" },
 };
 
@@ -69,15 +70,21 @@ const SENTIMENT_DOT: Record<string, string> = {
 
 export function InsightPanel({ gameweek, players, bank, className }: InsightPanelProps) {
   const entryId = useSquadStore((s) => s.lastImport?.entryId ?? null);
+  const squadEntryId = useSquadStore((s) => s.squad.entryId ?? null);
+  const squad = useSquadStore((s) => s.squad);
   const [insights, setInsights] = useState<Insight[]>([]);
   const [loading, setLoading] = useState(false);
   const [expanded, setExpanded] = useState(true);
   const [hasGenerated, setHasGenerated] = useState(false);
-  const [meta, setMeta] = useState<{ source?: string; geminiTimedOut?: boolean; latencyMs?: number } | null>(null);
+  const [meta, setMeta] = useState<{ source?: string; geminiTimedOut?: boolean; latencyMs?: number; managerContextAvailable?: boolean; personalizationWarnings?: string[]; gameweek?: number } | null>(null);
 
   const generate = useCallback(async () => {
     if (!players || players.length === 0) {
       toast.error("Import a squad first to generate insights");
+      return;
+    }
+    if (typeof gameweek !== "number" || !Number.isFinite(gameweek)) {
+      toast.error("Gameweek is still loading. Try again in a moment.");
       return;
     }
     setLoading(true);
@@ -104,13 +111,20 @@ export function InsightPanel({ gameweek, players, bank, className }: InsightPane
       const res = await fetch("/api/insights/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ players: payload, gameweek, bank, entryId }),
+        body: JSON.stringify({ players: payload, gameweek, bank, entryId: entryId || squadEntryId, squad }),
       });
 
       if (res.ok) {
         const data = await res.json();
         setInsights(data.insights || []);
-        setMeta({ source: data.source, geminiTimedOut: data.geminiTimedOut, latencyMs: data.latencyMs });
+        setMeta({
+          source: data.source,
+          geminiTimedOut: data.geminiTimedOut,
+          latencyMs: data.latencyMs,
+          managerContextAvailable: data.managerContextAvailable,
+          personalizationWarnings: Array.isArray(data.personalizationWarnings) ? data.personalizationWarnings : [],
+          gameweek: typeof data.gameweek === "number" ? data.gameweek : undefined,
+        });
         setHasGenerated(true);
         if ((data.insights || []).length > 0) {
           const mode = data.source === "hybrid" ? "Hybrid" : "Fast";
@@ -126,7 +140,7 @@ export function InsightPanel({ gameweek, players, bank, className }: InsightPane
     } finally {
       setLoading(false);
     }
-  }, [players, gameweek, bank, entryId]);
+  }, [players, gameweek, bank, entryId, squadEntryId, squad]);
 
   return (
     <Card className={cn("overflow-hidden", className)}>
@@ -161,11 +175,11 @@ export function InsightPanel({ gameweek, players, bank, className }: InsightPane
             <div className="p-4 text-center">
               <Brain className="h-10 w-10 text-purple-200 mx-auto mb-3" />
               <p className="text-sm text-muted-foreground mb-3">
-                Get AI-powered insights for your GW{gameweek} squad
+                {typeof gameweek === "number" ? `Get AI-powered insights for your GW${gameweek} squad` : "Gameweek loading before insights can run"}
               </p>
               <button
                 onClick={generate}
-                disabled={!players || players.length === 0}
+                disabled={!players || players.length === 0 || typeof gameweek !== "number"}
                 className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-sm font-medium hover:from-purple-700 hover:to-indigo-700 transition-all shadow-md shadow-purple-500/20 disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 <Sparkles className="h-4 w-4" />
@@ -273,6 +287,8 @@ export function InsightPanel({ gameweek, players, bank, className }: InsightPane
                 <div className="border-t px-3 py-2 text-[11px] text-slate-500 flex items-center justify-between">
                   <span>
                     {meta.source === "hybrid" ? "Hybrid insights" : "Fast deterministic insights"}
+                    {typeof meta.gameweek === "number" ? ` · GW${meta.gameweek}` : ""}
+                    {meta.managerContextAvailable ? " · personalized" : " · squad-only"}
                     {meta.geminiTimedOut ? " · AI enrichment timed out" : ""}
                   </span>
                   {typeof meta.latencyMs === "number" && <span>{Math.round(meta.latencyMs / 100) / 10}s</span>}

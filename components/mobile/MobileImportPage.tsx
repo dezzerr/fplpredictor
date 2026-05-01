@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import { useFPLConnection } from "@/hooks/useFPLConnection";
 import { FPLConnectModal } from "@/components/FPLConnectModal";
+import { FPLManagerLookup } from "@/components/FPLManagerLookup";
 
 interface MobileImportPageProps {
   onBack: () => void;
@@ -16,11 +17,12 @@ interface MobileImportPageProps {
 export function MobileImportPage({ onBack, onSuccess }: MobileImportPageProps) {
   const initialize = useSquadStore((s) => s.initialize);
   const lastImport = useSquadStore((s) => s.lastImport);
+  const [inputMode, setInputMode] = useState<"id" | "manager">("id");
   const [entryId, setEntryId] = useState("");
   const [savedTeamId, setSavedTeamId] = useState<number | null>(null);
   const [pending, startTransition] = useTransition();
   const [showFPLConnectModal, setShowFPLConnectModal] = useState(false);
-  const { connected, managerId, loading: fplLoading } = useFPLConnection();
+  const { connected, managerId } = useFPLConnection();
 
   // Load saved FPL team ID from profile on mount
   useEffect(() => {
@@ -158,6 +160,40 @@ export function MobileImportPage({ onBack, onSuccess }: MobileImportPageProps) {
 
           {/* Input Section */}
           <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-2 rounded-lg bg-slate-100 p-1">
+              <button
+                type="button"
+                onClick={() => setInputMode("id")}
+                className={`rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                  inputMode === "id"
+                    ? "bg-white text-slate-900 shadow-sm"
+                    : "text-slate-600 hover:text-slate-900"
+                }`}
+              >
+                Enter Team ID
+              </button>
+              <button
+                type="button"
+                onClick={() => setInputMode("manager")}
+                className={`rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                  inputMode === "manager"
+                    ? "bg-white text-slate-900 shadow-sm"
+                    : "text-slate-600 hover:text-slate-900"
+                }`}
+              >
+                Search Manager
+              </button>
+            </div>
+
+            {inputMode === "manager" && (
+              <FPLManagerLookup
+                onSelect={(selectedEntryId) => {
+                  setEntryId(selectedEntryId);
+                  toast.success(`Selected Team ID ${selectedEntryId}`);
+                }}
+              />
+            )}
+
             <label className="block text-sm font-medium text-slate-700">
               Enter your FPL Team ID
             </label>

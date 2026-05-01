@@ -4,6 +4,14 @@ import { fetchPlayersWithMarket } from "@/lib/market";
 import { pickXIForWeek, recommendTransfers, type PlanResult } from "@/lib/optimizer";
 import type { Player, Squad } from "@/lib/data";
 import { extractGeminiResponseText, parseGeminiJsonArray } from "@/lib/ai/parseGeminiResponse";
+import {
+  buildChipContextText,
+  buildManagerContextText,
+  fetchManagerContext,
+  isValidEntryId,
+  type ManagerContext,
+} from "@/lib/fplManagerContext";
+import { fetchOfficialPlanningGameweek, parseGameweek } from "@/lib/gameweek";
 
 export const dynamic = "force-dynamic";
 
@@ -13,6 +21,7 @@ interface TeamRatingPayload {
   intent?: Intent;
   squad?: Squad;
   gameweek?: number;
+  entryId?: string;
 }
 
 interface TeamRatingResult {
@@ -24,6 +33,7 @@ interface TeamRatingResult {
   captainPick: string;
   captainReason: string;
   projectedPoints: number;
+  chipAdvice?: string;
 }
 
 interface TransferSuggestion {
@@ -52,6 +62,7 @@ const RATING_SCHEMA = {
       },
       captainPick: { type: SchemaType.STRING },
       captainReason: { type: SchemaType.STRING },
+      chipAdvice: { type: SchemaType.STRING },
     },
     required: ["overallRating", "tier", "summary", "strengths", "risks", "captainPick", "captainReason"],
   },
@@ -176,6 +187,32 @@ function buildFallbackRating(squad: Squad): TeamRatingResult {
   };
 }
 
+function buildFallbackChipAdvice(managerContext: ManagerContext | null, squad: Squad, gameweek?: number): string {
+  if (!managerContext) return "Chip history unavailable, so chip advice is based on squad projections only.";
+  const optimized = pickXIForWeek(squad, 0);
+  const captain = flattenSquad(squad).find((p) => p.id === optimized.capId);
+  const benchProjection = optimized.bench.reduce((sum, p) => sum + scorePlayer(p), 0);
+  const chipContext = buildChipContextText(managerContext.chipUsage, gameweek);
+
+  if (managerContext.chipUsage.playedThisGw) {
+    return `${chipContext} Do not plan another chip this gameweek.`;
+  }
+
+  if (managerContext.chipUsage.available.length === 0) {
+    return `${chipContext} Focus on captaincy and transfers because no major chips remain.`;
+  }
+
+  if (managerContext.chipUsage.available.includes("BB") && benchProjection >= 11.5) {
+    return `${chipContext} Bench Boost is viable because the bench projects around ${benchProjection.toFixed(1)} points.`;
+  }
+
+  if (managerContext.chipUsage.available.includes("TC") && captain && scorePlayer(captain) >= 7.5) {
+    return `${chipContext} Triple Captain is viable if you trust ${captain.name}'s minutes and fixture.`;
+  }
+
+  return `${chipContext} No chip has a clear trigger, so holding is preferred.`;
+}
+
 function confidenceFromGain(gain: number): TransferSuggestion["confidence"] {
   if (gain >= 4.5) return "high";
   if (gain >= 2) return "medium";
@@ -251,6 +288,7 @@ function sanitizeRating(raw: unknown, fallback: TeamRatingResult): TeamRatingRes
     captainPick: toText(obj.captainPick, fallback.captainPick).slice(0, 50),
     captainReason: toText(obj.captainReason, fallback.captainReason).slice(0, 140),
     projectedPoints: fallback.projectedPoints,
+    chipAdvice: toText(obj.chipAdvice, fallback.chipAdvice || "").slice(0, 220) || fallback.chipAdvice,
   };
 }
 
@@ -307,12 +345,19 @@ export async function POST(request: Request) {
   }
 
   const squad = body.squad;
-  const fallbackRating = buildFallbackRating(squad);
   const playersSummary = formatPlayersForPrompt(squad);
-  const gameweek = Number.isFinite(body.gameweek) ? Number(body.gameweek) : undefined;
+  const requestGameweek = parseGameweek(body.gameweek);
+  const gameweek = requestGameweek ?? await fetchOfficialPlanningGameweek() ?? undefined;
+  const entryIdRaw = typeof body.entryId === "string" ? body.entryId.trim() : "";
+  const entryId = isValidEntryId(entryIdRaw) ? entryIdRaw : null;
+  const managerContext = entryId ? await fetchManagerContext(entryId, gameweek) : null;
+  const fallbackRating: TeamRatingResult = {
+    ...buildFallbackRating(squad),
+    chipAdvice: buildFallbackChipAdvice(managerContext, squad, gameweek),
+  };
 
   if (intent === "rating") {
-    const ratingPrompt = `You are an elite Fantasy Premier League analyst.\nReturn JSON only.\nReturn an array with EXACTLY one object containing:\n- overallRating (0-100 integer)\n- tier (Elite|Strong|Competitive|Needs Work)\n- summary (max 180 chars)\n- strengths (array of 3 short strings)\n- risks (array of 3 short strings)\n- captainPick (player name)\n- captainReason (max 120 chars)\n\nContext:\n- Gameweek: ${gameweek ?? "current"}\n- Baseline projected points: ${fallbackRating.projectedPoints}\n- Baseline rating: ${fallbackRating.overallRating}\n- Bank: £${squad.bank.toFixed(1)}m\n\nSquad:\n${playersSummary}\n\nKeep output practical and user-facing.`;
+    const ratingPrompt = `You are an elite Fantasy Premier League analyst.\nReturn JSON only.\nReturn an array with EXACTLY one object containing:\n- overallRating (0-100 integer)\n- tier (Elite|Strong|Competitive|Needs Work)\n- summary (max 180 chars)\n- strengths (array of 3 short strings)\n- risks (array of 3 short strings)\n- captainPick (player name)\n- captainReason (max 120 chars)\n- chipAdvice (max 180 chars, must respect used/available chips)\n\nManager context:\n${buildManagerContextText(managerContext)}\n\nContext:\n- Gameweek: ${gameweek ?? "current"}\n- Baseline projected points: ${fallbackRating.projectedPoints}\n- Baseline rating: ${fallbackRating.overallRating}\n- Bank: £${squad.bank.toFixed(1)}m\n- Fallback chip advice: ${fallbackRating.chipAdvice || "Unavailable"}\n\nSquad:\n${playersSummary}\n\nKeep output practical and user-facing. Do not invent chip usage if manager context is unavailable. Chip availability in Manager context is authoritative: never recommend a chip unless it is listed as available, and never describe an active or used chip as available.`;
 
     try {
       const model = createModel(apiKey, RATING_SCHEMA);
@@ -327,6 +372,10 @@ export async function POST(request: Request) {
       return NextResponse.json({
         rating,
         source: "gemini",
+        managerContextAvailable: !!managerContext,
+        personalizationWarnings: managerContext
+          ? []
+          : ["Manager context unavailable; rating is based on squad players only."],
       });
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -334,6 +383,10 @@ export async function POST(request: Request) {
       return NextResponse.json({
         rating: fallbackRating,
         source: "fallback",
+        managerContextAvailable: !!managerContext,
+        personalizationWarnings: managerContext
+          ? []
+          : ["Manager context unavailable; rating is based on squad players only."],
         warning: "Gemini rating unavailable. Showing model fallback.",
       });
     }
@@ -364,6 +417,10 @@ export async function POST(request: Request) {
       transfers: fallbackTransfers,
       source: "optimizer_fallback",
       paywallLocked: true,
+      managerContextAvailable: !!managerContext,
+      personalizationWarnings: managerContext
+        ? []
+        : ["Manager context unavailable; transfers are based on squad players only."],
     });
   }
 
@@ -376,7 +433,7 @@ export async function POST(request: Request) {
     })
     .join("\n");
 
-  const transferPrompt = `You are an elite FPL transfer strategist.\nUse ONLY these candidate transfers and return exactly 3 suggestions.\nOutput must be a JSON array with objects containing:\n- outPlayer\n- inPlayer\n- reason (max 160 chars)\n- expectedGain (number)\n- confidence (high|medium|low)\n\nCandidate transfer plans:\n${candidateLines}\n\nPrioritise highest net gains with realistic risk commentary.`;
+  const transferPrompt = `You are an elite FPL transfer strategist.\nUse ONLY these candidate transfers and return exactly 3 suggestions.\nOutput must be a JSON array with objects containing:\n- outPlayer\n- inPlayer\n- reason (max 160 chars)\n- expectedGain (number)\n- confidence (high|medium|low)\n\nManager context:\n${buildManagerContextText(managerContext)}\n\nCandidate transfer plans:\n${candidateLines}\n\nPrioritise highest net gains with realistic risk commentary. Account for the manager's chip and transfer state. Chip availability in Manager context is authoritative: never recommend a chip unless it is listed as available, and never describe an active or used chip as available.`;
 
   try {
     const model = createModel(apiKey, TRANSFER_SCHEMA);
@@ -391,6 +448,10 @@ export async function POST(request: Request) {
       transfers: sanitizeTransfers(parsed, fallbackTransfers),
       source: "gemini",
       paywallLocked: true,
+      managerContextAvailable: !!managerContext,
+      personalizationWarnings: managerContext
+        ? []
+        : ["Manager context unavailable; transfers are based on squad players only."],
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
@@ -399,6 +460,10 @@ export async function POST(request: Request) {
       transfers: fallbackTransfers,
       source: "optimizer_fallback",
       paywallLocked: true,
+      managerContextAvailable: !!managerContext,
+      personalizationWarnings: managerContext
+        ? []
+        : ["Manager context unavailable; transfers are based on squad players only."],
       warning: "Gemini transfer ranking unavailable. Showing model fallback.",
     });
   }

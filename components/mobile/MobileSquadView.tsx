@@ -20,9 +20,10 @@ import { FPLConnectModal } from "@/components/FPLConnectModal";
 import { toast } from "sonner";
 import { Player, Position } from "@/lib/data";
 import { LiveScoreTicker } from "@/components/LiveScoreTicker";
+import { resolveSelectedGameweek } from "@/lib/gameweek";
 
 interface MobileSquadViewProps {
-  currentGw: number;
+  currentGw: number | null;
   gwOffset: number;
   deadline: Date;
   onGwChange?: (offset: number) => void;
@@ -115,6 +116,7 @@ export function MobileSquadView({ currentGw, gwOffset, deadline, onGwChange }: M
   };
 
   const deadlineStr = formatDeadline(deadline, "").replace(/Gameweek \d+/, "").trim();
+  const selectedGameweek = resolveSelectedGameweek(currentGw, localGwOffset, squad.importEventId);
   const insightPlayers = useMemo(
     () => [
       ...squad.starters.GK,
@@ -131,7 +133,7 @@ export function MobileSquadView({ currentGw, gwOffset, deadline, onGwChange }: M
       {/* Header */}
       <MobileHeader
         title="Pick Team"
-        gameweek={currentGw + localGwOffset}
+        gameweek={selectedGameweek}
         deadline={deadlineStr}
         showBack={false}
       />
@@ -369,12 +371,12 @@ export function MobileSquadView({ currentGw, gwOffset, deadline, onGwChange }: M
           <div className="border-b border-slate-200 px-4 py-3">
             <SheetTitle className="text-sm font-semibold text-slate-900">AI Insights</SheetTitle>
             <SheetDescription className="text-xs text-slate-500">
-              Personalized tips for GW{currentGw + localGwOffset}
+              {typeof selectedGameweek === "number" ? `Personalized tips for GW${selectedGameweek}` : "Personalized tips once gameweek loads"}
             </SheetDescription>
           </div>
           <div className="flex-1 overflow-y-auto p-3">
             <InsightPanel
-              gameweek={currentGw + localGwOffset}
+              gameweek={selectedGameweek}
               players={insightPlayers}
               bank={squad.bank}
             />

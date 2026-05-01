@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { X, Loader2, Link2, AlertCircle, CheckCircle2, HelpCircle } from 'lucide-react'
 import { useFPLConnection } from '@/hooks/useFPLConnection'
+import { FPLManagerLookup } from '@/components/FPLManagerLookup'
 
 interface FPLConnectModalProps {
   isOpen: boolean
@@ -12,6 +13,7 @@ interface FPLConnectModalProps {
 
 export function FPLConnectModal({ isOpen, onClose, onSuccess }: FPLConnectModalProps) {
   const [teamId, setTeamId] = useState('')
+  const [inputMode, setInputMode] = useState<'id' | 'manager'>('id')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
@@ -92,12 +94,47 @@ export function FPLConnectModal({ isOpen, onClose, onSuccess }: FPLConnectModalP
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="grid grid-cols-2 gap-2 rounded-lg bg-slate-800/70 p-1">
+                <button
+                  type="button"
+                  onClick={() => setInputMode('id')}
+                  className={`rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                    inputMode === 'id'
+                      ? 'bg-slate-700 text-white'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  Enter Team ID
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setInputMode('manager')}
+                  className={`rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                    inputMode === 'manager'
+                      ? 'bg-slate-700 text-white'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  Search Manager Name
+                </button>
+              </div>
+
               {/* Error message */}
               {error && (
                 <div className="flex items-start gap-3 bg-red-500/10 border border-red-500/30 rounded-lg p-4">
                   <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
                   <p className="text-sm text-red-300">{error}</p>
                 </div>
+              )}
+
+              {inputMode === 'manager' && (
+                <FPLManagerLookup
+                  theme="dark"
+                  onSelect={(entryId) => {
+                    setTeamId(entryId)
+                    setError(null)
+                  }}
+                />
               )}
 
               {/* Team ID field */}

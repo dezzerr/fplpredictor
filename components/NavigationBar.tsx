@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { SaveSquadButton } from '@/components/SaveSquadButton'
+import { FPLManagerLookup } from '@/components/FPLManagerLookup'
 import { useSquadStore } from '@/store/squad'
 
 interface NavigationBarProps {
@@ -18,6 +19,7 @@ interface NavigationBarProps {
 
 export function NavigationBar({ currentGameweek, gwOffset }: NavigationBarProps) {
   const [importOpen, setImportOpen] = useState(false)
+  const [inputMode, setInputMode] = useState<'id' | 'manager'>('id')
   const [entryId, setEntryId] = useState("")
   const [preset, setPreset] = useState("baseline")
   const [pending, setPending] = useState(false)
@@ -86,6 +88,39 @@ export function NavigationBar({ currentGameweek, gwOffset }: NavigationBarProps)
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-2 rounded-lg bg-slate-100 p-1">
+                <button
+                  type="button"
+                  onClick={() => setInputMode('id')}
+                  className={`rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                    inputMode === 'id'
+                      ? 'bg-white text-slate-900 shadow-sm'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  Enter Team ID
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setInputMode('manager')}
+                  className={`rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                    inputMode === 'manager'
+                      ? 'bg-white text-slate-900 shadow-sm'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  Search Manager Name
+                </button>
+              </div>
+
+              {inputMode === 'manager' && (
+                <FPLManagerLookup
+                  onSelect={(selectedEntryId) => {
+                    setEntryId(selectedEntryId)
+                  }}
+                />
+              )}
+
               <div className="space-y-2">
                 <Input 
                   placeholder="FPL Team ID (e.g. 1234567)" 

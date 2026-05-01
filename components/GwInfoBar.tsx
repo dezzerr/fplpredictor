@@ -4,9 +4,10 @@ import { useEffect, useState } from 'react'
 import { formatDeadline, getMockDeadline } from '@/lib/date'
 import { useLiveGwContext } from '@/components/LiveGwProvider'
 import { LiveBadge } from '@/components/LiveBadge'
+import { parseGameweek, resolveSelectedGameweek } from '@/lib/gameweek'
 
 interface GwInfoBarProps {
-  currentGw?: number
+  currentGw?: number | null
   gwOffset?: number
 }
 
@@ -14,8 +15,9 @@ export function GwInfoBar({ currentGw: propGw, gwOffset = 0 }: GwInfoBarProps) {
   const [mounted, setMounted] = useState(false)
   const [deadline, setDeadline] = useState<Date>(getMockDeadline())
   const [eventName, setEventName] = useState<string>('Gameweek')
-  const [currentGw, setCurrentGw] = useState<number>(propGw ?? 8)
+  const [currentGw, setCurrentGw] = useState<number | null>(propGw ?? null)
   const { isLive } = useLiveGwContext()
+  const selectedGameweek = resolveSelectedGameweek(currentGw, gwOffset)
 
   useEffect(() => {
     setMounted(true)
@@ -24,16 +26,8 @@ export function GwInfoBar({ currentGw: propGw, gwOffset = 0 }: GwInfoBarProps) {
       .then((data) => {
         setDeadline(new Date(data.deadline))
         if (typeof data.eventName === 'string') setEventName(data.eventName)
-        if (typeof data.eventId === 'number') {
-          setCurrentGw(data.eventId)
-        } else {
-          const parsed = parseInt(String(data.eventId), 10)
-          if (!Number.isNaN(parsed)) setCurrentGw(parsed)
-          else if (typeof data.eventName === 'string') {
-            const match = data.eventName.match(/\d+/)
-            if (match) setCurrentGw(parseInt(match[0], 10))
-          }
-        }
+        const parsed = parseGameweek(data.eventId)
+        if (parsed !== null) setCurrentGw(parsed)
       })
       .catch((err) => console.error('Failed to fetch deadline:', err))
   }, [])
@@ -50,7 +44,7 @@ export function GwInfoBar({ currentGw: propGw, gwOffset = 0 }: GwInfoBarProps) {
         <div className="flex items-center justify-center py-1.5">
           <p className="text-xs font-medium text-slate-300 flex items-center gap-2">
             <span suppressHydrationWarning>
-              Gameweek {currentGw + gwOffset}
+              {typeof selectedGameweek === 'number' ? `Gameweek ${selectedGameweek}` : 'Gameweek loading'}
             </span>
             <span className="text-slate-500">•</span>
             <span className="text-slate-400" suppressHydrationWarning>

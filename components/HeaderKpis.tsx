@@ -9,6 +9,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { useLiveGwContext } from "@/components/LiveGwProvider";
 import { LiveBadge } from "@/components/LiveBadge";
+import { parseGameweek, resolveSelectedGameweek } from "@/lib/gameweek";
 
 function HeaderLiveBadge() {
   const { isLive } = useLiveGwContext();
@@ -20,8 +21,9 @@ export function HeaderKpis({ compact = false, onGwChange, weekPredPts }: { compa
   const [mounted, setMounted] = useState(false);
   const [deadline, setDeadline] = useState<Date>(getMockDeadline());
   const [eventName, setEventName] = useState<string>("Gameweek");
-  const [currentGw, setCurrentGw] = useState<number>(8);
+  const [currentGw, setCurrentGw] = useState<number | null>(null);
   const [gwOffset, setGwOffset] = useState<number>(0);
+  const selectedGameweek = resolveSelectedGameweek(currentGw, gwOffset);
   
   useEffect(() => { 
     setMounted(true);
@@ -32,17 +34,8 @@ export function HeaderKpis({ compact = false, onGwChange, weekPredPts }: { compa
         if (typeof data.eventName === "string") {
           setEventName(data.eventName);
         }
-        if (typeof data.eventId === "number") {
-          setCurrentGw(data.eventId);
-        } else {
-          const parsedId = parseInt(String(data.eventId), 10);
-          if (!Number.isNaN(parsedId)) {
-            setCurrentGw(parsedId);
-          } else if (typeof data.eventName === "string") {
-            const match = data.eventName.match(/\d+/);
-            if (match) setCurrentGw(parseInt(match[0], 10));
-          }
-        }
+        const eventId = parseGameweek(data.eventId);
+        if (eventId !== null) setCurrentGw(eventId);
       })
       .catch(err => {
         console.error('Failed to fetch deadline:', err);
@@ -121,7 +114,7 @@ export function HeaderKpis({ compact = false, onGwChange, weekPredPts }: { compa
           <div className="bg-emerald-50 rounded-lg px-4 py-2 mt-2 text-center">
             <p className="text-sm font-semibold text-emerald-700 flex items-center justify-center gap-2">
               <span>
-                <span suppressHydrationWarning>Gameweek {currentGw + gwOffset}</span>
+                <span suppressHydrationWarning>{typeof selectedGameweek === "number" ? `Gameweek ${selectedGameweek}` : "Gameweek loading"}</span>
                 <span className="mx-2 text-emerald-400">•</span>
                 <span className="font-normal text-emerald-600" suppressHydrationWarning>Deadline: {deadlineText}</span>
               </span>

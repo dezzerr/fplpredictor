@@ -7,7 +7,7 @@ import { LiveBadge } from "@/components/LiveBadge";
 
 interface MobileHeaderProps {
   title: string;
-  gameweek: number;
+  gameweek?: number | null;
   deadline: string;
   showBack?: boolean;
 }
@@ -39,7 +39,7 @@ export function MobileHeader({ title, gameweek, deadline, showBack = true }: Mob
       <div className="px-4 py-1.5 text-center bg-slate-800 border-b border-slate-700/50">
         <p className="text-xs font-medium text-slate-300 flex items-center justify-center gap-2">
           <span>
-            Gameweek {gameweek}
+            {typeof gameweek === "number" ? `Gameweek ${gameweek}` : "Gameweek loading"}
             <span className="mx-2 text-slate-500">•</span>
             <span className="text-slate-400">{isLive ? '' : 'Deadline: '}{deadline}</span>
           </span>
