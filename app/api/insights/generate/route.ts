@@ -214,6 +214,9 @@ function buildChipPlanInsight(params: {
 
   const allRecs = recommendChips(squad, CHIP_PLAN_HORIZON_WEEKS, universePlayers);
   const recByType = new Map(allRecs.map((rec) => [rec.type, rec]));
+  const actionableThreshold: Record<ChipCode, number> = { TC: 7, BB: 10, FH: 4, WC: 3 };
+  let bestGain = 0;
+  let bestConfidence: Insight['confidence'] = 'low';
 
   const lines = chipUsage.available.map((chip) => {
     const rec = recByType.get(chip);
@@ -221,13 +224,21 @@ function buildChipPlanInsight(params: {
 
     const absoluteGw = typeof gameweek === 'number' ? gameweek + rec.week : undefined;
     const gwText = typeof absoluteGw === 'number' ? `GW${absoluteGw}` : `week +${rec.week}`;
-    const gain = Number.isFinite(rec.evGain) ? ` (+${round1(rec.evGain).toFixed(1)} EV)` : '';
+    const gainValue = Number.isFinite(rec.evGain) ? round1(rec.evGain) : 0;
+    const gain = `+${gainValue.toFixed(1)} EV`;
+    const score = typeof rec.score === 'number' ? `, score ${rec.score}/100` : '';
+    const confidence = rec.confidence || 'low';
 
-    if (rec.evGain <= 0) {
+    if (gainValue < actionableThreshold[chip]) {
       return `${chipLabel(chip)}: hold (${rec.notes || `no clear trigger in next ${CHIP_PLAN_HORIZON_WEEKS} GWs`}).`;
     }
 
-    return `${chipLabel(chip)}: ${gwText}${gain}${rec.notes ? ` — ${rec.notes}` : ''}.`;
+    if (gainValue > bestGain) {
+      bestGain = gainValue;
+      bestConfidence = confidence;
+    }
+
+    return `${chipLabel(chip)}: ${gwText} (${gain}, ${confidence} confidence${score})${rec.reason ? ` — ${rec.reason}` : rec.notes ? ` — ${rec.notes}` : ''}.`;
   });
 
   if (!lines.length) return null;
@@ -239,6 +250,8 @@ function buildChipPlanInsight(params: {
     title: `${CHIP_PLAN_HORIZON_WEEKS}-GW chip plan`,
     detail: lines.join(' '),
     sentiment: 'neutral',
+    expectedGain: bestGain > 0 ? bestGain : undefined,
+    confidence: bestGain > 0 ? bestConfidence : 'low',
     source: 'model',
   };
 }

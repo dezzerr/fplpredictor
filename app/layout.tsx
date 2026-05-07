@@ -60,6 +60,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   const gaId = process.env.NEXT_PUBLIC_GA_ID;
   const shouldEnableGa = process.env.NODE_ENV === "production" && Boolean(gaId);
+  const shouldEnableAhrefs = process.env.NODE_ENV === "production";
 
   return (
     <html lang="en" suppressHydrationWarning>
@@ -79,6 +80,13 @@ export default function RootLayout({ children }: { children: ReactNode }) {
               `}
             </Script>
           </>
+        ) : null}
+        {shouldEnableAhrefs ? (
+          <Script
+            src="https://analytics.ahrefs.com/analytics.js"
+            data-key="3GzVubyADO4MT9itrKq7fA"
+            strategy="afterInteractive"
+          />
         ) : null}
       </head>
       <body className={cn("min-h-dvh bg-background font-sans antialiased")}> 
