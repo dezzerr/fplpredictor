@@ -65,6 +65,10 @@
     --ring: 212.7 26.8% 83.9%;
   }
 
+  html {
+    scroll-behavior: smooth;
+  }
+
   html, body {
     height: 100%;
   }
@@ -90,6 +94,28 @@
 .pitch-bg::before {
   /* Disabled grid/stripe lines to keep only overlay shapes (penalty box + centre circle) */
   background-image: none;
+}
+
+/* Mobile pitch background - FPL app style */
+.mobile-pitch-bg {
+  background: linear-gradient(180deg, #2d8a5e 0%, #1e6b47 50%, #165a3a 100%);
+  position: relative;
+}
+
+/* Safe area padding for bottom bar */
+.pb-safe {
+  padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+}
+
+/* Below-fold content visibility optimization for LCP */
+.cv-auto {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 600px;
+}
+
+/* GPU-promote animated elements */
+.will-change-transform {
+  will-change: transform;
 }
 
 /* Focus ring high-contrast */

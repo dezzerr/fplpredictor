@@ -12,6 +12,7 @@ pnpm-debug.log*
 .next/
 out/
 .vercel/
+.netlify/
 
 # Env files
 .env*
@@ -43,3 +44,7 @@ coverage/
 # Misc
 *.swp
 *.swo
+.vercel
+
+# Separate projects
+Homepage/

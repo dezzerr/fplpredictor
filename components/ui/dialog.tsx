@@ -8,6 +8,8 @@ const Dialog = DialogPrimitive.Root;
 const DialogTrigger = DialogPrimitive.Trigger;
 const DialogPortal = DialogPrimitive.Portal;
 const DialogClose = DialogPrimitive.Close;
+const DialogTitle = DialogPrimitive.Title;
+const DialogDescription = DialogPrimitive.Description;
 
 function DialogContent({ className, ...props }: React.ComponentProps<typeof DialogPrimitive.Content>) {
   return (
@@ -33,4 +35,8 @@ function DialogHeader(props: React.HTMLAttributes<HTMLDivElement>) {
   return <div className={cn("mb-4", props.className)} {...props} />;
 }
 
-export { Dialog, DialogTrigger, DialogContent, DialogClose, DialogHeader };
+function DialogFooter(props: React.HTMLAttributes<HTMLDivElement>) {
+  return <div className={cn("mt-4 flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2", props.className)} {...props} />;
+}
+
+export { Dialog, DialogTrigger, DialogContent, DialogClose, DialogTitle, DialogDescription, DialogHeader, DialogFooter };

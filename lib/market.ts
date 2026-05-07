@@ -9,6 +9,8 @@ import { lambdasFromTeamOdds, cleanSheetFromLambdas, lambdaGFromAnytime, estimat
 // compute per-event expected points from market data. Until then, it falls
 // back to the calibrated FPL-based players while keeping the same Player shape.
 export async function fetchPlayersWithMarket(preset?: CalPresetName | string | null): Promise<Player[]> {
+  const MARKET_EP_SCALE = 0.88;
+
   const hasOdds = Boolean(
     process.env.ODDS_API_KEY ||
     process.env.API_FOOTBALL_KEY ||
@@ -57,7 +59,7 @@ export async function fetchPlayersWithMarket(preset?: CalPresetName | string | n
     }));
   }
 
-  // Helper: get all team fixtures for a given event that involve the team
+  // Helper: get all fixtures for a team in a given event (supports DGW with 2+ fixtures)
   function teamFixturesForEvent(event: number, team: string): Array<{ o: TeamOdds; teamIsHome: boolean } > {
     const arr = teamOddsByEvent[event] || [];
     const out: Array<{ o: TeamOdds; teamIsHome: boolean }> = [];
@@ -77,9 +79,8 @@ export async function fetchPlayersWithMarket(preset?: CalPresetName | string | n
   const clamp01 = (x: number) => Math.max(0, Math.min(1, x));
 
   const enriched: Player[] = fplPlayers.map((p) => {
-    const p60Base = typeof p.expExplain?.minutesProb === 'number'
-      ? clamp01(p.expExplain.minutesProb)
-      : clamp01(typeof p.minutesProb === 'number' ? p.minutesProb : 0.8);
+    // Use the enhanced minutes probability from FPL processing (accounts for form, minutes, loans)
+    const p60Base = typeof p.minutesProb === 'number' ? clamp01(p.minutesProb) : 0.8;
 
     const eventEP: number[] = [];
     const lambdaGArr: number[] = [];
@@ -119,7 +120,7 @@ export async function fetchPlayersWithMarket(preset?: CalPresetName | string | n
         const appearanceEP = 2 * p60 + 1 * cameoProb;
         const attackEP = p60 * (lambdaGf * goalPtsByPos[p.position] + lambdaAf * assistPts);
         const csEP = p60 * expectedCsPoints(p.position, lambdaOpp);
-        const ep = appearanceEP + attackEP + csEP;
+        const ep = (appearanceEP + attackEP + csEP) * MARKET_EP_SCALE;
 
         epSum += ep;
         lambdaGSum += lambdaGf;
@@ -133,19 +134,28 @@ export async function fetchPlayersWithMarket(preset?: CalPresetName | string | n
       p60Arr[event] = Math.round(p60 * 1000) / 1000;
     }
 
-    const ex = p.expExplain ?? ({} as Player["expExplain"]);
+    const ex = p.expExplain;
     const nextEp = typeof eventEP[0] === 'number' ? eventEP[0] : undefined;
     return {
       ...p,
       expPoints: nextEp ?? p.expPoints,
       expExplain: {
         base: ex?.base ?? p.baseExp ?? p.expPoints,
-        minutesProb: ex?.minutesProb ?? (typeof p.minutesProb === 'number' ? p.minutesProb : p60Base),
+        minutesProb: typeof p.minutesProb === 'number' ? p.minutesProb : p60Base,
         minutesFactor: ex?.minutesFactor ?? 1,
         injuryPenalty: ex?.injuryPenalty ?? 1,
         form: ex?.form ?? (typeof p.form === 'number' ? p.form : 1),
         formFactor: ex?.formFactor ?? 1,
         positionFactor: ex?.positionFactor ?? 1,
+        // Preserve penalty metadata when present
+        penaltyBoost: ex?.penaltyBoost,
+        penaltyTakerRank: ex?.penaltyTakerRank,
+        calibration: ex?.calibration,
+        // Preserve status metadata when present
+        rawStatus: ex?.rawStatus,
+        chance: ex?.chance,
+        news: ex?.news,
+        newsAdded: ex?.newsAdded,
         fixtureWeights: ex?.fixtureWeights ?? [],
         blendedFixtureFactor: ex?.blendedFixtureFactor ?? 1,
         // Market-first additions
@@ -160,6 +170,7 @@ export async function fetchPlayersWithMarket(preset?: CalPresetName | string | n
         eventFactors: ex?.eventFactors,
         eventFixtureCounts: ex?.eventFixtureCounts,
         nextEventFixtureCount: ex?.nextEventFixtureCount,
+        baseEvent: ex?.baseEvent,
       },
     };
   });
