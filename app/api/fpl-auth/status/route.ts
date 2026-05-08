@@ -1,45 +1,25 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { getStoredFplSession, requireAuthenticatedUser } from '@/lib/fpl-session';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    const supabase = createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-    if (authError || !user) {
+    const user = await requireAuthenticatedUser().catch(() => null);
+    if (!user) {
       return NextResponse.json({ connected: false, reason: 'not_authenticated' });
     }
 
-    // Check if user has an FPL session
-    const { data: session, error: sessionError } = await supabase
-      .from('fpl_sessions')
-      .select('manager_id, encrypted_cookies, expires_at')
-      .eq('user_id', user.id)
-      .single();
-
-    if (sessionError || !session) {
-      return NextResponse.json({ connected: false, reason: 'no_session' });
+    const session = await getStoredFplSession(user.id);
+    if (!session) {
+      return NextResponse.json({ connected: false, reason: 'no_valid_fpl_session' });
     }
 
-    // Check if session is expired
-    const expiresAt = new Date(session.expires_at);
-    if (expiresAt < new Date()) {
-      return NextResponse.json({ 
-        connected: false, 
-        reason: 'expired',
-        managerId: session.manager_id,
-      });
-    }
-
-    // Optionally validate the session is still valid with FPL
-    // (Skip this for performance, only do on actual API calls)
-    
     return NextResponse.json({
       connected: true,
-      managerId: session.manager_id,
-      expiresAt: session.expires_at,
+      managerId: session.managerId,
+      expiresAt: session.expiresAt,
+      authType: 'fpl_session',
     });
   } catch (error) {
     console.error('FPL status check error:', error);

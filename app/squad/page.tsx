@@ -21,6 +21,7 @@ import { MobileSquadView, MobileImportPage, MobileTransferPage } from "@/compone
 import { useSavedTeamId } from "@/hooks/useSavedTeamId";
 import { ManagerSidebar } from "@/components/ManagerSidebar";
 import { InsightPanel } from "@/components/InsightPanel";
+import { FPLApplyButton } from "@/components/FPLApplyButton";
 import { getMockDeadline, formatDeadline } from "@/lib/date";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -313,6 +314,8 @@ export default function Page() {
                 <TrendingUp className="w-4 h-4 text-white" />
                 <span className="text-xs font-semibold text-white">Auto XI</span>
               </button>
+
+              <FPLApplyButton />
 
               {/* GW Next */}
               <button

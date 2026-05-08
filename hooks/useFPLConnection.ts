@@ -18,9 +18,17 @@ interface ConnectResult {
 }
 
 interface UseFPLConnectionReturn extends FPLConnectionStatus {
-  connect: (teamId: string) => Promise<ConnectResult>
+  connect: (email: string, password: string) => Promise<ConnectResult>
   disconnect: () => Promise<boolean>
   refresh: () => Promise<void>
+}
+
+async function readJson<T>(res: Response): Promise<T> {
+  try {
+    return (await res.json()) as T
+  } catch {
+    return {} as T
+  }
 }
 
 export function useFPLConnection(): UseFPLConnectionReturn {
@@ -35,15 +43,35 @@ export function useFPLConnection(): UseFPLConnectionReturn {
   // Check connection status on mount
   const checkStatus = useCallback(async () => {
     try {
-      const res = await fetch('/api/fpl-auth/status', { credentials: 'include' })
-      const data = await res.json()
+      const res = await fetch('/api/fpl-sync/status', { credentials: 'include' })
+      const data = await readJson<{
+        connected?: boolean
+        managerId?: number
+        expiresAt?: string
+        error?: string
+        reason?: string
+      }>(res)
+      const isConnected = Boolean(data.connected)
+
+      if (!res.ok) {
+        setStatus({
+          connected: false,
+          managerId: null,
+          expiresAt: null,
+          loading: false,
+          error: data.error || 'Failed to check FPL connection status',
+        })
+        return
+      }
       
       setStatus({
-        connected: data.connected || false,
-        managerId: data.managerId || null,
-        expiresAt: data.expiresAt || null,
+        connected: isConnected,
+        managerId: typeof data.managerId === 'number' ? data.managerId : null,
+        expiresAt: typeof data.expiresAt === 'string' ? data.expiresAt : null,
         loading: false,
-        error: null,
+        error: isConnected || data.reason === 'not_authenticated' || data.reason === 'no_valid_fpl_session'
+          ? null
+          : data.error || null,
       })
     } catch (error) {
       setStatus(prev => ({
@@ -58,27 +86,38 @@ export function useFPLConnection(): UseFPLConnectionReturn {
     checkStatus()
   }, [checkStatus])
 
-  // Connect to FPL via Team ID
-  const connect = useCallback(async (teamId: string): Promise<ConnectResult> => {
+  // Connect to FPL using a real authenticated FPL session
+  const connect = useCallback(async (email: string, password: string): Promise<ConnectResult> => {
+    const trimmedEmail = email.trim()
+
+    if (!trimmedEmail || !password) {
+      return { success: false, error: 'FPL email and password are required' }
+    }
+
     setStatus(prev => ({ ...prev, loading: true, error: null }))
     
     try {
-      const res = await fetch('/api/fpl-auth/login', {
+      const res = await fetch('/api/fpl-sync/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ teamId }),
+        body: JSON.stringify({ email: trimmedEmail, password }),
       })
       
-      const data = await res.json()
+      const data = await readJson<{
+        error?: string
+        teamName?: string
+        playerName?: string
+      }>(res)
       
       if (!res.ok) {
+        const message = data.error || 'Failed to connect to FPL'
         setStatus(prev => ({
           ...prev,
           loading: false,
-          error: data.error || 'Failed to connect to FPL',
+          error: message,
         }))
-        return { success: false, error: data.error }
+        return { success: false, error: message }
       }
       
       // Refresh status after successful connection
@@ -100,13 +139,13 @@ export function useFPLConnection(): UseFPLConnectionReturn {
     setStatus(prev => ({ ...prev, loading: true, error: null }))
     
     try {
-      const res = await fetch('/api/fpl-auth/disconnect', {
+      const res = await fetch('/api/fpl-sync/logout', {
         method: 'POST',
         credentials: 'include',
       })
       
       if (!res.ok) {
-        const data = await res.json()
+        const data = await readJson<{ error?: string }>(res)
         setStatus(prev => ({
           ...prev,
           loading: false,

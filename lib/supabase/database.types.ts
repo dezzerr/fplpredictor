@@ -37,6 +37,7 @@ export interface Database {
           created_at?: string
           updated_at?: string
         }
+        Relationships: []
       }
       squads: {
         Row: {
@@ -72,6 +73,7 @@ export interface Database {
           created_at?: string
           updated_at?: string
         }
+        Relationships: []
       }
       squad_history: {
         Row: {
@@ -107,6 +109,7 @@ export interface Database {
           gw_rating?: number | null
           created_at?: string
         }
+        Relationships: []
       }
       watchlist: {
         Row: {
@@ -133,6 +136,7 @@ export interface Database {
           notes?: string | null
           created_at?: string
         }
+        Relationships: []
       }
       fpl_sessions: {
         Row: {
@@ -162,7 +166,96 @@ export interface Database {
           created_at?: string
           updated_at?: string
         }
+        Relationships: []
+      }
+      fpl_sync_audit: {
+        Row: {
+          id: string
+          user_id: string
+          manager_id: number
+          action: string
+          event_id: number | null
+          summary: Json | null
+          status_code: number | null
+          success: boolean
+          error: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          manager_id: number
+          action: string
+          event_id?: number | null
+          summary?: Json | null
+          status_code?: number | null
+          success?: boolean
+          error?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          manager_id?: number
+          action?: string
+          event_id?: number | null
+          summary?: Json | null
+          status_code?: number | null
+          success?: boolean
+          error?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      player_signals: {
+        Row: {
+          id: string
+          player_name: string
+          player_id: string | null
+          team: string
+          gameweek: number
+          signal: string
+          adjustment: number | null
+          confidence: string | null
+          reason: string | null
+          source_type: string | null
+          source_label: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          player_name: string
+          player_id?: string | null
+          team: string
+          gameweek: number
+          signal: string
+          adjustment?: number | null
+          confidence?: string | null
+          reason?: string | null
+          source_type?: string | null
+          source_label?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          player_name?: string
+          player_id?: string | null
+          team?: string
+          gameweek?: number
+          signal?: string
+          adjustment?: number | null
+          confidence?: string | null
+          reason?: string | null
+          source_type?: string | null
+          source_label?: string | null
+          created_at?: string
+        }
+        Relationships: []
       }
     }
+    Views: Record<string, never>
+    Functions: Record<string, never>
+    Enums: Record<string, never>
+    CompositeTypes: Record<string, never>
   }
 }

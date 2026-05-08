@@ -6,7 +6,7 @@ import { useFPLConnection } from '@/hooks/useFPLConnection'
 import { FPLConnectModal } from './FPLConnectModal'
 
 export function FPLConnectionStatus() {
-  const { connected, managerId, loading, disconnect } = useFPLConnection()
+  const { connected, managerId, loading, disconnect, refresh } = useFPLConnection()
   const [showModal, setShowModal] = useState(false)
   const [showDropdown, setShowDropdown] = useState(false)
   const [disconnecting, setDisconnecting] = useState(false)
@@ -84,6 +84,8 @@ export function FPLConnectionStatus() {
         onClose={() => setShowModal(false)}
         onSuccess={() => {
           // Optionally trigger a squad refresh here
+          void refresh()
+          setShowModal(false)
         }}
       />
     </>

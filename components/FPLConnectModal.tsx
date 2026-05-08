@@ -1,9 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { X, Loader2, Link2, AlertCircle, CheckCircle2, HelpCircle } from 'lucide-react'
+import { X, Loader2, Link2, AlertCircle, CheckCircle2, Shield } from 'lucide-react'
 import { useFPLConnection } from '@/hooks/useFPLConnection'
-import { FPLManagerLookup } from '@/components/FPLManagerLookup'
 
 interface FPLConnectModalProps {
   isOpen: boolean
@@ -12,8 +11,8 @@ interface FPLConnectModalProps {
 }
 
 export function FPLConnectModal({ isOpen, onClose, onSuccess }: FPLConnectModalProps) {
-  const [teamId, setTeamId] = useState('')
-  const [inputMode, setInputMode] = useState<'id' | 'manager'>('id')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
@@ -21,26 +20,39 @@ export function FPLConnectModal({ isOpen, onClose, onSuccess }: FPLConnectModalP
   
   const { connect } = useFPLConnection()
 
+  const handleClose = () => {
+    if (isSubmitting) return
+    setPassword('')
+    setError(null)
+    setSuccess(false)
+    setSuccessInfo({})
+    onClose()
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
     setIsSubmitting(true)
 
     try {
-      const result = await connect(teamId.trim())
+      const result = await connect(email.trim(), password)
       
       if (result.success) {
         setSuccess(true)
         setSuccessInfo({ teamName: result.teamName, playerName: result.playerName })
+        setEmail('')
+        setPassword('')
         setTimeout(() => {
           onSuccess?.()
-          onClose()
+          handleClose()
         }, 1500)
       } else {
         setError(result.error || 'Failed to connect to FPL')
+        setPassword('')
       }
     } catch (err) {
       setError('An unexpected error occurred')
+      setPassword('')
     } finally {
       setIsSubmitting(false)
     }
@@ -53,7 +65,7 @@ export function FPLConnectModal({ isOpen, onClose, onSuccess }: FPLConnectModalP
       {/* Backdrop */}
       <div 
         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-        onClick={onClose}
+        onClick={handleClose}
       />
       
       {/* Modal */}
@@ -66,11 +78,12 @@ export function FPLConnectModal({ isOpen, onClose, onSuccess }: FPLConnectModalP
             </div>
             <div>
               <h2 className="text-lg font-semibold text-white">Connect FPL Account</h2>
-              <p className="text-sm text-slate-400">Link your team using your FPL Team ID</p>
+              <p className="text-sm text-slate-400">Enable direct team changes</p>
             </div>
           </div>
           <button
-            onClick={onClose}
+            onClick={handleClose}
+            disabled={isSubmitting}
             className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
           >
             <X className="w-5 h-5" />
@@ -94,31 +107,6 @@ export function FPLConnectModal({ isOpen, onClose, onSuccess }: FPLConnectModalP
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-2 gap-2 rounded-lg bg-slate-800/70 p-1">
-                <button
-                  type="button"
-                  onClick={() => setInputMode('id')}
-                  className={`rounded-md px-3 py-2 text-sm font-medium transition-colors ${
-                    inputMode === 'id'
-                      ? 'bg-slate-700 text-white'
-                      : 'text-slate-400 hover:text-slate-200'
-                  }`}
-                >
-                  Enter Team ID
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setInputMode('manager')}
-                  className={`rounded-md px-3 py-2 text-sm font-medium transition-colors ${
-                    inputMode === 'manager'
-                      ? 'bg-slate-700 text-white'
-                      : 'text-slate-400 hover:text-slate-200'
-                  }`}
-                >
-                  Search Manager Name
-                </button>
-              </div>
-
               {/* Error message */}
               {error && (
                 <div className="flex items-start gap-3 bg-red-500/10 border border-red-500/30 rounded-lg p-4">
@@ -127,44 +115,44 @@ export function FPLConnectModal({ isOpen, onClose, onSuccess }: FPLConnectModalP
                 </div>
               )}
 
-              {inputMode === 'manager' && (
-                <FPLManagerLookup
-                  theme="dark"
-                  onSelect={(entryId) => {
-                    setTeamId(entryId)
-                    setError(null)
-                  }}
-                />
-              )}
-
-              {/* Team ID field */}
               <div>
-                <label htmlFor="fpl-team-id" className="block text-sm font-medium text-slate-300 mb-2">
-                  FPL Team ID
+                <label htmlFor="fpl-email" className="block text-sm font-medium text-slate-300 mb-2">
+                  FPL Email
                 </label>
                 <input
-                  id="fpl-team-id"
-                  type="text"
-                  inputMode="numeric"
-                  value={teamId}
-                  onChange={(e) => setTeamId(e.target.value.replace(/\D/g, ''))}
-                  placeholder="e.g. 1234567"
+                  id="fpl-email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@example.com"
                   required
+                  autoComplete="username"
                   className="w-full px-4 py-3 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-fuchsia-500 focus:border-transparent transition-all"
                 />
               </div>
 
-              {/* How to find your Team ID */}
+              <div>
+                <label htmlFor="fpl-password" className="block text-sm font-medium text-slate-300 mb-2">
+                  FPL Password
+                </label>
+                <input
+                  id="fpl-password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Your FPL password"
+                  required
+                  autoComplete="current-password"
+                  className="w-full px-4 py-3 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-fuchsia-500 focus:border-transparent transition-all"
+                />
+              </div>
+
               <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-4">
                 <div className="flex items-start gap-2">
-                  <HelpCircle className="w-4 h-4 text-cyan-400 flex-shrink-0 mt-0.5" />
+                  <Shield className="w-4 h-4 text-cyan-400 flex-shrink-0 mt-0.5" />
                   <div className="text-sm text-slate-400">
-                    <p className="font-medium text-slate-300 mb-1">How to find your Team ID</p>
-                    <ol className="list-decimal list-inside space-y-1">
-                      <li>Go to <strong className="text-slate-300">fantasy.premierleague.com</strong></li>
-                      <li>Click <strong className="text-slate-300">Points</strong> or <strong className="text-slate-300">Pick Team</strong></li>
-                      <li>Your Team ID is the number in the URL: <span className="text-cyan-400">/entry/<strong>1234567</strong>/event/</span></li>
-                    </ol>
+                    <p className="font-medium text-slate-300 mb-1">Security note</p>
+                    <p>Your password is sent only to our server, used to create an FPL session, and never stored. Stored FPL session cookies are encrypted at rest.</p>
                   </div>
                 </div>
               </div>
@@ -172,7 +160,7 @@ export function FPLConnectModal({ isOpen, onClose, onSuccess }: FPLConnectModalP
               {/* Submit button */}
               <button
                 type="submit"
-                disabled={isSubmitting || !teamId.trim()}
+                disabled={isSubmitting || !email.trim() || !password}
                 className="w-full py-3 px-4 bg-gradient-to-r from-fuchsia-600 to-cyan-600 hover:from-fuchsia-500 hover:to-cyan-500 text-white font-semibold rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {isSubmitting ? (
@@ -190,7 +178,7 @@ export function FPLConnectModal({ isOpen, onClose, onSuccess }: FPLConnectModalP
 
               {/* Privacy note */}
               <p className="text-xs text-slate-500 text-center">
-                No password required. We only use your public FPL Team ID to import your squad data.
+                Direct FPL changes always require confirmation before anything is submitted.
               </p>
             </form>
           )}

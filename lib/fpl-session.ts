@@ -19,6 +19,30 @@ const FPL_BASE_URL = 'https://fantasy.premierleague.com'
 const PL_LOGIN_URL = 'https://users.premierleague.com/accounts/login/'
 const COOKIE_IV_LENGTH = 12
 
+function createFplNetworkError(error: unknown) {
+  const cause =
+    typeof error === 'object' && error && 'cause' in error
+      ? ((error as { cause?: { code?: string; hostname?: string } }).cause ?? {})
+      : {}
+
+  if (cause.code === 'ENOTFOUND') {
+    return Object.assign(
+      new Error(
+        `Could not reach FPL login service (${cause.hostname || 'users.premierleague.com'}). Check DNS/network and try again.`
+      ),
+      { status: 503 }
+    )
+  }
+
+  if (cause.code === 'ETIMEDOUT' || cause.code === 'ECONNREFUSED' || cause.code === 'ECONNRESET') {
+    return Object.assign(new Error('FPL login service is temporarily unreachable. Please try again.'), {
+      status: 503,
+    })
+  }
+
+  return Object.assign(new Error('Failed to reach FPL login service. Please try again.'), { status: 503 })
+}
+
 function getEncryptionKey() {
   const raw = process.env.FPL_SESSION_ENCRYPTION_KEY
   if (!raw) {
@@ -87,9 +111,13 @@ export async function requireAuthenticatedUser() {
 }
 
 async function fetchEntry(managerId: number) {
-  const res = await fetch(`${FPL_BASE_URL}/api/entry/${managerId}/`, { cache: 'no-store' })
-  if (!res.ok) return null
-  return res.json()
+  try {
+    const res = await fetch(`${FPL_BASE_URL}/api/entry/${managerId}/`, { cache: 'no-store' })
+    if (!res.ok) return null
+    return res.json()
+  } catch {
+    return null
+  }
 }
 
 export async function loginToFpl(args: { email: string; password: string }) {
@@ -100,18 +128,23 @@ export async function loginToFpl(args: { email: string; password: string }) {
     redirect_uri: `${FPL_BASE_URL}/`,
   })
 
-  const res = await fetch(PL_LOGIN_URL, {
-    method: 'POST',
-    redirect: 'manual',
-    cache: 'no-store',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-      Origin: FPL_BASE_URL,
-      Referer: `${FPL_BASE_URL}/`,
-      'User-Agent': 'Mozilla/5.0 FPL Companion',
-    },
-    body,
-  })
+  let res: Response
+  try {
+    res = await fetch(PL_LOGIN_URL, {
+      method: 'POST',
+      redirect: 'manual',
+      cache: 'no-store',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        Origin: FPL_BASE_URL,
+        Referer: `${FPL_BASE_URL}/`,
+        'User-Agent': 'Mozilla/5.0 FPL Companion',
+      },
+      body,
+    })
+  } catch (error) {
+    throw createFplNetworkError(error)
+  }
 
   const cookies = serializeSetCookies(res.headers)
   const hasSession = /pl_profile=|sessionid=|csrftoken=/.test(cookies)
@@ -120,14 +153,19 @@ export async function loginToFpl(args: { email: string; password: string }) {
     throw Object.assign(new Error('FPL login failed. Check your credentials and try again.'), { status: 401 })
   }
 
-  const meRes = await fetch(`${FPL_BASE_URL}/api/me/`, {
-    cache: 'no-store',
-    headers: {
-      Cookie: cookies,
-      Referer: `${FPL_BASE_URL}/`,
-      'User-Agent': 'Mozilla/5.0 FPL Companion',
-    },
-  })
+  let meRes: Response
+  try {
+    meRes = await fetch(`${FPL_BASE_URL}/api/me/`, {
+      cache: 'no-store',
+      headers: {
+        Cookie: cookies,
+        Referer: `${FPL_BASE_URL}/`,
+        'User-Agent': 'Mozilla/5.0 FPL Companion',
+      },
+    })
+  } catch (error) {
+    throw createFplNetworkError(error)
+  }
 
   if (!meRes.ok) {
     throw Object.assign(new Error('FPL login succeeded but manager details could not be verified.'), { status: 502 })

@@ -114,8 +114,8 @@ export default function FPLConnectPage() {
                   {loading 
                     ? 'Please wait while we check your connection status.'
                     : connected 
-                      ? 'Your FPL account is linked. You can sync your team and apply changes directly.'
-                      : 'Connect your FPL account to sync your team and apply changes directly to Fantasy Premier League.'
+                      ? 'Your authenticated FPL session is linked. You can apply confirmed pick-team changes directly.'
+                      : 'Connect your FPL account to apply confirmed pick-team changes directly to Fantasy Premier League.'
                   }
                 </p>
               </div>
@@ -127,6 +127,10 @@ export default function FPLConnectPage() {
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-slate-400">Team ID</span>
                   <span className="text-sm font-mono text-white">{managerId}</span>
+                </div>
+                <div className="flex items-center justify-between gap-4">
+                  <span className="text-sm text-slate-400">Session expires</span>
+                  <span className="text-sm text-white text-right">{formatExpiryDate(expiresAt)}</span>
                 </div>
               </div>
             )}
@@ -183,15 +187,15 @@ export default function FPLConnectPage() {
               </li>
               <li className="flex items-start gap-3">
                 <div className="w-1.5 h-1.5 bg-fuchsia-400 rounded-full mt-2" />
-                <span>Apply transfers directly to your FPL team</span>
+                <span>Apply captain, vice-captain, substitution and bench-order changes directly to your FPL team</span>
               </li>
               <li className="flex items-start gap-3">
                 <div className="w-1.5 h-1.5 bg-fuchsia-400 rounded-full mt-2" />
-                <span>Sync captain and substitution changes</span>
+                <span>Preview every change before anything is submitted</span>
               </li>
               <li className="flex items-start gap-3">
                 <div className="w-1.5 h-1.5 bg-fuchsia-400 rounded-full mt-2" />
-                <span>Keep your app and FPL in perfect sync</span>
+                <span>Transfers and chips stay blocked until the safer beta phase</span>
               </li>
             </ul>
           </div>
@@ -205,11 +209,11 @@ export default function FPLConnectPage() {
             <ul className="space-y-3 text-sm text-slate-300">
               <li className="flex items-start gap-3">
                 <div className="w-1.5 h-1.5 bg-cyan-400 rounded-full mt-2" />
-                <span>No password required — we only use your public FPL Team ID</span>
+                <span>Your FPL password is used once on our server to create a session and is never stored</span>
               </li>
               <li className="flex items-start gap-3">
                 <div className="w-1.5 h-1.5 bg-cyan-400 rounded-full mt-2" />
-                <span>Your Team ID is publicly available on the FPL website</span>
+                <span>Stored FPL session cookies are encrypted at rest</span>
               </li>
               <li className="flex items-start gap-3">
                 <div className="w-1.5 h-1.5 bg-cyan-400 rounded-full mt-2" />
@@ -217,7 +221,7 @@ export default function FPLConnectPage() {
               </li>
               <li className="flex items-start gap-3">
                 <div className="w-1.5 h-1.5 bg-cyan-400 rounded-full mt-2" />
-                <span>Connection never expires — no need to re-authenticate</span>
+                <span>Sessions expire and you may need to reconnect periodically</span>
               </li>
             </ul>
           </div>

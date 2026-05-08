@@ -42,32 +42,11 @@ export async function POST(request: NextRequest) {
 
     // Get the authenticated Supabase user
     const supabase = createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const { data: { user } } = await supabase.auth.getUser();
 
-    // If user is logged in, store the connection in database
+    // If user is logged in, store the public Team ID on their profile.
+    // Authenticated FPL write sessions are created only through /api/fpl-sync/login.
     if (user) {
-      // No expiry needed — Team ID connections don't expire
-      const expiresAt = new Date();
-      expiresAt.setFullYear(expiresAt.getFullYear() + 10); // Effectively permanent
-
-      // Store the FPL session in the database
-      const { error: upsertError } = await supabase
-        .from('fpl_sessions')
-        .upsert({
-          user_id: user.id,
-          manager_id: id,
-          encrypted_cookies: '', // No cookies needed for Team ID flow
-          expires_at: expiresAt.toISOString(),
-          updated_at: new Date().toISOString(),
-        }, {
-          onConflict: 'user_id',
-        });
-
-      if (upsertError) {
-        console.error('Failed to store FPL session:', upsertError);
-      }
-
-      // Also update the profile with the FPL team ID
       await supabase
         .from('profiles')
         .update({ fpl_team_id: id })

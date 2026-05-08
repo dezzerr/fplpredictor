@@ -22,7 +22,7 @@ export function MobileImportPage({ onBack, onSuccess }: MobileImportPageProps) {
   const [savedTeamId, setSavedTeamId] = useState<number | null>(null);
   const [pending, startTransition] = useTransition();
   const [showFPLConnectModal, setShowFPLConnectModal] = useState(false);
-  const { connected, managerId } = useFPLConnection();
+  const { connected, managerId, refresh: refreshFplConnection } = useFPLConnection();
 
   // Load saved FPL team ID from profile on mount
   useEffect(() => {
@@ -44,6 +44,13 @@ export function MobileImportPage({ onBack, onSuccess }: MobileImportPageProps) {
     };
     loadSavedTeamId();
   }, []);
+
+  useEffect(() => {
+    if (!connected || !managerId) return;
+    const nextTeamId = managerId.toString();
+    setSavedTeamId(managerId);
+    setEntryId(nextTeamId);
+  }, [connected, managerId]);
 
   const handleImport = () => {
     const id = entryId.trim();
@@ -275,6 +282,7 @@ export function MobileImportPage({ onBack, onSuccess }: MobileImportPageProps) {
         isOpen={showFPLConnectModal}
         onClose={() => setShowFPLConnectModal(false)}
         onSuccess={() => {
+          void refreshFplConnection();
           toast.success("FPL account connected!");
           // Auto-import if we now have a manager ID
         }}

@@ -17,6 +17,7 @@ import { formatDeadline } from "@/lib/date";
 import { Brain, ChevronLeft, ChevronRight, Undo2, Download, TrendingUp, GitCompare, RefreshCw, Link2 } from "lucide-react";
 import { useFPLConnection } from "@/hooks/useFPLConnection";
 import { FPLConnectModal } from "@/components/FPLConnectModal";
+import { FPLApplyButton } from "@/components/FPLApplyButton";
 import { toast } from "sonner";
 import { Player, Position } from "@/lib/data";
 import { LiveScoreTicker } from "@/components/LiveScoreTicker";
@@ -44,7 +45,7 @@ export function MobileSquadView({ currentGw, gwOffset, deadline, onGwChange }: M
   const [substitutePlayer, setSubstitutePlayer] = useState<Player | null>(null);
   const [fplConnectOpen, setFplConnectOpen] = useState(false);
   const [insightsOpen, setInsightsOpen] = useState(false);
-  const { connected: fplConnected } = useFPLConnection();
+  const { connected: fplConnected, refresh: refreshFplConnection } = useFPLConnection();
   
   const autoSelectBestXI = useSquadStore((s) => s.autoSelectBestXI);
   const selectPlayer = useSquadStore((s) => s.selectPlayer);
@@ -211,6 +212,8 @@ export function MobileSquadView({ currentGw, gwOffset, deadline, onGwChange }: M
           >
             <Link2 className={`w-4 h-4 ${fplConnected ? 'text-emerald-600' : 'text-fuchsia-600'}`} />
           </button>
+
+          <FPLApplyButton compact />
 
           {/* Optimise Button */}
           <button
@@ -389,6 +392,7 @@ export function MobileSquadView({ currentGw, gwOffset, deadline, onGwChange }: M
         isOpen={fplConnectOpen}
         onClose={() => setFplConnectOpen(false)}
         onSuccess={() => {
+          void refreshFplConnection();
           toast.success("FPL account connected!");
           setFplConnectOpen(false);
         }}

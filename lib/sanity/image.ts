@@ -1,4 +1,4 @@
-import createImageUrlBuilder from '@sanity/image-url'
+import { createImageUrlBuilder } from '@sanity/image-url'
 
 import {SANITY_DATASET, SANITY_PROJECT_ID} from '@/lib/sanity/client'
 
