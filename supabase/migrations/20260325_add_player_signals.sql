@@ -17,3 +17,7 @@ CREATE TABLE IF NOT EXISTS player_signals (
 
 CREATE INDEX IF NOT EXISTS player_signals_gameweek_idx ON player_signals(gameweek);
 CREATE INDEX IF NOT EXISTS player_signals_player_id_idx ON player_signals(player_id);
+
+-- Signals are read and written through server routes with the service role.
+-- Do not expose direct client access to this operational data.
+ALTER TABLE player_signals ENABLE ROW LEVEL SECURITY;
