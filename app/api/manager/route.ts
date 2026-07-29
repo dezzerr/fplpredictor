@@ -1,19 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getLiveEvent } from "@/lib/liveWindow";
-
-// Validate entryId is a valid FPL team ID (numeric, reasonable range)
-function isValidEntryId(id: string | null): boolean {
-  if (!id) return false;
-  const num = parseInt(id, 10);
-  return !isNaN(num) && num > 0 && num < 100000000 && String(num) === id;
-}
+import { rateLimitGuard } from "@/lib/request-security";
+import { parseFplEntryId } from "@/lib/fplEntry";
 
 export async function GET(req: NextRequest) {
-  const { searchParams } = new URL(req.url);
-  const entryId = searchParams.get("entryId");
+  const protection = await rateLimitGuard(req, "manager", 30, 60_000);
+  if (protection) return protection;
 
-  if (!isValidEntryId(entryId)) {
-    return NextResponse.json({ error: "Invalid or missing entryId" }, { status: 400 });
+  const { searchParams } = new URL(req.url);
+  const entryId = parseFplEntryId(searchParams.get("entryId"));
+
+  if (!entryId) {
+    return NextResponse.json({ error: "Enter a valid FPL Team ID or official entry URL." }, { status: 400 });
   }
 
   try {
@@ -25,7 +23,7 @@ export async function GET(req: NextRequest) {
 
     if (!entryRes.ok) {
       return NextResponse.json(
-        { error: "Failed to fetch manager data" },
+        { error: entryRes.status === 404 ? "FPL team not found. Check the Team ID or entry URL." : "Could not verify this FPL team right now." },
         { status: entryRes.status }
       );
     }

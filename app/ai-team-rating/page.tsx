@@ -265,7 +265,7 @@ export default function AiTeamRatingPage() {
             className={cn(
               "w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold transition-colors",
               step >= s
-                ? "bg-fuchsia-500 text-white"
+                ? "bg-violet-500 text-white"
                 : "bg-slate-700 text-slate-400"
             )}
           >
@@ -275,7 +275,7 @@ export default function AiTeamRatingPage() {
             <div
               className={cn(
                 "w-12 h-0.5 mx-1",
-                step > s ? "bg-fuchsia-500" : "bg-slate-700"
+                step > s ? "bg-violet-500" : "bg-slate-700"
               )}
             />
           )}
@@ -330,7 +330,7 @@ export default function AiTeamRatingPage() {
                       : "text-slate-400 hover:text-slate-200"
                   }`}
                 >
-                  Search Manager Name
+                  Find FPL Team
                 </button>
               </div>
 
@@ -357,7 +357,7 @@ export default function AiTeamRatingPage() {
               <Button
                 onClick={loadTeamAndRate}
                 disabled={loadingTeam}
-                className="w-full h-12 bg-gradient-to-r from-fuchsia-600 to-indigo-600 hover:from-fuchsia-500 hover:to-indigo-500 text-white font-semibold"
+                className="w-full h-12 bg-gradient-brand-cta hover:opacity-90 text-white font-semibold"
               >
                 {loadingTeam ? (
                   <>
@@ -370,7 +370,7 @@ export default function AiTeamRatingPage() {
               </Button>
 
               {errorMessage && (
-                <div className="rounded-lg bg-fuchsia-500/10 border border-fuchsia-500/20 px-4 py-3 text-sm text-fuchsia-300">
+                <div className="rounded-lg bg-violet-500/10 border border-violet-500/20 px-4 py-3 text-sm text-violet-300">
                   <div className="flex items-center gap-2">
                     <span className="font-semibold">ℹ</span>
                     {errorMessage}
@@ -386,7 +386,7 @@ export default function AiTeamRatingPage() {
                 <button
                   type="button"
                   onClick={() => setInputMode("id")}
-                  className="text-fuchsia-400 hover:text-fuchsia-300 text-sm font-medium"
+                  className="text-violet-400 hover:text-violet-300 text-sm font-medium"
                 >
                   Enter Team ID manually
                 </button>
@@ -400,7 +400,7 @@ export default function AiTeamRatingPage() {
 
               <Link
                 href="/squad"
-                className="block text-fuchsia-400 hover:text-fuchsia-300 text-sm font-medium"
+                className="block text-violet-400 hover:text-violet-300 text-sm font-medium"
               >
                 Enter team manually
               </Link>
@@ -429,7 +429,7 @@ export default function AiTeamRatingPage() {
                 <div key={key} className="space-y-1">
                   <div className="flex items-center gap-2">
                     {analysisChecks[key as keyof typeof analysisChecks] ? (
-                      <Check className="w-4 h-4 text-fuchsia-500" />
+                      <Check className="w-4 h-4 text-violet-500" />
                     ) : (
                       <Loader2 className="w-4 h-4 text-slate-500 animate-spin" />
                     )}
@@ -446,7 +446,7 @@ export default function AiTeamRatingPage() {
                   </div>
                   <div className="h-1 bg-slate-800 rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-fuchsia-500 transition-all duration-500"
+                      className="h-full bg-violet-500 transition-all duration-500"
                       style={{
                         width:
                           analysisChecks[key as keyof typeof analysisChecks]
@@ -500,8 +500,8 @@ export default function AiTeamRatingPage() {
                   ))}
                 </div>
               </div>
-              <div className="rounded-xl border border-fuchsia-500/20 bg-fuchsia-500/10 p-4">
-                <div className="text-sm font-semibold text-fuchsia-300 mb-1">Captain</div>
+              <div className="rounded-xl border border-violet-500/20 bg-violet-500/10 p-4">
+                <div className="text-sm font-semibold text-violet-300 mb-1">Captain</div>
                 <div className="text-sm text-white font-medium">{rating.captainPick}</div>
                 <div className="text-xs text-slate-400">{rating.captainReason}</div>
               </div>
@@ -518,7 +518,7 @@ export default function AiTeamRatingPage() {
                 setStep(4);
                 getTransferSuggestions();
               }}
-              className="bg-gradient-to-r from-fuchsia-600 to-indigo-600 hover:from-fuchsia-500 hover:to-indigo-500 text-white font-semibold px-8 py-3 h-auto"
+              className="bg-gradient-brand-cta hover:opacity-90 text-white font-semibold px-8 py-3 h-auto"
             >
               Recommend transfers
             </Button>
@@ -595,7 +595,7 @@ export default function AiTeamRatingPage() {
                     <div key={key} className="space-y-1">
                       <div className="flex items-center gap-2">
                         {analysisChecks[key as keyof typeof analysisChecks] ? (
-                          <Check className="w-4 h-4 text-fuchsia-500" />
+                          <Check className="w-4 h-4 text-violet-500" />
                         ) : (
                           <Loader2 className="w-4 h-4 text-slate-500 animate-spin" />
                         )}
@@ -612,7 +612,7 @@ export default function AiTeamRatingPage() {
                       </div>
                       <div className="h-1 bg-slate-800 rounded-full overflow-hidden">
                         <div
-                          className="h-full bg-fuchsia-500 transition-all duration-500"
+                          className="h-full bg-violet-500 transition-all duration-500"
                           style={{
                             width:
                               analysisChecks[key as keyof typeof analysisChecks]
@@ -653,12 +653,12 @@ export default function AiTeamRatingPage() {
                             Out
                           </span>
                           <ArrowRight className="w-4 h-4 text-red-500" />
-                          <span className="text-fuchsia-500 text-sm font-semibold">
+                          <span className="text-violet-500 text-sm font-semibold">
                             In
                           </span>
                         </div>
                         <div className="text-center">
-                          <div className="w-12 h-12 bg-fuchsia-600 rounded-lg mx-auto mb-1" />
+                          <div className="w-12 h-12 bg-violet-600 rounded-lg mx-auto mb-1" />
                           <div className="text-sm font-medium text-slate-400">
                             {transfer.inPlayer}
                           </div>
@@ -669,18 +669,18 @@ export default function AiTeamRatingPage() {
 
                   <div className="absolute inset-0 flex items-center justify-center">
                     <div className="bg-slate-900 rounded-xl shadow-lg p-6 text-center border border-slate-700">
-                      <div className="w-12 h-12 bg-fuchsia-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <div className="w-12 h-12 bg-violet-500 rounded-full flex items-center justify-center mx-auto mb-4">
                         <Lock className="w-6 h-6 text-white" />
                       </div>
                       <Button
                         asChild
-                        className="bg-gradient-to-r from-fuchsia-600 to-indigo-600 hover:from-fuchsia-500 hover:to-indigo-500 text-white font-semibold px-6"
+                        className="bg-gradient-brand-cta hover:opacity-90 text-white font-semibold px-6"
                       >
                         <Link href="/login">Unlock all transfers</Link>
                       </Button>
                       <p className="mt-3 text-sm text-slate-400">
                         Already a member?{" "}
-                        <Link href="/login" className="text-fuchsia-400 hover:text-fuchsia-300">
+                        <Link href="/login" className="text-violet-400 hover:text-violet-300">
                           Log in
                         </Link>
                       </p>

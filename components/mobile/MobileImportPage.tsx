@@ -1,12 +1,10 @@
 "use client";
 
 import { useState, useTransition, useEffect } from "react";
-import { ArrowLeft, Search, Rocket, Download, Link2, ChevronRight } from "lucide-react";
+import { ArrowLeft, Search, Rocket, Download } from "lucide-react";
 import { useSquadStore } from "@/store/squad";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
-import { useFPLConnection } from "@/hooks/useFPLConnection";
-import { FPLConnectModal } from "@/components/FPLConnectModal";
 import { FPLManagerLookup } from "@/components/FPLManagerLookup";
 
 interface MobileImportPageProps {
@@ -21,8 +19,6 @@ export function MobileImportPage({ onBack, onSuccess }: MobileImportPageProps) {
   const [entryId, setEntryId] = useState("");
   const [savedTeamId, setSavedTeamId] = useState<number | null>(null);
   const [pending, startTransition] = useTransition();
-  const [showFPLConnectModal, setShowFPLConnectModal] = useState(false);
-  const { connected, managerId, refresh: refreshFplConnection } = useFPLConnection();
 
   // Load saved FPL team ID from profile on mount
   useEffect(() => {
@@ -44,13 +40,6 @@ export function MobileImportPage({ onBack, onSuccess }: MobileImportPageProps) {
     };
     loadSavedTeamId();
   }, []);
-
-  useEffect(() => {
-    if (!connected || !managerId) return;
-    const nextTeamId = managerId.toString();
-    setSavedTeamId(managerId);
-    setEntryId(nextTeamId);
-  }, [connected, managerId]);
 
   const handleImport = () => {
     const id = entryId.trim();
@@ -103,7 +92,7 @@ export function MobileImportPage({ onBack, onSuccess }: MobileImportPageProps) {
 
       <div className="flex-1 overflow-y-auto">
         {/* Hero Section */}
-        <div className="bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 px-6 py-8 text-white">
+        <div className="bg-gradient-to-br from-violet-500 via-violet-600 to-cyan-600 px-6 py-8 text-white">
           <div className="flex items-center gap-4 mb-4">
             <div className="p-3 bg-white/20 backdrop-blur-sm rounded-xl">
               <Download className="h-8 w-8" />
@@ -115,38 +104,14 @@ export function MobileImportPage({ onBack, onSuccess }: MobileImportPageProps) {
           </div>
         </div>
 
-        {/* FPL Direct Connect Option */}
-        <div className="px-4 pt-4">
-          <button
-            onClick={() => setShowFPLConnectModal(true)}
-            className="w-full bg-gradient-to-r from-fuchsia-500/10 to-cyan-500/10 border border-fuchsia-500/30 rounded-xl p-4 flex items-center gap-4 hover:from-fuchsia-500/20 hover:to-cyan-500/20 transition-all"
-          >
-            <div className="p-2.5 bg-gradient-to-br from-fuchsia-500 to-cyan-500 rounded-lg">
-              <Link2 className="w-5 h-5 text-white" />
-            </div>
-            <div className="flex-1 text-left">
-              <p className="font-semibold text-slate-900">
-                {connected ? 'FPL Account Connected' : 'Connect FPL Account'}
-              </p>
-              <p className="text-sm text-slate-600">
-                {connected 
-                  ? `Team ID: ${managerId} • Tap to manage`
-                  : 'Sign in directly for automatic sync'
-                }
-              </p>
-            </div>
-            <ChevronRight className="w-5 h-5 text-slate-400" />
-          </button>
-        </div>
-
         <div className="px-4 py-6 space-y-6">
           {/* Saved Team ID Info */}
           {savedTeamId && (
-            <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4">
-              <div className="text-sm text-indigo-800">
+            <div className="bg-violet-500/10 border border-violet-500/20 rounded-lg p-4">
+              <div className="text-sm text-violet-200">
                 <span className="font-medium">Saved Team ID:</span>{" "}
                 <span className="font-mono">{savedTeamId}</span>
-                <p className="text-xs text-indigo-600 mt-1">
+                <p className="text-xs text-violet-300 mt-1">
                   Your team ID is saved to your account. It will auto-fill when you sign in.
                 </p>
               </div>
@@ -188,7 +153,7 @@ export function MobileImportPage({ onBack, onSuccess }: MobileImportPageProps) {
                     : "text-slate-600 hover:text-slate-900"
                 }`}
               >
-                Search Manager
+                Find FPL Team
               </button>
             </div>
 
@@ -210,7 +175,7 @@ export function MobileImportPage({ onBack, onSuccess }: MobileImportPageProps) {
               value={entryId}
               onChange={(e) => setEntryId(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleImport()}
-              className="w-full px-4 py-3 border border-slate-200 rounded-lg text-lg font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full px-4 py-3 border border-slate-200 rounded-lg text-lg font-mono focus:outline-none focus:ring-2 focus:ring-violet-500"
               autoFocus
             />
           </div>
@@ -218,14 +183,14 @@ export function MobileImportPage({ onBack, onSuccess }: MobileImportPageProps) {
           {/* Help Section */}
           <div className="bg-slate-50 rounded-lg p-4 space-y-3">
             <div className="flex items-start gap-3">
-              <Search className="h-5 w-5 text-indigo-500 mt-0.5 shrink-0" />
+              <Search className="h-5 w-5 text-violet-400 mt-0.5 shrink-0" />
               <div className="space-y-2">
                 <p className="font-medium text-slate-900">Where do I find my ID?</p>
                 <p className="text-sm text-slate-600">
                   Go to the Points tab on the FPL website. Your ID is the number in the URL:
                 </p>
                 <div className="bg-white px-3 py-2 rounded border text-sm font-mono overflow-x-auto">
-                  fantasy.premierleague.com/entry/<span className="text-indigo-600 font-bold">1234567</span>/event/...
+                  fantasy.premierleague.com/entry/<span className="text-violet-400 font-bold">1234567</span>/event/...
                 </div>
               </div>
             </div>
@@ -236,19 +201,19 @@ export function MobileImportPage({ onBack, onSuccess }: MobileImportPageProps) {
             <h3 className="font-medium text-slate-900">What gets imported:</h3>
             <ul className="space-y-2 text-sm text-slate-600">
               <li className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 bg-indigo-500 rounded-full" />
+                <div className="w-1.5 h-1.5 bg-violet-400 rounded-full" />
                 Your current 15-man squad
               </li>
               <li className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 bg-indigo-500 rounded-full" />
+                <div className="w-1.5 h-1.5 bg-violet-400 rounded-full" />
                 Player prices and ownership
               </li>
               <li className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 bg-indigo-500 rounded-full" />
+                <div className="w-1.5 h-1.5 bg-violet-400 rounded-full" />
                 Captain and vice-captain selections
               </li>
               <li className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 bg-indigo-500 rounded-full" />
+                <div className="w-1.5 h-1.5 bg-violet-400 rounded-full" />
                 Available bank balance
               </li>
             </ul>
@@ -261,7 +226,7 @@ export function MobileImportPage({ onBack, onSuccess }: MobileImportPageProps) {
         <button
           onClick={handleImport}
           disabled={pending || !entryId.trim()}
-          className="w-full py-3.5 rounded-full font-semibold text-white bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          className="w-full py-3.5 rounded-full font-semibold text-white bg-gradient-brand-cta hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
           {pending ? (
             <>
@@ -276,17 +241,6 @@ export function MobileImportPage({ onBack, onSuccess }: MobileImportPageProps) {
           )}
         </button>
       </div>
-
-      {/* FPL Connect Modal */}
-      <FPLConnectModal
-        isOpen={showFPLConnectModal}
-        onClose={() => setShowFPLConnectModal(false)}
-        onSuccess={() => {
-          void refreshFplConnection();
-          toast.success("FPL account connected!");
-          // Auto-import if we now have a manager ID
-        }}
-      />
     </div>
   );
 }

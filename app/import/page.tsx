@@ -85,7 +85,7 @@ export default function ImportPage() {
                 : "text-slate-600 hover:text-slate-900"
             }`}
           >
-            Search Manager Name
+                Find FPL Team
           </button>
         </div>
         {inputMode === "manager" && (

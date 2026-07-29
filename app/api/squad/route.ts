@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { fetchPlayersWithMarket } from "@/lib/market";
 import { getLiveEvent } from "@/lib/liveWindow";
 import type { Player, Position, Squad } from "@/lib/data";
+import { rateLimitGuard } from "@/lib/request-security";
+import { parseFplEntryId } from "@/lib/fplEntry";
 
 export const revalidate = 0; // Always fetch fresh data for imports
 export const dynamic = 'force-dynamic'; // Disable all caching
@@ -32,21 +34,17 @@ async function pickEventId(events: any[]): Promise<number | undefined> {
   return upcoming?.id;
 }
 
-// Validate entryId is a valid FPL team ID (numeric, reasonable range)
-function isValidEntryId(id: string | null): boolean {
-  if (!id) return false;
-  const num = parseInt(id, 10);
-  return !isNaN(num) && num > 0 && num < 100000000 && String(num) === id;
-}
-
 export async function GET(req: Request) {
+    const protection = await rateLimitGuard(req, "squad-import", 30, 60_000);
+    if (protection) return protection;
+
   try {
     const url = new URL(req.url);
-    const entryId = url.searchParams.get("entryId");
+    const entryId = parseFplEntryId(url.searchParams.get("entryId"));
     const preset = url.searchParams.get("preset");
     
-    if (!isValidEntryId(entryId)) {
-      return NextResponse.json({ error: "Invalid or missing entryId" }, { status: 400 });
+    if (!entryId) {
+      return NextResponse.json({ error: "Enter a valid FPL Team ID or official entry URL." }, { status: 400 });
     }
 
     if (process.env.NODE_ENV === 'development') {

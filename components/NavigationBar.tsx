@@ -39,7 +39,7 @@ export function NavigationBar({ currentGameweek, gwOffset }: NavigationBarProps)
   }
 
   return (
-    <div className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200/50 rounded-lg p-2 sm:p-3 shadow-sm">
+    <div className="bg-gradient-to-r from-surface-1 to-surface-1 border border-surface-border rounded-lg p-2 sm:p-3 shadow-sm">
       <nav className="flex items-center justify-center gap-1.5 sm:gap-2 flex-wrap">
         <Link 
           href="/compare" 
@@ -57,14 +57,14 @@ export function NavigationBar({ currentGameweek, gwOffset }: NavigationBarProps)
         </Link>
         <Link 
           href="/optimize" 
-          className="inline-flex items-center rounded-md bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm font-medium transition-all duration-200 shadow-sm hover:shadow-md"
+          className="inline-flex items-center rounded-md bg-gradient-brand-cta hover:opacity-90 text-white px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm font-medium transition-all duration-200 shadow-sm hover:shadow-md"
         >
           <Calendar className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
           <span>Optimize</span>
         </Link>
         <Link 
           href={'/blog' as Route} 
-          className="inline-flex items-center rounded-md bg-gradient-to-r from-pink-500 to-fuchsia-600 hover:from-pink-600 hover:to-fuchsia-700 text-white px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm font-medium transition-all duration-200 shadow-sm hover:shadow-md"
+          className="inline-flex items-center rounded-md bg-gradient-to-r from-violet-500 to-cyan-500 hover:from-violet-600 hover:to-cyan-600 text-white px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm font-medium transition-all duration-200 shadow-sm hover:shadow-md"
         >
           <BookOpen className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
           <span>Blog</span>
@@ -109,7 +109,7 @@ export function NavigationBar({ currentGameweek, gwOffset }: NavigationBarProps)
                       : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
-                  Search Manager Name
+                  Find FPL Team
                 </button>
               </div>
 
