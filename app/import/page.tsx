@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { Users } from "lucide-react";
 import { AppNavbar } from "@/components/AppNavbar";
 import { GwInfoBar } from "@/components/GwInfoBar";
 import { LiveGwProvider } from "@/components/LiveGwProvider";
@@ -13,13 +15,23 @@ import { useSquadStore } from "@/store/squad";
 import type { Squad, Player } from "@/lib/data";
 
 export default function ImportPage() {
+  const router = useRouter();
   const replaceSquad = useSquadStore((s) => s.replaceSquad);
   const syncPrices = useSquadStore((s) => s.syncPrices);
+  const startManualSquad = useSquadStore((s) => s.startManualSquad);
+  const squad = useSquadStore((s) => s.squad);
   const [pending, startTransition] = useTransition();
   const [inputMode, setInputMode] = useState<"id" | "manager">("id");
   const [entryId, setEntryId] = useState("");
   const [preset, setPreset] = useState<string>("baseline");
   const [message, setMessage] = useState<string>("");
+
+  const onStartManual = () => {
+    const playerCount = Object.values(squad.starters).reduce((total, players) => total + players.length, 0) + squad.bench.length;
+    if (playerCount > 0 && !window.confirm("Start a new manual squad? This will replace your current active squad.")) return;
+    startManualSquad();
+    router.push("/squad");
+  };
 
   const onImport = () => {
     setMessage("");
@@ -61,6 +73,20 @@ export default function ImportPage() {
     <main className="container py-6">
       <div className="mb-4 text-xl font-semibold">Import Squad</div>
       <Card className="max-w-xl p-4">
+        <div className="mb-5 rounded-xl border border-violet-200 bg-violet-50 p-4">
+          <div className="flex items-start gap-3">
+            <div className="rounded-lg bg-violet-100 p-2 text-violet-700">
+              <Users className="h-5 w-5" />
+            </div>
+            <div className="flex-1">
+              <div className="font-semibold text-slate-900">No Team ID yet?</div>
+              <p className="mt-1 text-sm text-slate-600">
+                Build from the live player list with the official £100.0m budget. You can import your FPL team later.
+              </p>
+              <Button className="mt-3" onClick={onStartManual}>Build squad manually</Button>
+            </div>
+          </div>
+        </div>
         <div className="mb-3 text-sm text-muted-foreground">
           Enter your FPL team (entry) ID to load your current squad and bank. We&apos;ll use the latest prices and projections.
         </div>

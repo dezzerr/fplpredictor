@@ -1,30 +1,39 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useSquadStore } from "@/store/squad";
 import { toast } from "sonner";
-import { Rocket, Search } from "lucide-react";
+import { Rocket, Search, Users } from "lucide-react";
 
 export function OnboardingDialog() {
-  const lastImport = useSquadStore((s) => s.lastImport);
+  const setupSource = useSquadStore((s) => s.setupSource);
   const initialize = useSquadStore((s) => s.initialize);
+  const startManualSquad = useSquadStore((s) => s.startManualSquad);
   const [open, setOpen] = useState(false);
   const [entryId, setEntryId] = useState("");
   const [pending, startTransition] = useTransition();
 
-  // Show dialog if user hasn't imported a team yet
+  // Show once until the manager chooses manual building or imports a team.
   useEffect(() => {
+    if (setupSource) {
+      setOpen(false);
+      return;
+    }
     // Small delay to allow hydration and smooth entrance
     const timer = setTimeout(() => {
-      if (!lastImport) {
-        setOpen(true);
-      }
+      setOpen(true);
     }, 1000);
     return () => clearTimeout(timer);
-  }, [lastImport]);
+  }, [setupSource]);
+
+  const onStartManual = () => {
+    startManualSquad();
+    setOpen(false);
+    toast.success("Manual squad ready with a £100.0m budget");
+  };
 
   const onImport = () => {
     const id = entryId.trim();
@@ -68,7 +77,7 @@ export function OnboardingDialog() {
                 Welcome to FPL Companion
               </DialogTitle>
               <DialogDescription className="text-[13px] text-white/80 mt-0.5">
-                Sync your squad in seconds.
+                Build now with £100m or import when FPL picks are available.
               </DialogDescription>
             </div>
           </div>
@@ -77,8 +86,25 @@ export function OnboardingDialog() {
         {/* Body */}
         <div className="px-6 pt-5 pb-5 space-y-5">
           <p className="text-sm text-slate-600 leading-relaxed">
-            Import your Fantasy Premier League team to unlock live scoring, AI insights and optimised lineups tailored to you.
+            You do not need an FPL Team ID to get started. Build a preseason squad from the live player list, then import your official team later.
           </p>
+
+          <Button
+            onClick={onStartManual}
+            className="h-auto w-full justify-start gap-3 bg-gradient-brand-cta px-4 py-3 text-left text-white shadow-sm hover:opacity-90"
+          >
+            <Users className="h-5 w-5 shrink-0" />
+            <span>
+              <span className="block font-semibold">Build squad manually</span>
+              <span className="block text-xs font-normal text-white/80">Start with the official £100.0m budget</span>
+            </span>
+          </Button>
+
+          <div className="flex items-center gap-3 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+            <span className="h-px flex-1 bg-slate-200" />
+            Or import an existing team
+            <span className="h-px flex-1 bg-slate-200" />
+          </div>
 
           <div className="space-y-2">
             <label
@@ -109,7 +135,7 @@ export function OnboardingDialog() {
                   Where do I find my ID?
                 </p>
                 <p className="text-[12px] text-slate-600 leading-relaxed">
-                  Open the <span className="font-medium text-slate-800">Points</span> tab on the FPL site — your ID is the number in the URL.
+                  Before GW1, FPL may not show the Points page or publish squad picks. You can build manually now and import later.
                 </p>
                 <div className="rounded-md border border-slate-200 bg-white px-2 py-1.5 font-mono text-[11px] text-slate-700 break-all">
                   fantasy.premierleague.com/entry/
@@ -122,18 +148,12 @@ export function OnboardingDialog() {
         </div>
 
         {/* Footer */}
-        <DialogFooter className="px-6 py-4 border-t border-slate-100 bg-slate-50/60 !mt-0 flex-row items-center justify-between gap-3 sm:space-x-0">
+        <DialogFooter className="px-6 py-4 border-t border-slate-100 bg-slate-50/60 !mt-0 flex-row items-center justify-end gap-3 sm:space-x-0">
           <Button
-            variant="ghost"
-            onClick={() => setOpen(false)}
-            className="text-slate-600 hover:text-slate-900"
-          >
-            I&apos;ll do this later
-          </Button>
-          <Button
+            variant="outline"
             onClick={onImport}
             disabled={pending}
-            className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white shadow-sm px-5"
+            className="px-5"
           >
             {pending ? "Importing…" : "Import Team"}
           </Button>

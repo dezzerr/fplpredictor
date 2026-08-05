@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition, useEffect } from "react";
-import { ArrowLeft, Search, Rocket, Download } from "lucide-react";
+import { ArrowLeft, Search, Rocket, Download, Users } from "lucide-react";
 import { useSquadStore } from "@/store/squad";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
@@ -14,11 +14,22 @@ interface MobileImportPageProps {
 
 export function MobileImportPage({ onBack, onSuccess }: MobileImportPageProps) {
   const initialize = useSquadStore((s) => s.initialize);
+  const startManualSquad = useSquadStore((s) => s.startManualSquad);
+  const squad = useSquadStore((s) => s.squad);
   const lastImport = useSquadStore((s) => s.lastImport);
   const [inputMode, setInputMode] = useState<"id" | "manager">("id");
   const [entryId, setEntryId] = useState("");
   const [savedTeamId, setSavedTeamId] = useState<number | null>(null);
   const [pending, startTransition] = useTransition();
+
+  const handleStartManual = () => {
+    const playerCount = Object.values(squad.starters).reduce((total, players) => total + players.length, 0) + squad.bench.length;
+    if (playerCount > 0 && !window.confirm("Start a new manual squad? This will replace your current active squad.")) return;
+    startManualSquad();
+    toast.success("Manual squad ready with a £100.0m budget");
+    onSuccess?.();
+    onBack();
+  };
 
   // Load saved FPL team ID from profile on mount
   useEffect(() => {
@@ -87,7 +98,7 @@ export function MobileImportPage({ onBack, onSuccess }: MobileImportPageProps) {
         <button onClick={onBack} className="p-2 -ml-2 hover:bg-slate-100 rounded-full">
           <ArrowLeft className="w-5 h-5" />
         </button>
-        <h1 className="text-lg font-semibold">Import Team</h1>
+        <h1 className="text-lg font-semibold">Set Up Team</h1>
       </div>
 
       <div className="flex-1 overflow-y-auto">
@@ -98,13 +109,34 @@ export function MobileImportPage({ onBack, onSuccess }: MobileImportPageProps) {
               <Download className="h-8 w-8" />
             </div>
             <div>
-              <h2 className="text-xl font-bold">Import Your FPL Team</h2>
-              <p className="text-sm text-white/80">Sync your squad from Fantasy Premier League</p>
+              <h2 className="text-xl font-bold">Set Up Your FPL Team</h2>
+              <p className="text-sm text-white/80">Build now or import when official picks are available</p>
             </div>
           </div>
         </div>
 
         <div className="px-4 py-6 space-y-6">
+          <div className="rounded-xl border border-violet-200 bg-violet-50 p-4">
+            <div className="flex items-start gap-3">
+              <div className="rounded-lg bg-violet-100 p-2 text-violet-700">
+                <Users className="h-5 w-5" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold text-slate-900">No Team ID yet?</h3>
+                <p className="mt-1 text-sm text-slate-600">
+                  Start with £100.0m and add players from the current live FPL list. Import your official squad later.
+                </p>
+                <button
+                  type="button"
+                  onClick={handleStartManual}
+                  className="mt-3 rounded-lg bg-violet-600 px-4 py-2 text-sm font-semibold text-white hover:bg-violet-700"
+                >
+                  Build squad manually
+                </button>
+              </div>
+            </div>
+          </div>
+
           {/* Saved Team ID Info */}
           {savedTeamId && (
             <div className="bg-violet-500/10 border border-violet-500/20 rounded-lg p-4">
@@ -187,7 +219,7 @@ export function MobileImportPage({ onBack, onSuccess }: MobileImportPageProps) {
               <div className="space-y-2">
                 <p className="font-medium text-slate-900">Where do I find my ID?</p>
                 <p className="text-sm text-slate-600">
-                  Go to the Points tab on the FPL website. Your ID is the number in the URL:
+                  Before GW1, FPL may not show the Points page or publish picks. Build manually now, or use the ID from an official entry URL when it becomes available:
                 </p>
                 <div className="bg-white px-3 py-2 rounded border text-sm font-mono overflow-x-auto">
                   fantasy.premierleague.com/entry/<span className="text-violet-400 font-bold">1234567</span>/event/...

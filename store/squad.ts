@@ -22,6 +22,8 @@ export type SquadState = {
   squad: Squad;
   loading: boolean;
   error: string | null;
+  seasonKey: string | null;
+  setupSource: "manual" | "imported" | null;
   lastImport: { entryId: string; preset?: string } | null;
   selectedPlayerId: string | null;
   // Undo history
@@ -30,6 +32,7 @@ export type SquadState = {
   undo: () => void;
   pushHistory: () => void;
   initialize: (args: { entryId: string; preset?: string }) => Promise<{ ok: true } | { ok: false; error: string }>;
+  startManualSquad: () => void;
   refresh: () => Promise<{ ok: true } | { ok: false; error: string }>;
   addPlayer: (p: Player) => { ok: boolean; reason?: string };
   addPlayerToBench: (p: Player) => { ok: boolean; reason?: string };
@@ -44,6 +47,7 @@ export type SquadState = {
   swapPlayers: (targetId: string) => { ok: boolean; reason?: string };
   replaceSquad: (s: Squad) => void;
   syncPrices: (players: Player[]) => void;
+  syncCurrentSeason: (players: Player[], seasonKey: string) => void;
   autoSelectBestXI: (weekOffset: number) => void;
   reset: () => void; // Clear all state (for logout)
   // selectors
@@ -62,6 +66,18 @@ export type SquadState = {
 
 function precision2(n: number) {
   return Math.round(n * 100) / 100;
+}
+
+export const FPL_STARTING_BUDGET = 100;
+
+export function createEmptySquad(): Squad {
+  return {
+    bank: FPL_STARTING_BUDGET,
+    starters: { GK: [], DEF: [], MID: [], FWD: [] },
+    bench: [],
+    captainId: undefined,
+    viceId: undefined,
+  };
 }
 
 // ============================================================================
@@ -173,16 +189,18 @@ function findPlayerIndex(s: Squad, id: string): PlayerLocation {
 
 const MAX_HISTORY = 20; // Keep last 20 states for undo
 
+export function inferSetupSource(squad: Squad | undefined): SquadState["setupSource"] {
+  if (!squad) return null;
+  if (squad.entryId) return "imported";
+  return flattenSquad(squad).length > 0 ? "manual" : null;
+}
+
 export const useSquadStore = create<SquadState>()(persist((set, get) => ({
-  squad: {
-    bank: 0,
-    starters: { GK: [], DEF: [], MID: [], FWD: [] },
-    bench: [],
-    captainId: undefined,
-    viceId: undefined,
-  },
+  squad: createEmptySquad(),
   loading: false,
   error: null,
+  seasonKey: null,
+  setupSource: null,
   lastImport: null,
   selectedPlayerId: null,
   history: [],
@@ -216,13 +234,33 @@ export const useSquadStore = create<SquadState>()(persist((set, get) => ({
       const res = await fetch(`/api/squad?entryId=${encodeURIComponent(entryId)}${preset ? `&preset=${encodeURIComponent(preset)}` : ""}&_t=${cacheBuster}`);
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || "Failed to load squad");
-      set({ squad: data as Squad, loading: false, error: null, lastImport: { entryId, preset } });
+      set({
+        squad: data as Squad,
+        loading: false,
+        error: null,
+        setupSource: "imported",
+        lastImport: { entryId, preset },
+        selectedPlayerId: null,
+        history: [],
+      });
       return { ok: true } as const;
     } catch (e: any) {
       const msg = e?.message || "Failed to initialize squad";
       set({ loading: false, error: msg });
       return { ok: false, error: msg } as const;
     }
+  },
+
+  startManualSquad: () => {
+    set({
+      squad: createEmptySquad(),
+      loading: false,
+      error: null,
+      setupSource: "manual",
+      lastImport: null,
+      selectedPlayerId: null,
+      history: [],
+    });
   },
 
   refresh: async () => {
@@ -273,7 +311,7 @@ export const useSquadStore = create<SquadState>()(persist((set, get) => ({
     }
 
     s.bank = precision2(s.bank - p.price);
-    set({ squad: s });
+    set({ squad: s, setupSource: get().setupSource ?? "manual" });
     return { ok: true };
   },
 
@@ -297,7 +335,7 @@ export const useSquadStore = create<SquadState>()(persist((set, get) => ({
 
     s.bench.push(p);
     s.bank = precision2(s.bank - p.price);
-    set({ squad: s });
+    set({ squad: s, setupSource: get().setupSource ?? "manual" });
     return { ok: true };
   },
 
@@ -486,7 +524,12 @@ export const useSquadStore = create<SquadState>()(persist((set, get) => ({
   },
 
   // Replace the entire squad (used by FPL import)
-  replaceSquad: (s) => set({ squad: s }),
+  replaceSquad: (s) => set({
+    squad: s,
+    setupSource: inferSetupSource(s),
+    selectedPlayerId: null,
+    history: [],
+  }),
 
   // Update player prices from a provided players list (id -> price)
   syncPrices: (players) => set((state) => {
@@ -504,6 +547,37 @@ export const useSquadStore = create<SquadState>()(persist((set, get) => ({
     s.starters.FWD = apply(s.starters.FWD);
     s.bench = apply(s.bench);
     return { squad: s };
+  }),
+
+  syncCurrentSeason: (players, seasonKey) => set((state) => {
+    // A missing key represents legacy local storage, which must not leak
+    // previous-season element IDs into a new FPL season.
+    if (state.seasonKey !== seasonKey) {
+      return {
+        squad: createEmptySquad(),
+        seasonKey,
+        setupSource: null,
+        lastImport: null,
+        selectedPlayerId: null,
+        history: [],
+      };
+    }
+
+    const currentPlayers = new Map(players.map((player) => [player.id, player]));
+    const refresh = (entries: Player[]) => entries.flatMap((player) => {
+      const current = currentPlayers.get(player.id);
+      return current ? [{ ...current }] : [];
+    });
+    const squad = structuredClone(state.squad);
+    squad.starters.GK = refresh(squad.starters.GK);
+    squad.starters.DEF = refresh(squad.starters.DEF);
+    squad.starters.MID = refresh(squad.starters.MID);
+    squad.starters.FWD = refresh(squad.starters.FWD);
+    squad.bench = refresh(squad.bench);
+    const activeIds = new Set(flattenSquad(squad).map((player) => player.id));
+    if (!activeIds.has(squad.captainId || '')) squad.captainId = undefined;
+    if (!activeIds.has(squad.viceId || '')) squad.viceId = undefined;
+    return { squad, seasonKey };
   }),
 
   totalExpPoints: () => {
@@ -602,15 +676,11 @@ export const useSquadStore = create<SquadState>()(persist((set, get) => ({
 
   reset: () => {
     set({
-      squad: {
-        bank: 0,
-        starters: { GK: [], DEF: [], MID: [], FWD: [] },
-        bench: [],
-        captainId: undefined,
-        viceId: undefined,
-      },
+      squad: createEmptySquad(),
       loading: false,
       error: null,
+      seasonKey: null,
+      setupSource: null,
       lastImport: null,
       selectedPlayerId: null,
       history: [],
@@ -619,9 +689,20 @@ export const useSquadStore = create<SquadState>()(persist((set, get) => ({
 
 }), { 
   name: "fpl-copilot-squad-v2",
+  version: 1,
+  migrate: (persistedState) => {
+    const persisted = persistedState as Partial<SquadState> | undefined;
+    if (!persisted) return persistedState as SquadState;
+    return {
+      ...persisted,
+      setupSource: persisted.setupSource ?? inferSetupSource(persisted.squad),
+    } as SquadState;
+  },
   partialize: (state) => ({
     // Only persist squad data, NOT lastImport (security: prevents cross-user data leakage)
     squad: state.squad,
+    seasonKey: state.seasonKey,
+    setupSource: state.setupSource,
     // Exclude: lastImport, loading, error, selectedPlayerId, history
   }),
 }));
