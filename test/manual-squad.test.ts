@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import type { Player, Squad } from '@/lib/data'
-import { createEmptySquad, FPL_STARTING_BUDGET, inferSetupSource, useSquadStore } from '@/store/squad'
+import { createEmptySquad, FPL_STARTING_BUDGET, inferSetupSource, migratePersistedSquadState, useSquadStore } from '@/store/squad'
 
 const player: Player = {
   id: '101',
@@ -98,4 +98,16 @@ test('persisted squads infer setup source during migration', () => {
   assert.equal(inferSetupSource(squadWith({ starters: { GK: [], DEF: [], MID: [player], FWD: [] } })), 'manual')
   assert.equal(inferSetupSource(squadWith({ entryId: '456' })), 'imported')
   assert.equal(inferSetupSource(createEmptySquad()), null)
+})
+
+test('version 2 migration repairs legacy empty £0 squads without changing populated squad banks', () => {
+  const legacyEmpty = migratePersistedSquadState({ squad: squadWith({ bank: 0 }), setupSource: 'imported' })
+  assert.equal(legacyEmpty.squad.bank, 100)
+  assert.equal(legacyEmpty.setupSource, 'imported')
+
+  const populated = migratePersistedSquadState({
+    squad: squadWith({ bank: 0, starters: { GK: [], DEF: [], MID: [player], FWD: [] } }),
+  })
+  assert.equal(populated.squad.bank, 0)
+  assert.equal(populated.setupSource, 'manual')
 })

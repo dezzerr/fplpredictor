@@ -342,6 +342,7 @@ export default function Page() {
             <ErrorBoundary compact name="PitchCard">
               <PitchCard
                 onPlayerClick={handlePlayerClick}
+                onAddPlayer={() => setFinderOpen(true)}
                 weekOffset={gwOffset}
               />
             </ErrorBoundary>

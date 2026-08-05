@@ -162,8 +162,25 @@ export async function GET(req: Request) {
     if (!picksJson) {
       const latestStatus = attempts[attempts.length - 1]?.status || 500;
       console.error('[IMPORT] Failed to load picks. Attempts:', attempts);
-      const msg = latestStatus === 404 
-        ? `FPL team ${entryId} not found or no picks available for GW${eventId}. Make sure your team ID is correct and you have made picks for this gameweek.` 
+      if (latestStatus === 404) {
+        const entryResponse = await fetch(`https://fantasy.premierleague.com/api/entry/${entryId}/`, {
+          cache: 'no-store',
+        });
+
+        if (entryResponse.ok) {
+          return NextResponse.json(
+            {
+              error: `Team found, but FPL has not published its GW${eventId} picks yet. Choose “Build squad manually” and import this team later.`,
+              code: 'PICKS_NOT_AVAILABLE',
+              details: { entryId, eventId, attempts },
+            },
+            { status: 409 },
+          );
+        }
+      }
+
+      const msg = latestStatus === 404
+        ? `FPL team ${entryId} was not found. Check the Team ID or official entry URL.`
         : "Failed to load entry picks";
       return NextResponse.json(
         { error: msg, details: { entryId, eventId, attempts } },

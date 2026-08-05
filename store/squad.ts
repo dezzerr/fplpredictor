@@ -195,6 +195,20 @@ export function inferSetupSource(squad: Squad | undefined): SquadState["setupSou
   return flattenSquad(squad).length > 0 ? "manual" : null;
 }
 
+export function migratePersistedSquadState(persistedState: unknown): SquadState {
+  const persisted = (persistedState ?? {}) as Partial<SquadState>;
+  const squad = persisted.squad;
+  const isEmpty = !!squad && flattenSquad(squad).length === 0;
+  const needsStartingBudget = isEmpty && (!Number.isFinite(squad.bank) || squad.bank <= 0);
+  const normalizedSquad = needsStartingBudget ? { ...squad, bank: FPL_STARTING_BUDGET } : squad;
+
+  return {
+    ...persisted,
+    squad: normalizedSquad,
+    setupSource: persisted.setupSource ?? inferSetupSource(normalizedSquad),
+  } as SquadState;
+}
+
 export const useSquadStore = create<SquadState>()(persist((set, get) => ({
   squad: createEmptySquad(),
   loading: false,
@@ -285,6 +299,7 @@ export const useSquadStore = create<SquadState>()(persist((set, get) => ({
   addPlayer: (p) => {
     get().pushHistory(); // Save state before adding player
     const s = structuredClone(get().squad);
+    if (flattenSquad(s).length === 0 && s.bank <= 0) s.bank = FPL_STARTING_BUDGET;
     // Already in squad
     if (flattenSquad(s).some(x => x.id === p.id)) return { ok: false, reason: "Player is already in your squad" };
 
@@ -317,6 +332,7 @@ export const useSquadStore = create<SquadState>()(persist((set, get) => ({
 
   addPlayerToBench: (p) => {
     const s = structuredClone(get().squad);
+    if (flattenSquad(s).length === 0 && s.bank <= 0) s.bank = FPL_STARTING_BUDGET;
     // Already in squad
     if (flattenSquad(s).some(x => x.id === p.id)) return { ok: false, reason: "Player is already in your squad" };
 
@@ -689,15 +705,8 @@ export const useSquadStore = create<SquadState>()(persist((set, get) => ({
 
 }), { 
   name: "fpl-copilot-squad-v2",
-  version: 1,
-  migrate: (persistedState) => {
-    const persisted = persistedState as Partial<SquadState> | undefined;
-    if (!persisted) return persistedState as SquadState;
-    return {
-      ...persisted,
-      setupSource: persisted.setupSource ?? inferSetupSource(persisted.squad),
-    } as SquadState;
-  },
+  version: 2,
+  migrate: migratePersistedSquadState,
   partialize: (state) => ({
     // Only persist squad data, NOT lastImport (security: prevents cross-user data leakage)
     squad: state.squad,
