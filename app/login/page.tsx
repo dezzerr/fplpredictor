@@ -42,8 +42,8 @@ export default function LoginPage() {
   return (
     <div className="relative min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 overflow-hidden">
       {/* Background gradient effects - matching home page */}
-      <div className="absolute inset-0 bg-gradient-to-br from-fuchsia-600/20 via-transparent to-cyan-600/20" />
-      <div className="absolute top-0 left-1/4 w-96 h-96 bg-fuchsia-500/30 rounded-full blur-3xl" />
+      <div className="absolute inset-0 bg-gradient-to-br from-violet-600/20 via-transparent to-cyan-600/20" />
+      <div className="absolute top-0 left-1/4 w-96 h-96 bg-violet-500/30 rounded-full blur-3xl" />
       <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-cyan-500/30 rounded-full blur-3xl" />
       
       {/* Header */}
@@ -56,7 +56,7 @@ export default function LoginPage() {
           <div className="text-center">
             <h1 className="text-4xl sm:text-5xl font-bold text-white mb-4">
               Welcome to{' '}
-              <span className="bg-gradient-to-r from-fuchsia-400 to-cyan-400 text-transparent bg-clip-text">
+              <span className="bg-gradient-to-r from-violet-400 to-cyan-400 text-transparent bg-clip-text">
                 FPL Companion
               </span>
             </h1>
@@ -68,7 +68,7 @@ export default function LoginPage() {
           {/* Auth Card */}
           <div className="relative">
             {/* Glow effect */}
-            <div className="absolute -inset-1 bg-gradient-to-r from-fuchsia-600 to-cyan-600 rounded-2xl blur-xl opacity-50" />
+            <div className="absolute -inset-1 bg-gradient-to-r from-violet-600 to-cyan-600 rounded-2xl blur-xl opacity-50" />
             
             {/* Card */}
             <div className="relative bg-slate-800/80 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-8 shadow-2xl">
@@ -82,8 +82,8 @@ export default function LoginPage() {
                     variables: {
                       default: {
                         colors: {
-                          brand: '#d946ef',
-                          brandAccent: '#c026d3',
+                          brand: '#A855F7',
+                          brandAccent: '#7C3AED',
                           brandButtonText: 'white',
                           defaultButtonBackground: '#1e293b',
                           defaultButtonBackgroundHover: '#334155',
@@ -93,7 +93,7 @@ export default function LoginPage() {
                           inputBackground: '#1e293b',
                           inputBorder: '#475569',
                           inputBorderHover: '#64748b',
-                          inputBorderFocus: '#d946ef',
+                          inputBorderFocus: '#A855F7',
                           inputText: 'white',
                           inputPlaceholder: '#94a3b8',
                         },
@@ -117,7 +117,7 @@ export default function LoginPage() {
                       container: 'auth-container',
                       label: 'text-slate-300',
                       button: 'font-semibold',
-                      anchor: 'text-fuchsia-400 hover:text-fuchsia-300',
+                      anchor: 'text-violet-400 hover:text-violet-300',
                     },
                   }}
                   theme="dark"
@@ -135,11 +135,11 @@ export default function LoginPage() {
           {/* Footer text */}
           <p className="text-center text-sm text-slate-400">
             By signing in, you agree to our{' '}
-            <Link href="/" className="text-fuchsia-400 hover:text-fuchsia-300 transition-colors">
+            <Link href="/" className="text-violet-400 hover:text-violet-300 transition-colors">
               Terms of Service
             </Link>
             {' '}and{' '}
-            <Link href="/" className="text-fuchsia-400 hover:text-fuchsia-300 transition-colors">
+            <Link href="/" className="text-violet-400 hover:text-violet-300 transition-colors">
               Privacy Policy
             </Link>
           </p>

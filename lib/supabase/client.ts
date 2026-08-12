@@ -1,10 +1,11 @@
 import { createBrowserClient } from '@supabase/ssr'
+import { getSupabasePublicKey } from './public-key'
 
 export const createClient = () => {
   try {
     return createBrowserClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      getSupabasePublicKey()
     )
   } catch (error) {
     console.error('Failed to create Supabase client:', error)

@@ -55,16 +55,6 @@ function getFdrTextColor(diff: number): string {
   }
 }
 
-// Team code to full name mapping
-const TEAM_NAMES: Record<string, string> = {
-  ARS: "Arsenal", AVL: "Aston Villa", BOU: "Bournemouth", BRE: "Brentford",
-  BHA: "Brighton", CHE: "Chelsea", CRY: "Crystal Palace", EVE: "Everton",
-  FUL: "Fulham", IPS: "Ipswich", LEI: "Leicester", LIV: "Liverpool",
-  MCI: "Man City", MUN: "Man Utd", NEW: "Newcastle", NFO: "Nott'm Forest",
-  SOU: "Southampton", TOT: "Spurs", WHU: "West Ham", WOL: "Wolves",
-  LEE: "Leeds", LUT: "Luton", BUR: "Burnley", SHU: "Sheffield Utd"
-};
-
 // Get position label
 const positionLabel = (pos: Position) => {
   switch (pos) {
@@ -185,6 +175,10 @@ export function PlayerDetailModal({
   // Calculate stats
   const predictedPts = player ? weeklyExp(player, weekOffset) : 0;
   const selectedBy = player?.ownership ? `${player.ownership.toFixed(1)}%` : "0%";
+  const playingTime = player?.playingTime || player?.expExplain?.playingTime;
+  const startProbability = playingTime?.startProbability ?? player?.minutesProb ?? 0;
+  const sixtyMinuteProbability = playingTime?.sixtyMinuteProbability ?? player?.minutesProb ?? 0;
+  const expectedMinutes = playingTime?.expectedMinutes ?? (player?.minutesProb ?? 0) * 90;
 
   const getPointsColor = (points: number) => {
     if (points >= 10) return 'bg-emerald-500 text-white';
@@ -241,7 +235,7 @@ export function PlayerDetailModal({
 
         {/* Header with gradient background */}
         <div className={cn(
-          "relative bg-gradient-to-br from-purple-600 via-blue-500 to-cyan-400 overflow-hidden",
+          "relative bg-gradient-to-br from-violet-600 via-violet-500 to-cyan-400 overflow-hidden",
           side === "right" ? "h-48" : "h-56 rounded-t-3xl"
         )}>
           {/* Player image */}
@@ -269,7 +263,7 @@ export function PlayerDetailModal({
               {player.name.split(' ').slice(1).join(' ') || player.name}
             </div>
             <div className={cn("mt-1 opacity-90", side === "right" ? "text-base" : "text-lg")}>
-              {TEAM_NAMES[player.team] || player.team}
+              {player.teamName || player.team}
             </div>
           </div>
 
@@ -303,11 +297,11 @@ export function PlayerDetailModal({
         <div className="grid grid-cols-4 gap-px bg-slate-200 mx-4 mt-4 rounded-lg overflow-hidden">
           <div className="bg-white p-3 text-center">
             <div className="text-[10px] text-slate-500 uppercase">Price</div>
-            <div className="text-lg font-bold text-purple-700">£{player.price.toFixed(1)}m</div>
+            <div className="text-lg font-bold text-violet-300">£{player.price.toFixed(1)}m</div>
           </div>
           <div className="bg-white p-3 text-center">
             <div className="text-[10px] text-slate-500 uppercase">Form</div>
-            <div className="text-lg font-bold text-purple-700">{player.form?.toFixed(1) || "0.0"}</div>
+            <div className="text-lg font-bold text-violet-300">{player.form?.toFixed(1) || "0.0"}</div>
           </div>
           <div className="bg-white p-3 text-center">
             <div className="text-[10px] text-slate-500 uppercase">Predicted</div>
@@ -315,7 +309,7 @@ export function PlayerDetailModal({
           </div>
           <div className="bg-white p-3 text-center">
             <div className="text-[10px] text-slate-500 uppercase">Selected</div>
-            <div className="text-lg font-bold text-purple-700">{selectedBy}</div>
+            <div className="text-lg font-bold text-violet-300">{selectedBy}</div>
           </div>
         </div>
 
@@ -385,21 +379,21 @@ export function PlayerDetailModal({
 
                   {/* Home vs Away */}
                   <div className="grid grid-cols-2 gap-3">
-                    <Card className="p-3 bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200">
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+                    <Card className="p-3 bg-surface-1 border border-surface-border">
+                      <div className="flex items-center gap-2 text-xs text-slate-400 mb-1">
                         <Home className="h-3 w-3" />
                         <span>Home Avg</span>
                       </div>
-                      <div className="text-xl font-bold text-blue-700">
+                      <div className="text-xl font-bold text-violet-300">
                         {historicalData.homeAvg.toFixed(1)}
                       </div>
                     </Card>
-                    <Card className="p-3 bg-gradient-to-br from-purple-50 to-violet-50 border-purple-200">
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+                    <Card className="p-3 bg-surface-1 border border-surface-border">
+                      <div className="flex items-center gap-2 text-xs text-slate-400 mb-1">
                         <Plane className="h-3 w-3" />
                         <span>Away Avg</span>
                       </div>
-                      <div className="text-xl font-bold text-purple-700">
+                      <div className="text-xl font-bold text-cyan-300">
                         {historicalData.awayAvg.toFixed(1)}
                       </div>
                     </Card>
@@ -416,7 +410,7 @@ export function PlayerDetailModal({
                             {game.home ? (
                               <Home className="h-3 w-3 text-blue-600" />
                             ) : (
-                              <Plane className="h-3 w-3 text-purple-600" />
+                              <Plane className="h-3 w-3 text-violet-400" />
                             )}
                           </div>
                           <div className="flex items-center gap-3 text-xs text-muted-foreground">
@@ -433,10 +427,10 @@ export function PlayerDetailModal({
 
                   {/* AI Signals */}
                   {player.expExplain?.signals && player.expExplain.signals.length > 0 && (
-                    <Card className="p-4 bg-gradient-to-br from-purple-50 to-indigo-50 border-purple-200">
+                    <Card className="p-4 bg-surface-1 border border-surface-border">
                       <div className="flex items-center gap-2 mb-3">
-                        <Brain className="h-4 w-4 text-purple-600" />
-                        <span className="text-sm font-medium">AI Signals</span>
+                        <Brain className="h-4 w-4 text-violet-400" />
+                        <span className="text-sm font-medium text-white">AI Signals</span>
                         {player.expExplain.signalMultiplier != null && (
                           <Badge className={cn(
                             "text-[10px] px-1.5 py-0",
@@ -461,7 +455,7 @@ export function PlayerDetailModal({
                           const colorMap: Record<string, string> = {
                             starts: "text-emerald-600", benched: "text-red-600", injured: "text-red-600",
                             returning: "text-blue-600", hot_form: "text-orange-600", cold_form: "text-sky-600",
-                            rotation_risk: "text-amber-600", set_piece_change: "text-purple-600",
+                            rotation_risk: "text-amber-600", set_piece_change: "text-violet-400",
                           };
                           const SigIcon = iconMap[sig.signal] || AlertTriangle;
                           return (
@@ -566,20 +560,20 @@ export function PlayerDetailModal({
 
                   {/* Defcon Stats - Only for outfield players */}
                   {canEarnDefcon && (
-                    <Card className="p-4 bg-gradient-to-br from-indigo-50 to-purple-50 border-indigo-200">
+                    <Card className="p-4 bg-surface-1 border border-surface-border">
                       <div className="flex items-center gap-2 mb-3">
-                        <Shield className="h-4 w-4 text-indigo-600" />
-                        <span className="text-sm font-medium">Defcon</span>
+                        <Shield className="h-4 w-4 text-violet-400" />
+                        <span className="text-sm font-medium text-white">Defcon</span>
                       </div>
                       <div className="grid grid-cols-2 gap-3">
-                        <div className="text-center p-3 bg-white/60 rounded-lg">
-                          <div className="text-2xl font-bold text-indigo-700">
+                        <div className="text-center p-3 bg-surface-2 rounded-lg">
+                          <div className="text-2xl font-bold text-violet-300">
                             {historicalData.defcon?.points || 0}
                           </div>
                           <div className="text-xs text-muted-foreground">Points</div>
                         </div>
-                        <div className="text-center p-3 bg-white/60 rounded-lg">
-                          <div className="text-2xl font-bold text-indigo-700">
+                        <div className="text-center p-3 bg-surface-2 rounded-lg">
+                          <div className="text-2xl font-bold text-violet-300">
                             {historicalData.defcon?.timesEarned || 0}
                           </div>
                           <div className="text-xs text-muted-foreground">Times Earned</div>
@@ -649,7 +643,7 @@ export function PlayerDetailModal({
                                     Home
                                   </Badge>
                                 ) : (
-                                  <Badge className="bg-purple-100 text-purple-700 border-purple-300 text-xs">
+                                  <Badge className="bg-violet-500/10 text-violet-300 border-violet-500/20 text-xs">
                                     <Plane className="h-3 w-3 mr-1" />
                                     Away
                                   </Badge>
@@ -714,25 +708,30 @@ export function PlayerDetailModal({
                   </div>
                 </Card>
 
-                {/* Minutes Probability */}
+                {/* Playing-time estimate */}
                 <Card className="p-4">
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2 text-sm font-medium">
                       <Clock className="h-4 w-4" />
-                      Minutes Probability
+                      Playing time
                     </div>
-                    <span className="font-bold">{((player.minutesProb || 0) * 100).toFixed(0)}%</span>
+                    <span className="text-xs text-slate-500">
+                      {playingTime ? `${playingTime.source} • ${playingTime.confidence}` : 'legacy estimate'}
+                    </span>
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-3">
-                    <div
-                      className={cn(
-                        "h-3 rounded-full transition-all",
-                        (player.minutesProb || 0) >= 0.8 ? "bg-green-500" :
-                        (player.minutesProb || 0) >= 0.5 ? "bg-yellow-500" :
-                        "bg-red-500"
-                      )}
-                      style={{ width: `${(player.minutesProb || 0) * 100}%` }}
-                    />
+                  <div className="grid grid-cols-3 gap-2 text-center">
+                    <div className="rounded-lg bg-slate-50 p-2">
+                      <div className="text-[10px] uppercase text-slate-500">Expected</div>
+                      <div className="font-bold">{expectedMinutes.toFixed(0)} min</div>
+                    </div>
+                    <div className="rounded-lg bg-slate-50 p-2">
+                      <div className="text-[10px] uppercase text-slate-500">Starts</div>
+                      <div className="font-bold">{(startProbability * 100).toFixed(0)}%</div>
+                    </div>
+                    <div className="rounded-lg bg-slate-50 p-2">
+                      <div className="text-[10px] uppercase text-slate-500">60+ min</div>
+                      <div className="font-bold">{(sixtyMinuteProbability * 100).toFixed(0)}%</div>
+                    </div>
                   </div>
                 </Card>
               </div>
@@ -756,7 +755,7 @@ export function PlayerDetailModal({
                   onOpenChange(false);
                 }
               }}
-              className="flex-1 py-3 rounded-full bg-purple-700 text-white font-semibold text-sm hover:bg-purple-800"
+              className="flex-1 py-3 rounded-full bg-gradient-brand-cta text-white font-semibold text-sm hover:opacity-90"
             >
               Select Replacement
             </button>

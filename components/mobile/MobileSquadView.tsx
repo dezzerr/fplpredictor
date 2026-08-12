@@ -14,10 +14,7 @@ import { InsightPanel } from "@/components/InsightPanel";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 import { useSquadStore } from "@/store/squad";
 import { formatDeadline } from "@/lib/date";
-import { Brain, ChevronLeft, ChevronRight, Undo2, Download, TrendingUp, GitCompare, RefreshCw, Link2 } from "lucide-react";
-import { useFPLConnection } from "@/hooks/useFPLConnection";
-import { FPLConnectModal } from "@/components/FPLConnectModal";
-import { FPLApplyButton } from "@/components/FPLApplyButton";
+import { Brain, ChevronLeft, ChevronRight, Undo2, Download, TrendingUp, GitCompare, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { Player, Position } from "@/lib/data";
 import { LiveScoreTicker } from "@/components/LiveScoreTicker";
@@ -43,9 +40,7 @@ export function MobileSquadView({ currentGw, gwOffset, deadline, onGwChange }: M
   const [compareMode, setCompareMode] = useState(false);
   const [substituteMode, setSubstituteMode] = useState(false);
   const [substitutePlayer, setSubstitutePlayer] = useState<Player | null>(null);
-  const [fplConnectOpen, setFplConnectOpen] = useState(false);
   const [insightsOpen, setInsightsOpen] = useState(false);
-  const { connected: fplConnected, refresh: refreshFplConnection } = useFPLConnection();
   
   const autoSelectBestXI = useSquadStore((s) => s.autoSelectBestXI);
   const selectPlayer = useSquadStore((s) => s.selectPlayer);
@@ -200,35 +195,25 @@ export function MobileSquadView({ currentGw, gwOffset, deadline, onGwChange }: M
           {/* Import Button */}
           <button
             onClick={() => setImportMode(true)}
-            className="p-2 rounded-full bg-indigo-100 hover:bg-indigo-200"
+            className="p-2 rounded-full bg-violet-500/10 hover:bg-violet-500/20"
           >
-            <Download className="w-4 h-4 text-indigo-600" />
+            <Download className="w-4 h-4 text-violet-400" />
           </button>
-
-          {/* FPL Connect Button */}
-          <button
-            onClick={() => setFplConnectOpen(true)}
-            className={`p-2 rounded-full ${fplConnected ? 'bg-emerald-100 hover:bg-emerald-200' : 'bg-fuchsia-100 hover:bg-fuchsia-200'}`}
-          >
-            <Link2 className={`w-4 h-4 ${fplConnected ? 'text-emerald-600' : 'text-fuchsia-600'}`} />
-          </button>
-
-          <FPLApplyButton compact />
 
           {/* Optimise Button */}
           <button
             onClick={() => setOptimiseMode(true)}
-            className="p-2 rounded-full bg-purple-100 hover:bg-purple-200"
+            className="p-2 rounded-full bg-violet-500/10 hover:bg-violet-500/20"
           >
-            <TrendingUp className="w-4 h-4 text-purple-600" />
+            <TrendingUp className="w-4 h-4 text-violet-400" />
           </button>
 
           {/* Compare Button */}
           <button
             onClick={() => setCompareMode(true)}
-            className="p-2 rounded-full bg-cyan-100 hover:bg-cyan-200"
+            className="p-2 rounded-full bg-cyan-500/10 hover:bg-cyan-500/20"
           >
-            <GitCompare className="w-4 h-4 text-cyan-600" />
+            <GitCompare className="w-4 h-4 text-cyan-400" />
           </button>
           
           {/* GW Navigation Right */}
@@ -247,14 +232,14 @@ export function MobileSquadView({ currentGw, gwOffset, deadline, onGwChange }: M
         <div className="max-w-md mx-auto">
           <button
             onClick={() => setInsightsOpen(true)}
-            className="w-full rounded-xl border border-purple-200 bg-gradient-to-r from-purple-50 to-indigo-50 px-4 py-3 flex items-center justify-between active:scale-[0.995] transition"
+            className="w-full rounded-xl border border-violet-500/20 bg-gradient-to-r from-violet-500/10 to-cyan-500/10 px-4 py-3 flex items-center justify-between active:scale-[0.995] transition"
             aria-label="Open AI insights"
           >
             <div className="flex items-center gap-2">
-              <Brain className="w-4 h-4 text-purple-600" />
-              <span className="text-sm font-semibold text-purple-900">AI Insights</span>
+              <Brain className="w-4 h-4 text-violet-400" />
+              <span className="text-sm font-semibold text-white">AI Insights</span>
             </div>
-            <span className="text-xs font-medium text-purple-700">Tap to open</span>
+            <span className="text-xs font-medium text-violet-300">Tap to open</span>
           </button>
         </div>
       </div>
@@ -386,17 +371,6 @@ export function MobileSquadView({ currentGw, gwOffset, deadline, onGwChange }: M
           </div>
         </SheetContent>
       </Sheet>
-
-      {/* FPL Connect Modal */}
-      <FPLConnectModal
-        isOpen={fplConnectOpen}
-        onClose={() => setFplConnectOpen(false)}
-        onSuccess={() => {
-          void refreshFplConnection();
-          toast.success("FPL account connected!");
-          setFplConnectOpen(false);
-        }}
-      />
     </div>
   );
 }

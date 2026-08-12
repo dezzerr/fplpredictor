@@ -61,7 +61,7 @@ export const MobilePlayerTile = memo(function MobilePlayerTile({
     >
       {/* Price tag - shown in transfer view */}
       {showPrice && (
-        <div className="px-2 py-0.5 rounded-sm text-[11px] font-bold mb-1 bg-purple-600 text-white shadow-sm">
+        <div className="px-2 py-0.5 rounded-sm text-[11px] font-bold mb-1 bg-violet-600 text-white shadow-sm">
           £{(player.price / 10).toFixed(1)}m
         </div>
       )}
@@ -113,7 +113,7 @@ export const MobilePlayerTile = memo(function MobilePlayerTile({
         {/* Name row */}
         <div className={cn(
           "px-1.5 py-0.5 text-center",
-          variant === "bench" && isSelected ? "bg-purple-600" : "bg-slate-800"
+          variant === "bench" && isSelected ? "bg-violet-600" : "bg-slate-800"
         )}>
           <div className="text-[10px] font-bold text-white truncate leading-tight">
             {getFPLDisplayName(player.name)}

@@ -1,4 +1,13 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-  <circle cx="50" cy="50" r="45" fill="#37003c"/>
-  <text x="50" y="65" font-family="Arial, sans-serif" font-size="50" font-weight="bold" fill="#00ff87" text-anchor="middle">FPL</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none">
+  <defs>
+    <linearGradient id="g" x1="8" y1="40" x2="40" y2="8" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#7C3AED"/>
+      <stop offset="55%" stop-color="#A855F7"/>
+      <stop offset="100%" stop-color="#22D3EE"/>
+    </linearGradient>
+  </defs>
+  <path d="M24 3.5 L41 9.5 V23 C41 33.5 34 40.5 24 44.5 C14 40.5 7 33.5 7 23 V9.5 Z" fill="#10131F" stroke="url(#g)" stroke-width="1.5"/>
+  <path d="M12.5 31.5 L19 25.5 L23.5 29 L33 17.5" stroke="url(#g)" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M27.5 16.5 L33.5 15 L32.5 21" stroke="url(#g)" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <circle cx="12.5" cy="31.5" r="2.2" fill="#22D3EE"/>
 </svg>

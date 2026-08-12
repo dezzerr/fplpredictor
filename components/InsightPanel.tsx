@@ -55,10 +55,10 @@ const TYPE_CONFIG: Record<string, { icon: LucideIcon; color: string; bg: string 
   rotation_risk:  { icon: RotateCcw,      color: "text-amber-600",   bg: "bg-amber-50 border-amber-200" },
   transfer_out:   { icon: ArrowRightLeft, color: "text-red-600",     bg: "bg-red-50 border-red-200" },
   transfer_in:    { icon: ArrowRightLeft, color: "text-emerald-600", bg: "bg-emerald-50 border-emerald-200" },
-  differential:   { icon: Zap,            color: "text-purple-600",  bg: "bg-purple-50 border-purple-200" },
-  value_pick:     { icon: Target,         color: "text-indigo-600",  bg: "bg-indigo-50 border-indigo-200" },
+  differential:   { icon: Zap,            color: "text-violet-400",  bg: "bg-violet-500/10 border-violet-500/20" },
+  value_pick:     { icon: Target,         color: "text-violet-400",  bg: "bg-violet-500/10 border-violet-500/20" },
   price_watch:    { icon: TrendingUp,     color: "text-amber-600",   bg: "bg-amber-50 border-amber-200" },
-  chip_plan:      { icon: Sparkles,       color: "text-indigo-600",   bg: "bg-indigo-50 border-indigo-200" },
+  chip_plan:      { icon: Sparkles,       color: "text-violet-400",   bg: "bg-violet-500/10 border-violet-500/20" },
   chip_advice:    { icon: Sparkles,       color: "text-cyan-600",    bg: "bg-cyan-50 border-cyan-200" },
 };
 
@@ -97,6 +97,7 @@ export function InsightPanel({ gameweek, players, bank, className }: InsightPane
         form: p.form,
         expPoints: p.expPoints,
         minutesProb: p.minutesProb,
+        playingTime: p.playingTime,
         ownership: p.ownership,
         priceChangeEvent: p.priceChangeEvent,
         transfersInEvent: p.transfersInEvent,
@@ -150,10 +151,10 @@ export function InsightPanel({ gameweek, players, bank, className }: InsightPane
         className="w-full flex items-center justify-between p-4 hover:bg-slate-50 transition-colors"
       >
         <div className="flex items-center gap-2">
-          <Brain className="h-4 w-4 text-purple-600" />
+          <Brain className="h-4 w-4 text-violet-400" />
           <span className="text-sm font-semibold">AI Insights</span>
           {insights.length > 0 && (
-            <Badge className="text-[10px] bg-purple-100 text-purple-700 border-purple-300">
+            <Badge className="text-[10px] bg-violet-500/10 text-violet-300 border-violet-500/20">
               {insights.length}
             </Badge>
           )}
@@ -173,14 +174,14 @@ export function InsightPanel({ gameweek, players, bank, className }: InsightPane
           {/* Generate button */}
           {!hasGenerated && !loading && (
             <div className="p-4 text-center">
-              <Brain className="h-10 w-10 text-purple-200 mx-auto mb-3" />
+              <Brain className="h-10 w-10 text-violet-300 mx-auto mb-3" />
               <p className="text-sm text-muted-foreground mb-3">
                 {typeof gameweek === "number" ? `Get AI-powered insights for your GW${gameweek} squad` : "Gameweek loading before insights can run"}
               </p>
               <button
                 onClick={generate}
                 disabled={!players || players.length === 0 || typeof gameweek !== "number"}
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-sm font-medium hover:from-purple-700 hover:to-indigo-700 transition-all shadow-md shadow-purple-500/20 disabled:opacity-40 disabled:cursor-not-allowed"
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-gradient-brand-cta text-white text-sm font-medium hover:opacity-90 transition-all shadow-md shadow-violet-500/20 disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 <Sparkles className="h-4 w-4" />
                 Generate Insights
@@ -195,7 +196,7 @@ export function InsightPanel({ gameweek, players, bank, className }: InsightPane
           {/* Loading shimmer */}
           {loading && (
             <div className="p-4 space-y-3">
-              <div className="flex items-center gap-2 text-sm text-purple-600 font-medium">
+              <div className="flex items-center gap-2 text-sm text-violet-400 font-medium">
                 <Loader2 className="h-4 w-4 animate-spin" />
                 Building transfer, differential, and price-watch insights...
               </div>
@@ -217,7 +218,7 @@ export function InsightPanel({ gameweek, players, bank, className }: InsightPane
               <p className="text-sm text-muted-foreground">No insights generated</p>
               <button
                 onClick={generate}
-                className="mt-2 text-xs text-purple-600 hover:text-purple-700 font-medium"
+                className="mt-2 text-xs text-violet-400 hover:text-violet-300 font-medium"
               >
                 Try again
               </button>
@@ -271,7 +272,7 @@ export function InsightPanel({ gameweek, players, bank, className }: InsightPane
                                 </Badge>
                               )}
                               {ins.source && (
-                                <Badge className="text-[9px] bg-purple-100 text-purple-700 border-purple-200 px-1.5 py-0 uppercase">
+                                <Badge className="text-[9px] bg-violet-500/10 text-violet-300 border-violet-500/20 px-1.5 py-0 uppercase">
                                   {ins.source}
                                 </Badge>
                               )}
@@ -298,7 +299,7 @@ export function InsightPanel({ gameweek, players, bank, className }: InsightPane
               <div className="border-t p-3">
                 <button
                   onClick={generate}
-                  className="w-full flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-medium text-purple-600 hover:bg-purple-50 transition-colors"
+                  className="w-full flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-medium text-violet-400 hover:bg-violet-500/10 transition-colors"
                 >
                   <Sparkles className="h-3.5 w-3.5" />
                   Refresh Insights

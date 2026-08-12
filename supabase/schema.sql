@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS squads (
   squad_data JSONB NOT NULL,
   bank DECIMAL(4,1) DEFAULT 0 CHECK (bank >= 0 AND bank <= 100),
   gameweek INTEGER,
+  season_key TEXT NOT NULL DEFAULT 'legacy',
   is_active BOOLEAN DEFAULT false,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -28,13 +29,14 @@ CREATE TABLE IF NOT EXISTS squad_history (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES auth.users ON DELETE CASCADE NOT NULL,
   gameweek INTEGER NOT NULL,
+  season_key TEXT NOT NULL DEFAULT 'legacy',
   squad_data JSONB NOT NULL,
   predicted_points DECIMAL(5,1),
   actual_points DECIMAL(5,1),
   team_rating INTEGER CHECK (team_rating >= 0 AND team_rating <= 100),
   gw_rating INTEGER CHECK (gw_rating >= 0 AND gw_rating <= 100),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  UNIQUE(user_id, gameweek)
+  UNIQUE(user_id, season_key, gameweek)
 );
 
 CREATE TABLE IF NOT EXISTS watchlist (
@@ -45,22 +47,6 @@ CREATE TABLE IF NOT EXISTS watchlist (
   notes TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   UNIQUE(user_id, player_id)
-);
-
--- ============================================================
--- FPL sessions table
--- Intentionally service-role only.
--- No client RLS policies should be created for this table.
--- ============================================================
-
-CREATE TABLE IF NOT EXISTS fpl_sessions (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES auth.users ON DELETE CASCADE NOT NULL UNIQUE,
-  manager_id INTEGER NOT NULL,
-  encrypted_cookies TEXT NOT NULL,
-  expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- ============================================================
@@ -116,14 +102,13 @@ CREATE TABLE IF NOT EXISTS api_rate_limits (
 
 CREATE INDEX IF NOT EXISTS squads_user_id_idx ON squads(user_id);
 CREATE INDEX IF NOT EXISTS squads_is_active_idx ON squads(is_active);
+CREATE INDEX IF NOT EXISTS squads_user_id_season_key_idx ON squads(user_id, season_key, gameweek DESC);
 
 CREATE INDEX IF NOT EXISTS squad_history_user_id_idx ON squad_history(user_id);
 CREATE INDEX IF NOT EXISTS squad_history_gameweek_idx ON squad_history(gameweek);
+CREATE INDEX IF NOT EXISTS squad_history_user_id_season_key_idx ON squad_history(user_id, season_key, gameweek DESC);
 
 CREATE INDEX IF NOT EXISTS watchlist_user_id_idx ON watchlist(user_id);
-
-CREATE INDEX IF NOT EXISTS fpl_sessions_user_id_idx ON fpl_sessions(user_id);
-CREATE INDEX IF NOT EXISTS fpl_sessions_expires_at_idx ON fpl_sessions(expires_at);
 
 CREATE INDEX IF NOT EXISTS fpl_sync_audit_user_id_idx ON fpl_sync_audit(user_id);
 CREATE INDEX IF NOT EXISTS fpl_sync_audit_created_at_idx ON fpl_sync_audit(created_at);
@@ -139,7 +124,6 @@ ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE squads ENABLE ROW LEVEL SECURITY;
 ALTER TABLE squad_history ENABLE ROW LEVEL SECURITY;
 ALTER TABLE watchlist ENABLE ROW LEVEL SECURITY;
-ALTER TABLE fpl_sessions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE fpl_sync_audit ENABLE ROW LEVEL SECURITY;
 ALTER TABLE fpl_sync_operations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE api_rate_limits ENABLE ROW LEVEL SECURITY;
@@ -164,12 +148,6 @@ DROP POLICY IF EXISTS "Users can view own watchlist" ON watchlist;
 DROP POLICY IF EXISTS "Users can insert own watchlist" ON watchlist;
 DROP POLICY IF EXISTS "Users can update own watchlist" ON watchlist;
 DROP POLICY IF EXISTS "Users can delete own watchlist" ON watchlist;
-
--- Intentionally remove all client access to fpl_sessions.
-DROP POLICY IF EXISTS "Users can view own fpl session" ON fpl_sessions;
-DROP POLICY IF EXISTS "Users can insert own fpl session" ON fpl_sessions;
-DROP POLICY IF EXISTS "Users can update own fpl session" ON fpl_sessions;
-DROP POLICY IF EXISTS "Users can delete own fpl session" ON fpl_sessions;
 
 DROP POLICY IF EXISTS "Users can view own fpl sync audit" ON fpl_sync_audit;
 
@@ -245,18 +223,6 @@ CREATE POLICY "Users can delete own watchlist"
   USING (auth.uid() = user_id);
 
 -- ============================================================
--- FPL sessions policies
--- None by design.
---
--- fpl_sessions contains encrypted cookies.
--- Client users should not be able to SELECT, INSERT, UPDATE, or DELETE.
--- Backend service role can still access this table because it bypasses RLS.
--- ============================================================
-
-ALTER TABLE fpl_sessions
-  ALTER COLUMN encrypted_cookies SET NOT NULL;
-
--- ============================================================
 -- FPL sync audit policies
 -- ============================================================
 
@@ -313,7 +279,6 @@ $$ LANGUAGE plpgsql;
 -- Drop triggers first to make migration rerunnable
 DROP TRIGGER IF EXISTS profiles_updated_at ON profiles;
 DROP TRIGGER IF EXISTS squads_updated_at ON squads;
-DROP TRIGGER IF EXISTS fpl_sessions_updated_at ON fpl_sessions;
 
 CREATE TRIGGER profiles_updated_at
   BEFORE UPDATE ON profiles
@@ -322,11 +287,6 @@ CREATE TRIGGER profiles_updated_at
 
 CREATE TRIGGER squads_updated_at
   BEFORE UPDATE ON squads
-  FOR EACH ROW
-  EXECUTE FUNCTION handle_updated_at();
-
-CREATE TRIGGER fpl_sessions_updated_at
-  BEFORE UPDATE ON fpl_sessions
   FOR EACH ROW
   EXECUTE FUNCTION handle_updated_at();
 
@@ -381,3 +341,26 @@ CREATE TABLE IF NOT EXISTS player_signals (
 
 CREATE INDEX IF NOT EXISTS player_signals_gameweek_idx ON player_signals(gameweek);
 CREATE INDEX IF NOT EXISTS player_signals_player_id_idx ON player_signals(player_id);
+
+-- ============================================================
+-- Server-only player usage snapshots for playing-time estimates
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS player_usage_snapshots (
+  season_key TEXT NOT NULL,
+  completed_gameweek INTEGER NOT NULL CHECK (completed_gameweek BETWEEN 0 AND 38),
+  player_id TEXT NOT NULL,
+  team TEXT NOT NULL,
+  team_matches_played INTEGER NOT NULL CHECK (team_matches_played BETWEEN 0 AND 60),
+  starts_total INTEGER NOT NULL CHECK (starts_total >= 0),
+  minutes_total INTEGER NOT NULL CHECK (minutes_total >= 0),
+  captured_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (season_key, completed_gameweek, player_id)
+);
+
+CREATE INDEX IF NOT EXISTS player_usage_snapshots_season_gameweek_idx
+  ON player_usage_snapshots (season_key, completed_gameweek DESC);
+
+ALTER TABLE player_usage_snapshots ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE player_usage_snapshots FROM anon, authenticated, service_role;
+GRANT SELECT, INSERT, UPDATE ON TABLE player_usage_snapshots TO service_role;

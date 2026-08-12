@@ -40,6 +40,7 @@ coverage/
 # Build tools / caches
 .turbo/
 .cache/
+supabase/.temp/
 
 # Misc
 *.swp

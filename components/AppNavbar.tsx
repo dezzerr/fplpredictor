@@ -1,11 +1,12 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import type { Route } from 'next'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { ArrowRight, ChevronDown, Search, RefreshCw, LogOut, Menu, X, Users, TrendingUp, Download, GitCompare, CalendarDays, BookOpen, BrainCircuit, Trophy } from 'lucide-react'
+import { ChevronDown, Search, RefreshCw, LogOut, Menu, X, Users, TrendingUp, Download, GitCompare, CalendarDays, BookOpen, BrainCircuit, Trophy } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { Logo } from '@/components/brand/Logo'
 import { useSquadStore } from '@/store/squad'
 import { createClient } from '@/lib/supabase/client'
 
@@ -85,14 +86,9 @@ function MobileDrawer({ open, onClose, onImport, onLogout }: { open: boolean; on
       {/* Backdrop */}
       <div className="fixed inset-0 bg-black/60 z-[60] md:hidden" onClick={onClose} />
       {/* Drawer */}
-      <div className="fixed inset-y-0 left-0 w-72 bg-slate-900 border-r border-slate-700 z-[61] md:hidden flex flex-col animate-in slide-in-from-left duration-200">
-        <div className="flex items-center justify-between px-4 py-4 border-b border-slate-700">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-gradient-to-br from-fuchsia-500 to-indigo-500 rounded-lg flex items-center justify-center">
-              <ArrowRight className="w-4 h-4 text-white rotate-[-45deg]" />
-            </div>
-            <span className="text-lg font-bold text-white">FPL Companion</span>
-          </div>
+      <div className="fixed inset-y-0 left-0 w-72 bg-surface-1 border-r border-surface-border z-[61] md:hidden flex flex-col animate-in slide-in-from-left duration-200">
+        <div className="flex items-center justify-between px-4 py-4 border-b border-surface-border">
+          <Logo idSuffix="app-drawer" />
           <button onClick={onClose} className="p-1.5 text-slate-400 hover:text-white">
             <X className="h-5 w-5" />
           </button>
@@ -159,23 +155,28 @@ export function AppNavbar({ onImportOpen, onSearchOpen }: AppNavbarProps) {
   const aiTeamRoute = '/ai-team-rating' as Route
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
-  const syncPrices = useSquadStore((s) => s.syncPrices)
+  const syncCurrentSeason = useSquadStore((s) => s.syncCurrentSeason)
   const reset = useSquadStore((s) => s.reset)
 
-  const handleRefresh = async () => {
+  const handleRefresh = useCallback(async () => {
     setRefreshing(true)
     try {
       const res = await fetch('/api/players')
       if (res.ok) {
         const players = await res.json()
-        syncPrices(players)
+        const seasonKey = res.headers.get('X-FPL-Season-Key')
+        if (seasonKey) syncCurrentSeason(players, seasonKey)
       }
     } catch (err) {
       console.error('Failed to refresh:', err)
     } finally {
       setRefreshing(false)
     }
-  }
+  }, [syncCurrentSeason])
+
+  useEffect(() => {
+    void handleRefresh()
+  }, [handleRefresh])
 
   const handleLogout = async () => {
     try {
@@ -199,15 +200,12 @@ export function AppNavbar({ onImportOpen, onSearchOpen }: AppNavbarProps) {
 
   return (
     <>
-      <nav className="sticky top-0 z-50 bg-slate-900 border-b border-slate-700/50">
+      <nav className="sticky top-0 z-50 glass-dark border-b border-white/[0.06]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-14">
             {/* Left — Logo */}
-            <Link href="/" className="flex items-center gap-2 flex-shrink-0">
-              <div className="w-8 h-8 bg-gradient-to-br from-fuchsia-500 to-indigo-500 rounded-lg flex items-center justify-center shadow-lg shadow-fuchsia-500/20">
-                <ArrowRight className="w-4 h-4 text-white rotate-[-45deg]" />
-              </div>
-              <span className="text-lg font-bold text-white hidden sm:block">FPL Companion</span>
+            <Link href="/" className="flex items-center flex-shrink-0">
+              <Logo wordmarkResponsive idSuffix="app-nav" />
             </Link>
 
             {/* Center — Nav links (desktop) */}

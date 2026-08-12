@@ -10,14 +10,6 @@ interface MobileComparePageProps {
   weekOffset?: number;
 }
 
-const TEAM_NAMES: Record<string, string> = {
-  ARS: "Arsenal", AVL: "Aston Villa", BOU: "Bournemouth", BRE: "Brentford",
-  BHA: "Brighton", BUR: "Burnley", CHE: "Chelsea", CRY: "Crystal Palace",
-  EVE: "Everton", FUL: "Fulham", LEE: "Leeds", LIV: "Liverpool",
-  MCI: "Man City", MUN: "Man Utd", NEW: "Newcastle", NFO: "Nott'm Forest",
-  SUN: "Sunderland", TOT: "Spurs", WHU: "West Ham", WOL: "Wolves"
-};
-
 export function MobileComparePage({ onBack, weekOffset = 0 }: MobileComparePageProps) {
   const [allPlayers, setAllPlayers] = useState<Player[]>([]);
   const [loading, setLoading] = useState(true);
@@ -42,7 +34,7 @@ export function MobileComparePage({ onBack, weekOffset = 0 }: MobileComparePageP
       .filter(p => 
         p.name.toLowerCase().includes(query) || 
         p.team.toLowerCase().includes(query) ||
-        TEAM_NAMES[p.team]?.toLowerCase().includes(query)
+        (p.teamName || p.team).toLowerCase().includes(query)
       )
       .slice(0, 10);
   }, [allPlayers, searchQuery]);
@@ -77,18 +69,18 @@ export function MobileComparePage({ onBack, weekOffset = 0 }: MobileComparePageP
   };
 
   return (
-    <div className="fixed inset-0 bg-white z-50 flex flex-col">
+    <div className="fixed inset-0 bg-surface-0 z-50 flex flex-col">
       {/* Header */}
-      <div className="flex items-center gap-3 px-4 py-3 border-b">
-        <button onClick={onBack} className="p-2 -ml-2 hover:bg-slate-100 rounded-full">
+      <div className="flex items-center gap-3 px-4 py-3 border-b border-surface-border">
+        <button onClick={onBack} className="p-2 -ml-2 hover:bg-surface-2 rounded-full text-white">
           <ArrowLeft className="w-5 h-5" />
         </button>
-        <h1 className="text-lg font-semibold">Compare Players</h1>
+        <h1 className="font-display text-lg font-semibold text-white">Compare Players</h1>
       </div>
 
       <div className="flex-1 overflow-y-auto">
         {/* Add Player Section */}
-        <div className="px-4 py-4 border-b">
+        <div className="px-4 py-4 border-b border-surface-border">
           {showSearch ? (
             <div className="space-y-3">
               <div className="relative">
@@ -98,7 +90,7 @@ export function MobileComparePage({ onBack, weekOffset = 0 }: MobileComparePageP
                   placeholder="Search players..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-10 py-3 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full pl-10 pr-10 py-3 bg-surface-1 border border-surface-border rounded-lg text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-violet-500/50"
                   autoFocus
                 />
                 <button 
@@ -110,19 +102,19 @@ export function MobileComparePage({ onBack, weekOffset = 0 }: MobileComparePageP
               </div>
               
               {searchResults.length > 0 && (
-                <div className="bg-slate-50 rounded-lg border border-slate-200 divide-y divide-slate-200 max-h-60 overflow-y-auto">
+                <div className="bg-surface-1 rounded-lg border border-surface-border divide-y divide-surface-border max-h-60 overflow-y-auto">
                   {searchResults.map(player => (
                     <button
                       key={player.id}
                       onClick={() => addPlayer(player)}
-                      className="w-full flex items-center gap-3 p-3 hover:bg-slate-100 text-left"
+                      className="w-full flex items-center gap-3 p-3 hover:bg-surface-2 text-left"
                     >
                       <div className={`w-8 h-8 ${getPositionColor(player.position)} rounded-full flex items-center justify-center text-white text-xs font-bold`}>
                         {player.position}
                       </div>
                       <div className="flex-1">
-                        <div className="font-medium text-sm">{player.name}</div>
-                        <div className="text-xs text-slate-500">{TEAM_NAMES[player.team] || player.team} • £{player.price.toFixed(1)}m</div>
+                        <div className="font-medium text-sm text-white">{player.name}</div>
+                        <div className="text-xs text-slate-500">{player.teamName || player.team} • £{player.price.toFixed(1)}m</div>
                       </div>
                     </button>
                   ))}
@@ -133,7 +125,7 @@ export function MobileComparePage({ onBack, weekOffset = 0 }: MobileComparePageP
             <button
               onClick={() => setShowSearch(true)}
               disabled={selectedPlayers.length >= 4}
-              className="w-full py-3 border-2 border-dashed border-slate-300 rounded-lg text-slate-500 font-medium flex items-center justify-center gap-2 hover:border-purple-400 hover:text-purple-600 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full py-3 border-2 border-dashed border-surface-border rounded-lg text-slate-400 font-medium flex items-center justify-center gap-2 hover:border-violet-500/40 hover:text-violet-300 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Plus className="w-5 h-5" />
               Add Player to Compare ({selectedPlayers.length}/4)
@@ -144,18 +136,18 @@ export function MobileComparePage({ onBack, weekOffset = 0 }: MobileComparePageP
         {/* Selected Players Comparison */}
         {selectedPlayers.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
-            <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
-              <TrendingUp className="w-8 h-8 text-slate-400" />
+            <div className="w-16 h-16 bg-surface-1 rounded-full flex items-center justify-center mb-4 border border-surface-border">
+              <TrendingUp className="w-8 h-8 text-violet-400" />
             </div>
-            <h3 className="font-semibold text-slate-900 mb-2">No players selected</h3>
-            <p className="text-sm text-slate-500">Add up to 4 players to compare their stats, form, and fixtures</p>
+            <h3 className="font-display font-semibold text-white mb-2">No players selected</h3>
+            <p className="text-sm text-slate-400">Add up to 4 players to compare their stats, form, and fixtures</p>
           </div>
         ) : (
           <div className="px-4 py-4 space-y-4">
             {/* Player Cards */}
             <div className="grid grid-cols-2 gap-3">
               {selectedPlayers.map(player => (
-                <div key={player.id} className="bg-slate-50 rounded-xl border border-slate-200 overflow-hidden">
+                <div key={player.id} className="bg-surface-1 rounded-xl border border-surface-border overflow-hidden">
                   <div className={`${getPositionColor(player.position)} px-3 py-2 flex items-center justify-between`}>
                     <span className="text-white text-xs font-bold">{player.position}</span>
                     <button 
@@ -166,28 +158,28 @@ export function MobileComparePage({ onBack, weekOffset = 0 }: MobileComparePageP
                     </button>
                   </div>
                   <div className="p-3">
-                    <div className="font-semibold text-sm truncate">{player.name}</div>
+                    <div className="font-semibold text-sm truncate text-white">{player.name}</div>
                     <div className="text-xs text-slate-500">{player.team}</div>
-                    <div className="text-lg font-bold text-purple-600 mt-1">£{player.price.toFixed(1)}m</div>
+                    <div className="text-lg font-bold text-cyan-400 mt-1">£{player.price.toFixed(1)}m</div>
                   </div>
                 </div>
               ))}
             </div>
 
             {/* Stats Comparison Table */}
-            <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-              <div className="bg-slate-50 px-4 py-2 border-b">
-                <h3 className="font-semibold text-sm">Stats Comparison</h3>
+            <div className="bg-surface-1 rounded-xl border border-surface-border overflow-hidden">
+              <div className="bg-surface-2 px-4 py-2 border-b border-surface-border">
+                <h3 className="font-semibold text-sm text-white">Stats Comparison</h3>
               </div>
               
-              <div className="divide-y divide-slate-100">
+              <div className="divide-y divide-surface-border">
                 {/* Predicted Points */}
                 <div className="flex items-center px-4 py-3">
                   <div className="w-24 text-xs text-slate-500">Pred. Pts</div>
                   <div className="flex-1 flex gap-2">
                     {selectedPlayers.map(player => (
                       <div key={player.id} className="flex-1 text-center">
-                        <span className="font-bold text-purple-600">{weeklyExp(player, weekOffset).toFixed(1)}</span>
+                        <span className="font-bold text-cyan-400">{weeklyExp(player, weekOffset).toFixed(1)}</span>
                       </div>
                     ))}
                   </div>
@@ -199,7 +191,7 @@ export function MobileComparePage({ onBack, weekOffset = 0 }: MobileComparePageP
                   <div className="flex-1 flex gap-2">
                     {selectedPlayers.map(player => (
                       <div key={player.id} className="flex-1 text-center">
-                        <span className="font-semibold">{player.form?.toFixed(1) || "-"}</span>
+                        <span className="font-semibold text-white">{player.form?.toFixed(1) || "-"}</span>
                       </div>
                     ))}
                   </div>
@@ -211,7 +203,7 @@ export function MobileComparePage({ onBack, weekOffset = 0 }: MobileComparePageP
                   <div className="flex-1 flex gap-2">
                     {selectedPlayers.map(player => (
                       <div key={player.id} className="flex-1 text-center">
-                        <span className="font-semibold">£{player.price.toFixed(1)}m</span>
+                        <span className="font-semibold text-white">£{player.price.toFixed(1)}m</span>
                       </div>
                     ))}
                   </div>
@@ -223,19 +215,19 @@ export function MobileComparePage({ onBack, weekOffset = 0 }: MobileComparePageP
                   <div className="flex-1 flex gap-2">
                     {selectedPlayers.map(player => (
                       <div key={player.id} className="flex-1 text-center">
-                        <span className="font-semibold">{player.ownership?.toFixed(1) || "-"}%</span>
+                        <span className="font-semibold text-white">{player.ownership?.toFixed(1) || "-"}%</span>
                       </div>
                     ))}
                   </div>
                 </div>
 
-                {/* Minutes Prob */}
+                {/* Expected minutes */}
                 <div className="flex items-center px-4 py-3">
-                  <div className="w-24 text-xs text-slate-500">Mins %</div>
+                  <div className="w-24 text-xs text-slate-500">Exp. mins</div>
                   <div className="flex-1 flex gap-2">
                     {selectedPlayers.map(player => (
                       <div key={player.id} className="flex-1 text-center">
-                        <span className="font-semibold">{player.minutesProb ? (player.minutesProb * 100).toFixed(0) : "-"}%</span>
+                        <span className="font-semibold text-white">{(player.playingTime?.expectedMinutes ?? (player.minutesProb ?? 0) * 90).toFixed(0)}</span>
                       </div>
                     ))}
                   </div>
@@ -244,9 +236,9 @@ export function MobileComparePage({ onBack, weekOffset = 0 }: MobileComparePageP
             </div>
 
             {/* Fixtures Comparison */}
-            <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-              <div className="bg-slate-50 px-4 py-2 border-b">
-                <h3 className="font-semibold text-sm">Next 3 Fixtures</h3>
+            <div className="bg-surface-1 rounded-xl border border-surface-border overflow-hidden">
+              <div className="bg-surface-2 px-4 py-2 border-b border-surface-border">
+                <h3 className="font-semibold text-sm text-white">Next 3 Fixtures</h3>
               </div>
               
               <div className="p-4">
@@ -270,7 +262,7 @@ export function MobileComparePage({ onBack, weekOffset = 0 }: MobileComparePageP
                           <div key={gIdx} className="space-y-0.5">
                             {group.fixtures.length >= 2 && (
                               <div className="text-center">
-                                <span className="px-1 py-0.5 rounded text-[7px] font-bold bg-blue-500 text-white leading-none">DGW</span>
+                                <span className="px-1 py-0.5 rounded text-[7px] font-bold bg-violet-500/20 text-violet-300 leading-none">DGW</span>
                               </div>
                             )}
                             {group.fixtures.map((fixture, fIdx) => (

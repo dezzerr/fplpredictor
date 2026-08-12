@@ -3,11 +3,6 @@
 // - Players: map bookmaker player names/aliases -> our Player.id (optionally scoped by team)
 import type { Player } from "@/lib/data";
 
-const TEAM_CODES = new Set<string>([
-  "ARS","MCI","MUN","LIV","CHE","NEW","BHA","BRE","AVL","TOT",
-  "WHU","CRY","WOL","FUL","NFO","LUT","SHU","EVE","BOU",
-]);
-
 function normalizeKey(s: string): string {
   return s
     .toLowerCase()
@@ -21,45 +16,30 @@ function normalizeKey(s: string): string {
 const teamAliasToCode = new Map<string, string>();
 
 function seedTeam(alias: string, code: string) {
-  if (!TEAM_CODES.has(code)) return;
   teamAliasToCode.set(normalizeKey(alias), code);
 }
 
-// seed: code -> itself
-for (const c of TEAM_CODES) seedTeam(c, c);
+type OfficialTeam = { short_name: string; name: string };
 
-// Common team aliases from bookmakers/APIs
-seedTeam("Arsenal", "ARS");
-seedTeam("Manchester City", "MCI");
-seedTeam("Man City", "MCI");
-seedTeam("Man City Women", "MCI");
-seedTeam("Manchester Utd", "MUN");
-seedTeam("Manchester United", "MUN");
-seedTeam("Man Utd", "MUN");
-seedTeam("Liverpool", "LIV");
-seedTeam("Chelsea", "CHE");
-seedTeam("Newcastle", "NEW");
-seedTeam("Newcastle United", "NEW");
-seedTeam("Brighton", "BHA");
-seedTeam("Brighton and Hove Albion", "BHA");
-seedTeam("Brentford", "BRE");
-seedTeam("Aston Villa", "AVL");
-seedTeam("Tottenham", "TOT");
-seedTeam("Spurs", "TOT");
-seedTeam("West Ham", "WHU");
-seedTeam("West Ham United", "WHU");
-seedTeam("Crystal Palace", "CRY");
-seedTeam("Wolves", "WOL");
-seedTeam("Wolverhampton", "WOL");
-seedTeam("Fulham", "FUL");
-seedTeam("Nottingham Forest", "NFO");
-seedTeam("Nottm Forest", "NFO");
-seedTeam("Luton", "LUT");
-seedTeam("Sheffield United", "SHU");
-seedTeam("Sheff Utd", "SHU");
-seedTeam("Everton", "EVE");
-seedTeam("Bournemouth", "BOU");
-seedTeam("AFC Bournemouth", "BOU");
+/** Refresh aliases from the current official FPL club list at every load. */
+export function seedTeamAliasesFrom(teams: OfficialTeam[]) {
+  teamAliasToCode.clear();
+  for (const team of teams) {
+    seedTeam(team.short_name, team.short_name);
+    seedTeam(team.name, team.short_name);
+  }
+
+  const currentCodes = new Set(teams.map((team) => team.short_name));
+  const aliases: Array<[string, string]> = [
+    ['Man City', 'MCI'], ['Manchester City', 'MCI'],
+    ['Man Utd', 'MUN'], ['Manchester United', 'MUN'],
+    ['Newcastle United', 'NEW'], ['Brighton and Hove Albion', 'BHA'],
+    ['Spurs', 'TOT'], ['Tottenham', 'TOT'],
+    ['Nottm Forest', 'NFO'], ['Nottingham Forest', 'NFO'],
+    ['AFC Bournemouth', 'BOU'],
+  ];
+  for (const [alias, code] of aliases) if (currentCodes.has(code)) seedTeam(alias, code);
+}
 
 export function mapTeam(nameOrCode: string | undefined | null): string | undefined {
   if (!nameOrCode) return undefined;
@@ -67,7 +47,6 @@ export function mapTeam(nameOrCode: string | undefined | null): string | undefin
 }
 
 export function registerTeamAlias(alias: string, code: string) {
-  if (!TEAM_CODES.has(code)) throw new Error(`Unknown team code: ${code}`);
   teamAliasToCode.set(normalizeKey(alias), code);
 }
 
@@ -101,13 +80,3 @@ export function seedPlayerAliasesFrom(players: Player[]) {
     }
   }
 }
-
-// Pre-seed a few common examples (extend over time)
-registerPlayerAlias("Erling Haaland", "haaland", "MCI");
-registerPlayerAlias("E Haaland", "haaland", "MCI");
-registerPlayerAlias("Haaland", "haaland", "MCI");
-registerPlayerAlias("Mo Salah", "salah", "LIV");
-registerPlayerAlias("M Salah", "salah", "LIV");
-registerPlayerAlias("Bukayo Saka", "saka", "ARS");
-registerPlayerAlias("Heung-Min Son", "son", "TOT");
-registerPlayerAlias("H Son", "son", "TOT");

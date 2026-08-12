@@ -145,15 +145,15 @@ export default async function BlogPostPage({params}: BlogPostPageProps) {
           <PortableText value={post.body} components={portableTextComponents} />
         </div>
 
-        <div className="mt-12 rounded-3xl border border-fuchsia-200 bg-gradient-to-br from-fuchsia-50 to-indigo-50 p-6 sm:p-8">
-          <h2 className="text-2xl font-semibold text-slate-900">Put this advice into action</h2>
-          <p className="mt-4 max-w-2xl text-slate-600">Move from content to decisions with player comparison, fixture analysis, and squad optimization tools inside FPL Companion.</p>
+        <div className="mt-12 rounded-3xl border border-violet-500/20 bg-gradient-to-br from-violet-500/10 to-cyan-500/10 p-6 sm:p-8">
+          <h2 className="font-display text-2xl font-semibold text-white">Put this advice into action</h2>
+          <p className="mt-4 max-w-2xl text-slate-300">Move from content to decisions with player comparison, fixture analysis, and squad optimization tools inside FPL Companion.</p>
           <div className="mt-6 flex flex-wrap gap-3">
-            <Link href="/compare" className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-fuchsia-600 to-indigo-600 px-5 py-3 font-semibold text-white transition-colors hover:from-fuchsia-500 hover:to-indigo-500 shadow-lg shadow-fuchsia-500/20">
+            <Link href="/compare" className="inline-flex items-center gap-2 rounded-xl bg-gradient-brand-cta px-5 py-3 font-semibold text-white transition-opacity hover:opacity-90 shadow-lg shadow-violet-500/20">
               Compare players
               <ArrowRight className="h-4 w-4" />
             </Link>
-            <Link href="/login" className="inline-flex items-center rounded-xl border border-slate-300 px-5 py-3 font-semibold text-slate-700 transition-colors hover:bg-slate-100">
+            <Link href="/login" className="inline-flex items-center rounded-xl border border-surface-border px-5 py-3 font-semibold text-white transition-colors hover:bg-surface-1">
               Open FPL Companion
             </Link>
           </div>

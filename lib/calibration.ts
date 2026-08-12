@@ -3,7 +3,8 @@ export type CalPresetName = "Baseline" | "Conservative" | "Aggressive";
 export type Calibration = {
   name: CalPresetName;
   CAL: number; // global scale
-  minutes: { base: number; scale: number }; // minutesFactor = base + scale * minutesProb
+  /** @deprecated usage-v2 computes one evidence-based factor for every preset. */
+  minutes: { base: number; scale: number };
   injury: { flaggedLowMin: number; severe: number }; // multipliers
   posFactor: Record<"GK" | "DEF" | "MID" | "FWD", number>;
   fixtures: { diffScale: number; homeBoost: number }; // factor = (1 + diffScale*(3-d)/3) * (H?homeBoost:1/homeBoost')
@@ -12,8 +13,8 @@ export type Calibration = {
 
 const BASELINE: Calibration = {
   name: "Baseline",
-  CAL: 0.93, // Slightly dampen raw EP to avoid systematic over-projection
-  minutes: { base: 0, scale: 1.0 }, // Direct scaling: minutesFactor = minutesProb (no artificial floor)
+  CAL: 1.0, // Neutral scale: usage and evidence already calibrate the projection
+  minutes: { base: 0, scale: 1.0 },
   injury: { flaggedLowMin: 0.9, severe: 0.6 },
   posFactor: { GK: 1.0, DEF: 1.0, MID: 1.0, FWD: 1.0 }, // Remove position inflation
   fixtures: { diffScale: 0.2, homeBoost: 1.04 }, // Further reduced fixture impact
@@ -22,8 +23,8 @@ const BASELINE: Calibration = {
 
 const CONSERVATIVE: Calibration = {
   name: "Conservative",
-  CAL: 0.8, // Conservative - expects fewer points
-  minutes: { base: 0, scale: 0.95 }, // Slightly more cautious on minutes
+  CAL: 0.9, // Intentionally cautious without suppressing baseline projections
+  minutes: { base: 0, scale: 1.0 },
   injury: { flaggedLowMin: 0.85, severe: 0.5 },
   posFactor: { GK: 1.0, DEF: 1.0, MID: 1.0, FWD: 1.0 },
   fixtures: { diffScale: 0.15, homeBoost: 1.03 },
@@ -32,8 +33,8 @@ const CONSERVATIVE: Calibration = {
 
 const AGGRESSIVE: Calibration = {
   name: "Aggressive",
-  CAL: 1.03, // Kept optimistic but no longer extreme
-  minutes: { base: 0.1, scale: 1.0 }, // More optimistic on minutes (10% floor)
+  CAL: 1.08, // Modestly optimistic while remaining bounded by position caps
+  minutes: { base: 0, scale: 1.0 },
   injury: { flaggedLowMin: 0.95, severe: 0.7 },
   posFactor: { GK: 1.0, DEF: 1.0, MID: 1.0, FWD: 1.0 },
   fixtures: { diffScale: 0.25, homeBoost: 1.05 },

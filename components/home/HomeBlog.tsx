@@ -48,7 +48,7 @@ export default function HomeBlog() {
     : null
 
   return (
-    <section className="relative py-24 sm:py-32 bg-slate-950 text-white">
+    <section className="relative py-24 sm:py-32 cv-auto bg-surface-0 text-white border-t border-surface-border">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Featured post */}
         <Link href={`/blog/${featured.slug}` as Route} className="group block mb-20">
@@ -58,13 +58,13 @@ export default function HomeBlog() {
                 {featured.categories?.map((cat: BlogCategory) => (
                   <Badge
                     key={cat.title}
-                    className="bg-fuchsia-500/20 border-fuchsia-500/40 text-fuchsia-200 text-xs"
+                    className="bg-violet-500/20 border-violet-500/40 text-violet-200 text-xs"
                   >
                     {cat.title}
                   </Badge>
                 ))}
               </div>
-              <h2 className="text-3xl sm:text-4xl font-bold tracking-tight leading-tight mb-4 group-hover:text-fuchsia-200 transition-colors">
+              <h2 className="font-display text-3xl sm:text-4xl font-bold tracking-tight leading-tight mb-4 group-hover:text-violet-200 transition-colors">
                 {featured.title}
               </h2>
               <p className="text-slate-400 text-lg leading-relaxed mb-6 line-clamp-3">
@@ -78,7 +78,7 @@ export default function HomeBlog() {
                 {featured.author?.name && <span>By {featured.author.name}</span>}
               </div>
             </div>
-            <div className="relative aspect-[16/9] rounded-2xl overflow-hidden bg-slate-800 border border-slate-700 group-hover:border-fuchsia-500/40 transition-colors">
+            <div className="relative aspect-[16/9] rounded-2xl overflow-hidden bg-slate-800 border border-slate-700 group-hover:border-violet-500/40 transition-colors">
               {featuredImage ? (
                 <Image
                   src={featuredImage}
@@ -88,7 +88,7 @@ export default function HomeBlog() {
                   className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
                 />
               ) : (
-                <div className="flex h-full items-center justify-center bg-gradient-to-br from-fuchsia-900/40 to-indigo-900/40 text-slate-500 text-sm">
+                <div className="flex h-full items-center justify-center bg-gradient-to-br from-violet-900/40 to-cyan-900/40 text-slate-500 text-sm">
                   FPL Companion
                 </div>
               )}
@@ -100,10 +100,10 @@ export default function HomeBlog() {
         {latest.length > 0 && (
           <div>
             <div className="flex items-center justify-between mb-8">
-              <h3 className="text-2xl sm:text-3xl font-bold tracking-tight">Our latest articles</h3>
+              <h3 className="font-display text-2xl sm:text-3xl font-bold tracking-tight">Our latest articles</h3>
               <Link
                 href={'/blog' as Route}
-                className="inline-flex items-center gap-1.5 text-sm font-medium text-fuchsia-400 hover:text-fuchsia-300 transition-colors"
+                className="inline-flex items-center gap-1.5 text-sm font-medium text-violet-400 hover:text-violet-300 transition-colors"
               >
                 View all
                 <ArrowRight className="h-4 w-4" />
@@ -118,7 +118,7 @@ export default function HomeBlog() {
 
                 return (
                   <Link key={post._id} href={`/blog/${post.slug}` as Route} className="group block">
-                    <div className="relative aspect-[16/9] rounded-xl overflow-hidden bg-slate-800 border border-slate-700 group-hover:border-fuchsia-500/40 transition-colors mb-4">
+                    <div className="relative aspect-[16/9] rounded-xl overflow-hidden bg-slate-800 border border-slate-700 group-hover:border-violet-500/40 transition-colors mb-4">
                       {coverUrl ? (
                         <Image
                           src={coverUrl}
@@ -128,7 +128,7 @@ export default function HomeBlog() {
                           className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
                         />
                       ) : (
-                        <div className="flex h-full items-center justify-center bg-gradient-to-br from-fuchsia-900/30 to-indigo-900/30 text-slate-600 text-sm">
+                        <div className="flex h-full items-center justify-center bg-gradient-to-br from-violet-900/30 to-cyan-900/30 text-slate-600 text-sm">
                           FPL Companion
                         </div>
                       )}
@@ -147,7 +147,7 @@ export default function HomeBlog() {
                         </Badge>
                       ))}
                     </div>
-                    <h4 className="font-semibold text-white leading-snug group-hover:text-fuchsia-200 transition-colors line-clamp-2">
+                    <h4 className="font-semibold text-white leading-snug group-hover:text-violet-200 transition-colors line-clamp-2">
                       {post.title}
                     </h4>
                     <p className="text-sm text-slate-400 mt-1.5 line-clamp-2">{post.excerpt}</p>

@@ -1,11 +1,16 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { rateLimitGuard } from '@/lib/request-security';
+import { getConfiguredSupabaseServiceKey } from '@/lib/supabase/service-key';
 
 /**
  * GET /api/signals?gw=X
  * Returns player signals for the given gameweek.
  */
 export async function GET(request: Request) {
+  const protection = await rateLimitGuard(request, 'signals', 60, 60_000);
+  if (protection) return protection;
+
   const { searchParams } = new URL(request.url);
   const gw = parseInt(searchParams.get('gw') || '0');
 
@@ -14,10 +19,10 @@ export async function GET(request: Request) {
   }
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const supabaseKey = getConfiguredSupabaseServiceKey() || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   if (!supabaseUrl || !supabaseKey) {
-    return NextResponse.json({ signals: [] });
+    return NextResponse.json({ error: 'Signal data is not configured', source: 'unavailable' }, { status: 503 });
   }
 
   try {
@@ -31,12 +36,12 @@ export async function GET(request: Request) {
 
     if (error) {
       console.error('[Signals API] Supabase error:', error.message);
-      return NextResponse.json({ signals: [] });
+      return NextResponse.json({ error: 'Signal data is temporarily unavailable', source: 'unavailable' }, { status: 503 });
     }
 
     return NextResponse.json({ signals: data || [] });
   } catch (err) {
     console.error('[Signals API] Error:', (err as Error).message);
-    return NextResponse.json({ signals: [] });
+    return NextResponse.json({ error: 'Signal data is temporarily unavailable', source: 'unavailable' }, { status: 503 });
   }
 }

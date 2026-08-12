@@ -174,7 +174,7 @@ export default function OptimizePage() {
                 <div className="mt-5 max-w-[620px] mx-auto xl:mx-0">
                   <Button
                     onClick={applyOptimal}
-                    className="w-full h-12 text-base bg-gradient-to-r from-violet-500 to-indigo-600 hover:from-violet-600 hover:to-indigo-700 text-white"
+                    className="w-full h-12 text-base bg-gradient-brand-cta hover:opacity-90 text-white"
                   >
                     <TrendingUp className="mr-2 h-5 w-5" />
                     Apply Optimal XI &amp; Captain

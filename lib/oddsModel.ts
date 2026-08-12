@@ -44,6 +44,37 @@ export function expectedCsPoints(pos: Position, lambdaOpp: number): number {
   return pCS * pts;
 }
 
+export function expectedPlayerMarketPoints({
+  position,
+  appearanceProbability,
+  sixtyMinuteProbability,
+  expectedMinutes,
+  lambdaGoal,
+  lambdaAssist,
+  lambdaOpp,
+  scale = 0.88,
+}: {
+  position: Position;
+  appearanceProbability: number;
+  sixtyMinuteProbability: number;
+  expectedMinutes: number;
+  lambdaGoal: number;
+  lambdaAssist: number;
+  lambdaOpp: number;
+  scale?: number;
+}): number {
+  const goalPoints: Record<Position, number> = { GK: 6, DEF: 6, MID: 5, FWD: 4 };
+  const pAppearance = clamp01(appearanceProbability);
+  const p60 = Math.min(pAppearance, clamp01(sixtyMinuteProbability));
+  const minutesShare = clamp01(expectedMinutes / 90);
+  const appearancePoints = pAppearance + p60;
+  const attackingPoints = minutesShare * (
+    Math.max(0, lambdaGoal) * goalPoints[position] + Math.max(0, lambdaAssist) * 3
+  );
+  const cleanSheetPoints = p60 * expectedCsPoints(position, lambdaOpp);
+  return Math.max(0, (appearancePoints + attackingPoints + cleanSheetPoints) * Math.max(0, scale));
+}
+
 // Utility helpers
 function clamp01(x: number) { return Math.max(0, Math.min(1, x)); }
 function safeDiv(a: number, b: number) { return b === 0 ? (a === 0 ? 1 : 10) : a / b; }

@@ -191,7 +191,7 @@ export function PlayerPerformanceHistory({
                       Home
                     </Badge>
                   ) : (
-                    <Badge className="bg-purple-100 text-purple-700 border-purple-300 text-xs">
+                    <Badge className="bg-violet-500/10 text-violet-300 border-violet-500/20 text-xs">
                       <Plane className="h-2 w-2 mr-1" />
                       Away
                     </Badge>
@@ -241,23 +241,23 @@ export function PlayerPerformanceHistory({
 
       {/* Summary Stats */}
       <div className="grid grid-cols-3 gap-4">
-        <Card className="p-4 bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200">
-          <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
+        <Card className="p-4 bg-surface-1 border border-surface-border">
+          <div className="flex items-center gap-2 text-xs text-slate-400 mb-2">
             <Target className="h-3 w-3" />
             <span>Average</span>
           </div>
-          <div className="text-2xl font-bold text-blue-700">
+          <div className="text-2xl font-bold text-violet-300">
             {historicalData.avgPoints.toFixed(1)}
           </div>
           <div className="text-xs text-muted-foreground">pts/game</div>
         </Card>
 
-        <Card className="p-4 bg-gradient-to-br from-green-50 to-emerald-50 border-green-200">
-          <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
+        <Card className="p-4 bg-surface-1 border border-surface-border">
+          <div className="flex items-center gap-2 text-xs text-slate-400 mb-2">
             <Home className="h-3 w-3" />
             <span>Home Avg</span>
           </div>
-          <div className="text-2xl font-bold text-green-700">
+          <div className="text-2xl font-bold text-emerald-400">
             {historicalData.homeAvg.toFixed(1)}
           </div>
           <div className="text-xs text-muted-foreground">
@@ -265,12 +265,12 @@ export function PlayerPerformanceHistory({
           </div>
         </Card>
 
-        <Card className="p-4 bg-gradient-to-br from-purple-50 to-violet-50 border-purple-200">
-          <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
+        <Card className="p-4 bg-surface-1 border border-surface-border">
+          <div className="flex items-center gap-2 text-xs text-slate-400 mb-2">
             <Plane className="h-3 w-3" />
             <span>Away Avg</span>
           </div>
-          <div className="text-2xl font-bold text-purple-700">
+          <div className="text-2xl font-bold text-cyan-300">
             {historicalData.awayAvg.toFixed(1)}
           </div>
           <div className="text-xs text-muted-foreground">
@@ -314,7 +314,7 @@ export function PlayerPerformanceHistory({
             </div>
             <div className="w-full bg-gray-200 rounded-full h-2">
               <div 
-                className="bg-purple-500 h-2 rounded-full"
+                className="bg-violet-500 h-2 rounded-full"
                 style={{ width: `${Math.min((historicalData.awayAvg / 15) * 100, 100)}%` }}
               />
             </div>

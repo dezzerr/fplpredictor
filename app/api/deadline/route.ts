@@ -1,11 +1,15 @@
 import { NextResponse } from "next/server";
 import { getLiveEvent } from "@/lib/liveWindow";
+import { rateLimitGuard } from "@/lib/request-security";
 
 // This route is cheap and needs to be accurate, so we disable caching and
 // mirror the bootstrap fetch pattern used in lib/fpl.ts
 export const revalidate = 0;
 
-export async function GET() {
+export async function GET(request: Request) {
+  const protection = await rateLimitGuard(request, "deadline", 60, 60_000);
+  if (protection) return protection;
+
   try {
     // Match fetchFplPlayers: force fresh bootstrap using a timestamp and no-store
     const timestamp = Date.now();

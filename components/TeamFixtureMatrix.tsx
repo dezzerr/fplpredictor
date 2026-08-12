@@ -1,227 +1,237 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { cn } from "@/lib/utils";
-import { Shield, TrendingUp, TrendingDown, Home, Plane } from "lucide-react";
+import { ChevronRight, Loader2, Calendar, TrendingUp, AlertTriangle } from "lucide-react";
 
-interface TeamFixtureData {
+interface TeamFixture {
+  gw: number;
+  opponent: string;
+  home: boolean;
+  difficulty: number;
+}
+
+interface TeamData {
   team: string;
-  fixtures: Array<{
-    gw: number;
-    opponent: string;
-    home: boolean;
-    difficulty: number;
-  }>;
+  teamName: string;
+  fixtures: TeamFixture[];
   fdrAvg: number;
   fdrRating: string;
 }
 
+/* Difficulty → gradient + label */
+function diffStyle(diff: number): { bg: string; label: string } {
+  if (diff <= 2) return { bg: "from-emerald-500/80 to-emerald-600/80", label: "Easy" };
+  if (diff === 3) return { bg: "from-slate-500/60 to-slate-600/60", label: "Mod" };
+  if (diff === 4) return { bg: "from-orange-500/70 to-orange-600/70", label: "Hard" };
+  return { bg: "from-rose-500/70 to-rose-600/70", label: "V.Hard" };
+}
+
+function ratingColor(rating: string): string {
+  if (rating === "Excellent") return "text-emerald-400";
+  if (rating === "Good") return "text-cyan-400";
+  if (rating === "Average") return "text-slate-400";
+  if (rating === "Difficult") return "text-orange-400";
+  return "text-rose-400";
+}
+
 export function TeamFixtureMatrix() {
-  const [teamFixtures, setTeamFixtures] = useState<TeamFixtureData[]>([]);
+  const [data, setData] = useState<{ teams: TeamData[]; currentEvent: number } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [gwRange, setGwRange] = useState(8);
 
   useEffect(() => {
-    let cancelled = false;
-    
-    (async () => {
-      try {
-        setLoading(true);
-        const res = await fetch('/api/fixtures');
-        if (!res.ok) throw new Error('Failed to fetch fixtures');
-        
-        const data = await res.json();
-        if (!cancelled) {
-          // Sort by FDR (easiest first)
-          const sortedTeams = data.teams.sort((a: TeamFixtureData, b: TeamFixtureData) => 
-            a.fdrAvg - b.fdrAvg
-          );
-          setTeamFixtures(sortedTeams);
-        }
-      } catch (e: any) {
-        console.error('Failed to load fixtures', e);
-        if (!cancelled) {
-          setError(e?.message || 'Failed to load fixtures');
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-
-    return () => { cancelled = true; };
+    fetch("/api/fixtures")
+      .then(res => {
+        if (!res.ok) throw new Error("Failed to fetch fixtures");
+        return res.json();
+      })
+      .then((d: { teams: TeamData[]; currentEvent: number }) => {
+        setData(d);
+        setLoading(false);
+      })
+      .catch((err: Error) => {
+        setError(err.message);
+        setLoading(false);
+      });
   }, []);
 
-  const getDifficultyColor = (diff: number) => {
-    if (diff <= 2) return 'bg-emerald-500';
-    if (diff === 3) return 'bg-yellow-400';
-    if (diff === 4) return 'bg-orange-500';
-    return 'bg-red-500';
-  };
+  /* All unique GWs across all teams */
+  const allGws = useMemo(() => {
+    if (!data) return [];
+    const gwSet = new Set<number>();
+    data.teams.forEach(t => t.fixtures.forEach(f => f.gw && gwSet.add(f.gw)));
+    return Array.from(gwSet).sort((a, b) => a - b).slice(0, gwRange);
+  }, [data, gwRange]);
 
-  const getFDRColor = (avg: number) => {
-    if (avg <= 2.2) return 'text-emerald-600';
-    if (avg <= 2.8) return 'text-green-600';
-    if (avg <= 3.5) return 'text-yellow-600';
-    if (avg <= 4.2) return 'text-orange-600';
-    return 'text-red-600';
-  };
+  /* Sorted teams by FDR (best first) */
+  const sortedTeams = useMemo(() => {
+    if (!data) return [];
+    return [...data.teams].sort((a, b) => a.fdrAvg - b.fdrAvg);
+  }, [data]);
 
-  const getFDRBg = (avg: number) => {
-    if (avg <= 2.2) return 'bg-emerald-50 border-emerald-200';
-    if (avg <= 2.8) return 'bg-green-50 border-green-200';
-    if (avg <= 3.5) return 'bg-yellow-50 border-yellow-200';
-    if (avg <= 4.2) return 'bg-orange-50 border-orange-200';
-    return 'bg-red-50 border-red-200';
-  };
+  /* Summary insights */
+  const insights = useMemo(() => {
+    if (!sortedTeams.length) return [];
+    const best = sortedTeams.slice(0, 3);
+    const worst = sortedTeams.slice(-3).reverse();
+    return [
+      ...best.map(t => ({ team: t.team, rating: t.fdrRating, avg: t.fdrAvg, positive: true })),
+      ...worst.map(t => ({ team: t.team, rating: t.fdrRating, avg: t.fdrAvg, positive: false })),
+    ];
+  }, [sortedTeams]);
 
   if (loading) {
     return (
-      <Card className="p-12">
-        <div className="flex items-center justify-center">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <div className="text-sm text-muted-foreground">Loading fixtures from 2025/26 season...</div>
-          </div>
-        </div>
-      </Card>
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="w-6 h-6 text-violet-400 animate-spin" />
+        <span className="ml-3 text-slate-400 text-sm">Loading fixtures...</span>
+      </div>
     );
   }
 
   if (error) {
     return (
-      <Card className="p-12">
-        <div className="text-center">
-          <div className="text-red-600 mb-2">⚠️ Failed to load fixtures</div>
-          <div className="text-sm text-muted-foreground">{error}</div>
-        </div>
-      </Card>
+      <div className="flex flex-col items-center justify-center py-20 text-center">
+        <AlertTriangle className="w-8 h-8 text-rose-400 mb-3" />
+        <p className="text-slate-400 text-sm">{error}</p>
+      </div>
     );
   }
 
+  if (!data || !data.teams.length) return null;
+
   return (
-    <div className="space-y-3 sm:space-y-4">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <Shield className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
-          <h3 className="text-base sm:text-lg font-bold">Team Fixture Difficulty Matrix</h3>
-        </div>
-        <Badge className="bg-blue-100 text-blue-700 border-blue-300 text-[10px] sm:text-xs w-fit">
-          Next 8 Gameweeks • 2025/26 Season
-        </Badge>
+    <div className="space-y-4">
+      {/* ── Summary strip with insights ── */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-2">
+        {insights.map((ins, i) => (
+          <div
+            key={i}
+            className={`rounded-lg border p-2.5 ${
+              ins.positive
+                ? "border-emerald-500/20 bg-emerald-500/5"
+                : "border-rose-500/20 bg-rose-500/5"
+            }`}
+          >
+            <div className="flex items-center gap-1.5 mb-0.5">
+              {ins.positive ? (
+                <TrendingUp className="w-3 h-3 text-emerald-400" />
+              ) : (
+                <AlertTriangle className="w-3 h-3 text-rose-400" />
+              )}
+              <span className="text-xs font-bold text-white">{ins.team}</span>
+            </div>
+            <div className={`text-[10px] ${ratingColor(ins.rating)}`}>
+              {ins.rating} ({ins.avg.toFixed(1)})
+            </div>
+          </div>
+        ))}
       </div>
 
-      {/* Legend - scrollable on mobile */}
-      <div className="flex items-center gap-2 sm:gap-4 text-[10px] sm:text-xs p-2 sm:p-3 bg-gray-50 rounded-lg overflow-x-auto">
-        <div className="flex items-center gap-1 flex-shrink-0">
-          <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded bg-emerald-500" />
-          <span>1-2: Easy</span>
-        </div>
-        <div className="flex items-center gap-1 flex-shrink-0">
-          <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded bg-yellow-400" />
-          <span>3: Medium</span>
-        </div>
-        <div className="flex items-center gap-1 flex-shrink-0">
-          <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded bg-orange-500" />
-          <span>4: Hard</span>
-        </div>
-        <div className="flex items-center gap-1 flex-shrink-0">
-          <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded bg-red-500" />
-          <span>5: Very Hard</span>
-        </div>
-        <div className="ml-auto flex items-center gap-1 flex-shrink-0">
-          <Home className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
-          <span>Home</span>
-          <span className="mx-1">•</span>
-          <Plane className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
-          <span>Away</span>
-        </div>
+      {/* ── GW range slider ── */}
+      <div className="flex items-center gap-3 px-1">
+        <Calendar className="w-4 h-4 text-slate-500 shrink-0" />
+        <span className="text-xs text-slate-400 font-medium shrink-0">GW Range</span>
+        <input
+          type="range"
+          min={3}
+          max={8}
+          value={gwRange}
+          onChange={e => setGwRange(Number(e.target.value))}
+          className="flex-1 max-w-[200px] accent-violet-500 cursor-pointer"
+        />
+        <span className="text-xs font-bold text-violet-300 tabular-nums shrink-0">{gwRange} GWs</span>
       </div>
 
-      {/* Matrix */}
-      <Card className="overflow-hidden">
-        <ScrollArea className="h-[400px] sm:h-[600px]">
-          <div className="p-2 sm:p-4 space-y-1.5 sm:space-y-2">
-            {teamFixtures.map((teamData) => (
-              <div
-                key={teamData.team}
-                className="flex items-center gap-1.5 sm:gap-3 p-2 sm:p-3 rounded-lg border hover:shadow-md transition-all bg-white"
-              >
-                {/* Team */}
-                <div className="w-12 sm:w-16 flex-shrink-0">
-                  <div className="font-bold text-xs sm:text-sm">{teamData.team}</div>
-                  <div className={cn("text-[10px] sm:text-xs font-medium", getFDRColor(teamData.fdrAvg))}>
-                    {teamData.fdrAvg.toFixed(1)}
-                  </div>
-                </div>
+      {/* ── Legend ── */}
+      <div className="flex items-center gap-3 flex-wrap px-1">
+        {[
+          { label: "Easy", bg: "from-emerald-500/80 to-emerald-600/80" },
+          { label: "Moderate", bg: "from-slate-500/60 to-slate-600/60" },
+          { label: "Hard", bg: "from-orange-500/70 to-orange-600/70" },
+          { label: "Very Hard", bg: "from-rose-500/70 to-rose-600/70" },
+        ].map(l => (
+          <div key={l.label} className="flex items-center gap-1.5">
+            <div className={`w-3 h-3 rounded bg-gradient-to-br ${l.bg}`} />
+            <span className="text-[10px] text-slate-500">{l.label}</span>
+          </div>
+        ))}
+      </div>
 
-                {/* FDR Rating */}
-                <div className={cn(
-                  "px-1.5 sm:px-3 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-medium flex-shrink-0",
-                  getFDRBg(teamData.fdrAvg)
-                )}>
-                  <span className={getFDRColor(teamData.fdrAvg)}>
-                    {teamData.fdrRating}
-                  </span>
-                </div>
-
-                {/* Fixtures */}
-                <div className="flex gap-0.5 sm:gap-1 flex-1 overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300">
-                  {teamData.fixtures.map((fix, idx) => (
-                    <div
-                      key={idx}
-                      className={cn(
-                        "flex-shrink-0 w-10 sm:w-14 p-1 sm:p-1.5 rounded text-center text-white text-[10px] sm:text-xs font-medium",
-                        getDifficultyColor(fix.difficulty)
-                      )}
-                      title={`GW${fix.gw}: ${fix.opponent} (${fix.home ? 'H' : 'A'}) - Diff: ${fix.difficulty}`}
-                    >
-                      <div className="font-bold text-[10px] sm:text-xs">{fix.opponent}</div>
-                      <div className="flex items-center justify-center gap-0.5 text-[8px] sm:text-[9px] opacity-90">
-                        {fix.home ? <Home className="h-1.5 w-1.5 sm:h-2 sm:w-2" /> : <Plane className="h-1.5 w-1.5 sm:h-2 sm:w-2" />}
-                        <span>{fix.gw}</span>
-                      </div>
+      {/* ── Fixture matrix ── */}
+      <div className="rounded-xl border border-surface-border bg-surface-1 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse">
+            {/* GW header row */}
+            <thead>
+              <tr className="border-b border-surface-border">
+                <th className="sticky left-0 z-10 bg-surface-2 px-3 py-2.5 text-left text-[10px] uppercase tracking-wider text-slate-500 font-semibold min-w-[80px]">
+                  Team
+                </th>
+                {allGws.map(gw => (
+                  <th
+                    key={gw}
+                    className="px-1 py-2.5 text-center text-[10px] uppercase tracking-wider text-slate-500 font-semibold min-w-[44px]"
+                  >
+                    GW{gw}
+                  </th>
+                ))}
+                <th className="px-2 py-2.5 text-center text-[10px] uppercase tracking-wider text-slate-500 font-semibold min-w-[50px]">
+                  Avg
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {sortedTeams.map((team, idx) => (
+                <tr
+                  key={team.team}
+                  className={`border-b border-surface-border/50 hover:bg-surface-2/30 transition-colors ${idx % 2 === 0 ? "" : "bg-surface-2/20"}`}
+                >
+                  {/* Sticky team column */}
+                  <td className="sticky left-0 z-10 bg-surface-1 px-3 py-2 group">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs font-bold text-white">{team.team}</span>
+                      <ChevronRight className="w-3 h-3 text-slate-600 group-hover:text-violet-400 transition-colors" />
                     </div>
-                  ))}
-                </div>
-
-                {/* Trend - hidden on very small screens */}
-                <div className={cn("flex-shrink-0 hidden sm:block", getFDRColor(teamData.fdrAvg))}>
-                  {teamData.fdrAvg <= 2.8 ? (
-                    <TrendingUp className="h-4 w-4" />
-                  ) : (
-                    <TrendingDown className="h-4 w-4" />
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </ScrollArea>
-      </Card>
-
-      {/* Summary Stats */}
-      <div className="grid grid-cols-3 gap-2 sm:gap-4">
-        <Card className="p-2 sm:p-4 bg-emerald-50 border-emerald-200">
-          <div className="text-[10px] sm:text-xs text-muted-foreground mb-0.5 sm:mb-1">Easiest</div>
-          <div className="text-sm sm:text-lg font-bold text-emerald-700">
-            {teamFixtures.filter(t => t.fdrAvg <= 2.8).length} teams
-          </div>
-        </Card>
-        <Card className="p-2 sm:p-4 bg-yellow-50 border-yellow-200">
-          <div className="text-[10px] sm:text-xs text-muted-foreground mb-0.5 sm:mb-1">Average</div>
-          <div className="text-sm sm:text-lg font-bold text-yellow-700">
-            {teamFixtures.filter(t => t.fdrAvg > 2.8 && t.fdrAvg <= 3.5).length} teams
-          </div>
-        </Card>
-        <Card className="p-2 sm:p-4 bg-red-50 border-red-200">
-          <div className="text-[10px] sm:text-xs text-muted-foreground mb-0.5 sm:mb-1">Difficult</div>
-          <div className="text-sm sm:text-lg font-bold text-red-700">
-            {teamFixtures.filter(t => t.fdrAvg > 3.5).length} teams
-          </div>
-        </Card>
+                    <div className="text-[9px] text-slate-500 truncate">{team.teamName}</div>
+                  </td>
+                  {/* Fixture cells */}
+                  {allGws.map(gw => {
+                    const fix = team.fixtures.find(f => f.gw === gw);
+                    if (!fix) {
+                      return (
+                        <td key={gw} className="px-1 py-1.5 text-center">
+                          <div className="w-9 h-9 rounded-lg bg-surface-2/50 border border-surface-border/30 flex items-center justify-center">
+                            <span className="text-[8px] text-slate-600">—</span>
+                          </div>
+                        </td>
+                      );
+                    }
+                    const ds = diffStyle(fix.difficulty);
+                    return (
+                      <td key={gw} className="px-1 py-1.5 text-center">
+                        <div
+                          className={`w-9 h-9 rounded-lg bg-gradient-to-br ${ds.bg} flex flex-col items-center justify-center shadow-sm transition-transform hover:scale-110 cursor-default`}
+                          title={`${fix.opponent} (${fix.home ? "H" : "A"}) — ${ds.label}`}
+                        >
+                          <span className="text-[9px] font-bold text-white leading-none">{fix.opponent}</span>
+                          <span className="text-[8px] text-white/70 leading-none mt-0.5">{fix.home ? "H" : "A"}</span>
+                        </div>
+                      </td>
+                    );
+                  })}
+                  {/* FDR average */}
+                  <td className="px-2 py-2 text-center">
+                    <span className={`text-xs font-bold tabular-nums ${ratingColor(team.fdrRating)}`}>
+                      {team.fdrAvg.toFixed(1)}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

@@ -23,16 +23,16 @@ export function PlanningDashboard() {
   return (
     <div className="space-y-6">
       {/* Header Section */}
-      <div className="relative overflow-hidden rounded-xl border border-purple-200 bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-50 p-6 shadow-sm">
+      <div className="relative overflow-hidden rounded-xl border border-surface-border bg-surface-1 p-6 shadow-sm">
         <div className="relative z-10">
           <div className="flex items-start justify-between flex-wrap gap-4">
             <div>
               <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-lg shadow-sm">
+                <div className="p-2 bg-gradient-brand-cta rounded-lg shadow-sm">
                   <CalendarDays className="h-5 w-5 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
+                  <h2 className="font-display text-2xl font-bold bg-gradient-to-r from-violet-400 to-cyan-400 bg-clip-text text-transparent">
                     Transfer Planning
                   </h2>
                   <p className="text-sm text-muted-foreground">
@@ -44,27 +44,27 @@ export function PlanningDashboard() {
 
             {/* Quick Stats */}
             <div className="flex gap-3">
-              <div className="bg-white/80 backdrop-blur-sm rounded-lg px-4 py-2 border border-purple-200/50 shadow-sm">
-                <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+              <div className="bg-surface-2/80 backdrop-blur-sm rounded-lg px-4 py-2 border border-surface-border shadow-sm">
+                <div className="flex items-center gap-2 text-xs text-slate-400 mb-1">
                   <Target className="h-3 w-3" />
                   <span>Horizon</span>
                 </div>
-                <div className="text-lg font-bold text-purple-700">1-10 GWs</div>
+                <div className="text-lg font-bold text-violet-300">1-10 GWs</div>
               </div>
-              <div className="bg-white/80 backdrop-blur-sm rounded-lg px-4 py-2 border border-indigo-200/50 shadow-sm">
-                <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+              <div className="bg-surface-2/80 backdrop-blur-sm rounded-lg px-4 py-2 border border-surface-border shadow-sm">
+                <div className="flex items-center gap-2 text-xs text-slate-400 mb-1">
                   <Sparkles className="h-3 w-3" />
                   <span>AI Powered</span>
                 </div>
-                <div className="text-lg font-bold text-indigo-700">Smart Recs</div>
+                <div className="text-lg font-bold text-cyan-300">Smart Recs</div>
               </div>
             </div>
           </div>
 
           {/* Info Banner */}
-          <div className="mt-4 flex items-start gap-2 p-3 bg-blue-50/80 border border-blue-200/50 rounded-lg">
-            <Info className="h-4 w-4 text-blue-600 flex-shrink-0 mt-0.5" />
-            <div className="text-xs text-blue-900">
+          <div className="mt-4 flex items-start gap-2 p-3 bg-violet-500/10 border border-violet-500/20 rounded-lg">
+            <Info className="h-4 w-4 text-violet-400 flex-shrink-0 mt-0.5" />
+            <div className="text-xs text-slate-300">
               <strong>Pro Tip:</strong> Use AI Recommendations for quick insights, then fine-tune with Manual Planning. 
               Consider hits vs. free transfers, chip timing, and fixture difficulty over your chosen horizon.
             </div>
@@ -72,20 +72,20 @@ export function PlanningDashboard() {
         </div>
 
         {/* Background decoration */}
-        <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-purple-300/20 to-indigo-300/20 rounded-full blur-3xl" />
-        <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-blue-300/20 to-purple-300/20 rounded-full blur-3xl" />
+        <div className="absolute top-0 right-0 w-64 h-64 bg-violet-500/10 rounded-full blur-3xl" />
+        <div className="absolute bottom-0 left-0 w-48 h-48 bg-cyan-500/10 rounded-full blur-3xl" />
       </div>
 
       {/* Mode Toggle */}
       <div className="flex items-center justify-center">
-        <div className="inline-flex items-center gap-2 p-1 bg-gray-100 rounded-lg border border-gray-200 shadow-sm">
+        <div className="inline-flex items-center gap-2 p-1 bg-surface-2 rounded-lg border border-surface-border shadow-sm">
           <button
             onClick={() => setActiveView("recommendations")}
             className={`
               flex items-center gap-2 px-4 py-2 rounded-md font-medium text-sm transition-all duration-200
               ${activeView === "recommendations"
-                ? "bg-gradient-to-r from-purple-500 to-indigo-600 text-white shadow-md"
-                : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
+                ? "bg-gradient-brand-cta text-white shadow-md"
+                : "text-slate-400 hover:text-white hover:bg-surface-1"
               }
             `}
           >
@@ -100,8 +100,8 @@ export function PlanningDashboard() {
             className={`
               flex items-center gap-2 px-4 py-2 rounded-md font-medium text-sm transition-all duration-200
               ${activeView === "manual"
-                ? "bg-gradient-to-r from-purple-500 to-indigo-600 text-white shadow-md"
-                : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
+                ? "bg-gradient-brand-cta text-white shadow-md"
+                : "text-slate-400 hover:text-white hover:bg-surface-1"
               }
             `}
           >
@@ -140,31 +140,31 @@ export function PlanningDashboard() {
       </div>
 
       {/* Quick Guide Section */}
-      <Card className="border-purple-200/50 bg-gradient-to-br from-purple-50/30 to-indigo-50/30">
+      <Card className="border-surface-border bg-surface-1">
         <div className="p-4">
           <div className="flex items-center gap-2 mb-3">
-            <LineChart className="h-4 w-4 text-purple-600" />
-            <h3 className="font-semibold text-sm">Planning Strategy Guide</h3>
+            <LineChart className="h-4 w-4 text-violet-400" />
+            <h3 className="font-semibold text-sm text-white">Planning Strategy Guide</h3>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
             <div className="space-y-1">
-              <div className="font-medium text-purple-700">Short-term (1-3 GWs)</div>
-              <p className="text-muted-foreground">
-                Focus on immediate fixtures. Take hits only if gain exceeds 4-8 points. 
+              <div className="font-medium text-violet-300">Short-term (1-3 GWs)</div>
+              <p className="text-slate-400">
+                Focus on immediate fixtures. Take hits only if gain exceeds 4-8 points.
                 Use AI recs for quick decisions.
               </p>
             </div>
             <div className="space-y-1">
-              <div className="font-medium text-indigo-700">Medium-term (4-8 GWs)</div>
-              <p className="text-muted-foreground">
-                Plan around fixture swings. Build team value. Consider chip usage timing. 
+              <div className="font-medium text-cyan-300">Medium-term (4-8 GWs)</div>
+              <p className="text-slate-400">
+                Plan around fixture swings. Build team value. Consider chip usage timing.
                 Combine AI + manual planning.
               </p>
             </div>
             <div className="space-y-1">
-              <div className="font-medium text-blue-700">Long-term (8+ GWs)</div>
-              <p className="text-muted-foreground">
-                Map full season strategy. Plan for DGWs/BGWs. Optimize Wildcard timing. 
+              <div className="font-medium text-violet-300">Long-term (8+ GWs)</div>
+              <p className="text-slate-400">
+                Map full season strategy. Plan for DGWs/BGWs. Optimize Wildcard timing.
                 Use manual planner for detailed roadmap.
               </p>
             </div>

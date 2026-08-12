@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { rateLimitGuard } from "@/lib/request-security";
 
 type FixtureStatRow = {
   element?: number;
@@ -109,6 +110,9 @@ export const dynamic = "force-dynamic";
  * - fixtures: summary of live/finished/upcoming matches this GW
  */
 export async function GET(req: NextRequest) {
+  const protection = await rateLimitGuard(req, "live", 60, 60_000);
+  if (protection) return protection;
+
   try {
     const { searchParams } = new URL(req.url);
     const entryId = searchParams.get("entryId");

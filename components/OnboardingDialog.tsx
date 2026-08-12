@@ -52,7 +52,7 @@ export function OnboardingDialog() {
         setTimeout(() => {
           toast.info("Tip: Click 'Auto-Select Best XI' to see your optimal lineup!", {
             duration: 6000,
-            icon: <Rocket className="h-4 w-4 text-indigo-500" />
+            icon: <Rocket className="h-4 w-4 text-violet-400" />
           });
         }, 1500);
       } else {
@@ -67,7 +67,7 @@ export function OnboardingDialog() {
         className="sm:max-w-[440px] p-0 overflow-hidden [&>button[aria-label=Close]]:text-white/90 [&>button[aria-label=Close]]:hover:bg-white/15"
       >
         {/* Brand header */}
-        <div className="relative bg-gradient-to-br from-violet-600 via-indigo-600 to-blue-600 px-6 pt-6 pb-7 text-white">
+        <div className="relative bg-gradient-brand-cta px-6 pt-6 pb-7 text-white">
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-xl bg-white/15 backdrop-blur flex items-center justify-center ring-1 ring-white/25">
               <Rocket className="h-5 w-5" />

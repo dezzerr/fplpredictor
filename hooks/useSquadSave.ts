@@ -14,10 +14,15 @@ export function useSquadSave() {
   const totalExpForWeek = useSquadStore((state) => state.totalExpForWeek)
   const replaceSquad = useSquadStore((state) => state.replaceSquad)
   const setBank = useSquadStore((state) => state.setBank)
+  const seasonKey = useSquadStore((state) => state.seasonKey)
 
   const saveSquad = async (gameweek: number, squadName?: string) => {
     setSaving(true)
     try {
+      if (!seasonKey) {
+        toast.error('Live FPL season data is still loading. Please try again in a moment.')
+        return false
+      }
       const supabase = createClient()
       
       // Check if user is authenticated
@@ -39,6 +44,7 @@ export function useSquadSave() {
         .update({ is_active: false })
         .eq('user_id', user.id)
         .eq('gameweek', gameweek)
+        .eq('season_key', seasonKey)
 
       // Save the new squad
       const { error } = await supabase
@@ -49,6 +55,7 @@ export function useSquadSave() {
           squad_data: squad,
           bank: squad.bank,
           gameweek,
+          season_key: seasonKey,
           is_active: true,
         })
 
@@ -64,13 +71,14 @@ export function useSquadSave() {
         .from('squad_history')
         .upsert({
           user_id: user.id,
+          season_key: seasonKey,
           gameweek,
           squad_data: squad,
           predicted_points: predictedPoints,
           team_rating: teamRatingForWeek(0),
           gw_rating: gwRatingForWeek(0),
         }, {
-          onConflict: 'user_id,gameweek'
+          onConflict: 'user_id,season_key,gameweek'
         })
 
       toast.success(`Squad saved for GW${gameweek}!`)
@@ -87,6 +95,10 @@ export function useSquadSave() {
   const loadSquad = async (gameweek: number) => {
     setLoading(true)
     try {
+      if (!seasonKey) {
+        toast.error('Live FPL season data is still loading. Please try again in a moment.')
+        return false
+      }
       const supabase = createClient()
       
       const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -100,6 +112,7 @@ export function useSquadSave() {
         .select('squad_data, bank, name')
         .eq('user_id', user.id)
         .eq('gameweek', gameweek)
+        .eq('season_key', seasonKey)
         .eq('is_active', true)
         .single()
 
@@ -132,6 +145,7 @@ export function useSquadSave() {
 
   const getSavedSquads = async () => {
     try {
+      if (!seasonKey) return []
       const supabase = createClient()
       
       const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -141,6 +155,7 @@ export function useSquadSave() {
         .from('squads')
         .select('id, name, gameweek, created_at, is_active')
         .eq('user_id', user.id)
+        .eq('season_key', seasonKey)
         .order('gameweek', { ascending: false })
 
       if (error) {

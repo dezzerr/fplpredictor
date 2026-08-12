@@ -113,9 +113,21 @@ export function PlayerRow({ player, onAdd }: { player: Player; onAdd: (p: Player
                         </div>
                       )}
                       <div className="font-semibold">Expected points breakdown</div>
-                      <div>Base: {player.expExplain.base.toFixed(1)}</div>
-                      <div>Minutes: p={Math.round(player.expExplain.minutesProb*100)}%, factor={player.expExplain.minutesFactor.toFixed(2)}</div>
-                      <div>Injury penalty: {player.expExplain.injuryPenalty.toFixed(2)}</div>
+                      <div>Projection base: {player.expExplain.base.toFixed(1)}</div>
+                      {player.expExplain.projectionBaseSource === 'preseason-blend' && (
+                        <div>
+                          Official EP {player.expExplain.officialBase?.toFixed(1)} + last-season PPG
+                        </div>
+                      )}
+                      {player.expExplain.playingTime ? (
+                        <div>
+                          Playing time: {player.expExplain.playingTime.expectedMinutes.toFixed(0)} min,
+                          {' '}{Math.round(player.expExplain.playingTime.startProbability * 100)}% start,
+                          {' '}{Math.round(player.expExplain.playingTime.sixtyMinuteProbability * 100)}% 60+
+                        </div>
+                      ) : (
+                        <div>60+ chance: {Math.round(player.expExplain.minutesProb*100)}%, factor={player.expExplain.minutesFactor.toFixed(2)}</div>
+                      )}
                       <div>Form: {player.expExplain.form?.toFixed(1) ?? '-'} → factor={player.expExplain.formFactor.toFixed(2)}</div>
                       <div>Position factor: {player.expExplain.positionFactor.toFixed(2)}</div>
                       <div className="mt-1">Fixtures:</div>

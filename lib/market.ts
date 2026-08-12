@@ -1,9 +1,9 @@
-import type { Player, Position } from "@/lib/data";
+import type { Player } from "@/lib/data";
 import type { CalPresetName } from "@/lib/calibration";
 import { fetchFplPlayers } from "@/lib/fpl";
 import { seedPlayerAliasesFrom } from "@/lib/marketMapping";
 import { cachedTeamOdds, cachedGoalscorerOdds, type TeamOdds, type GoalscorerOdds } from "@/lib/odds";
-import { lambdasFromTeamOdds, cleanSheetFromLambdas, lambdaGFromAnytime, estimateLambdaA, expectedCsPoints } from "@/lib/oddsModel";
+import { lambdasFromTeamOdds, cleanSheetFromLambdas, lambdaGFromAnytime, estimateLambdaA, expectedPlayerMarketPoints } from "@/lib/oddsModel";
 
 // Market-first players fetcher. If odds providers are configured, this will
 // compute per-event expected points from market data. Until then, it falls
@@ -31,28 +31,22 @@ export async function fetchPlayersWithMarket(preset?: CalPresetName | string | n
     }));
   }
 
-  // Fetch odds for the next 3 events (offsets 0..2)
-  const [odds0, odds1, odds2] = await Promise.all([
+  // Odds API responses are not mapped to official FPL gameweek IDs yet. Only
+  // use the current provider slate; reusing it for future offsets would make
+  // future eventEP values look precise while actually repeating current odds.
+  const [odds0, sc0] = await Promise.all([
     cachedTeamOdds(0),
-    cachedTeamOdds(1),
-    cachedTeamOdds(2),
-  ]);
-  const [sc0, sc1, sc2] = await Promise.all([
     cachedGoalscorerOdds(0),
-    cachedGoalscorerOdds(1),
-    cachedGoalscorerOdds(2),
   ]);
 
-  const teamOddsByEvent: Record<number, TeamOdds[]> = { 0: odds0, 1: odds1, 2: odds2 };
-  const scorerByEvent: Record<number, Map<string, GoalscorerOdds>> = {
-    0: new Map(sc0.map(o => [o.playerId, o])),
-    1: new Map(sc1.map(o => [o.playerId, o])),
-    2: new Map(sc2.map(o => [o.playerId, o])),
-  };
+  const teamOddsByEvent: Record<number, TeamOdds[]> = { 0: odds0 };
+  const scorerByEvent: Record<number, GoalscorerOdds[]> = { 0: sc0 };
 
-  const haveAnyOdds = (odds0.length + odds1.length + odds2.length + sc0.length + sc1.length + sc2.length) > 0;
-  if (!haveAnyOdds) {
-    // No usable odds yet, keep FPL fallback
+  // Team-level prices cannot identify which players will receive the attacking
+  // returns. Without genuine player odds, keep every player on the usage-aware
+  // FPL projection instead of assigning identical shares by position.
+  const havePlayerOdds = odds0.length > 0 && sc0.length > 0;
+  if (!havePlayerOdds) {
     return fplPlayers.map(p => ({
       ...p,
       expExplain: p.expExplain ? { ...p.expExplain, source: 'fpl' } : undefined,
@@ -70,17 +64,13 @@ export async function fetchPlayersWithMarket(preset?: CalPresetName | string | n
     return out;
   }
 
-  const goalPtsByPos: Record<Position, number> = { GK: 6, DEF: 6, MID: 5, FWD: 4 };
-  const assistPts = 3;
-
-  // Fallback shares to distribute team scoring to players when anytime odds missing
-  const shareByPos: Record<Position, number> = { GK: 0.00, DEF: 0.05, MID: 0.30, FWD: 0.50 };
-
   const clamp01 = (x: number) => Math.max(0, Math.min(1, x));
 
   const enriched: Player[] = fplPlayers.map((p) => {
-    // Use the enhanced minutes probability from FPL processing (accounts for form, minutes, loans)
-    const p60Base = typeof p.minutesProb === 'number' ? clamp01(p.minutesProb) : 0.8;
+    const playingTime = p.playingTime || p.expExplain?.playingTime;
+    const p60 = clamp01(playingTime?.sixtyMinuteProbability ?? p.minutesProb ?? 0.8);
+    const pAppearance = clamp01(playingTime?.appearanceProbability ?? p60);
+    const minutesShare = clamp01((playingTime?.expectedMinutes ?? p60 * 90) / 90);
 
     const eventEP: number[] = [];
     const lambdaGArr: number[] = [];
@@ -99,51 +89,67 @@ export async function fetchPlayersWithMarket(preset?: CalPresetName | string | n
       let lambdaGSum = 0;
       let lambdaASum = 0;
       let pCsSum = 0;
-      const p60 = p60Base; // per fixture assumption; display as average per fixture
-      const cameoProb = clamp01(Math.max(0, (typeof p.minutesProb === 'number' ? p.minutesProb : p60Base) - p60));
+      let usedFixtures = 0;
 
       // Collect any per-fixture anytime odds for this player in this event
-      const scList = (scorerByEvent[event] ? Array.from(scorerByEvent[event].values()) : []).filter(o => o.playerId === p.id);
+      const scList = (scorerByEvent[event] || []).filter(o => o.playerId === p.id);
 
       for (const { o, teamIsHome } of fixtures) {
         const { lambdaH, lambdaA } = lambdasFromTeamOdds(o);
-        const lambdaTeam = teamIsHome ? lambdaH : lambdaA;
         const lambdaOpp = teamIsHome ? lambdaA : lambdaH;
+
+        const sc = scList.find(sco => (sco.fixture.home === o.fixture.home && sco.fixture.away === o.fixture.away));
+        if (!sc) continue;
+
         const pCSf = cleanSheetFromLambdas(lambdaOpp);
         pCsSum += pCSf;
-
-        // Match scorer odds entry for this specific fixture if available
-        const sc = scList.find(sco => (sco.fixture.home === o.fixture.home && sco.fixture.away === o.fixture.away));
-        const lambdaGf = sc ? lambdaGFromAnytime(sc.anytime) : (lambdaTeam * (shareByPos[p.position] || 0));
+        usedFixtures++;
+        const lambdaGf = lambdaGFromAnytime(sc.anytime);
         const lambdaAf = estimateLambdaA(lambdaGf, p.position);
 
-        const appearanceEP = 2 * p60 + 1 * cameoProb;
-        const attackEP = p60 * (lambdaGf * goalPtsByPos[p.position] + lambdaAf * assistPts);
-        const csEP = p60 * expectedCsPoints(p.position, lambdaOpp);
-        const ep = (appearanceEP + attackEP + csEP) * MARKET_EP_SCALE;
+        const ep = expectedPlayerMarketPoints({
+          position: p.position,
+          appearanceProbability: pAppearance,
+          sixtyMinuteProbability: p60,
+          expectedMinutes: minutesShare * 90,
+          lambdaGoal: lambdaGf,
+          lambdaAssist: lambdaAf,
+          lambdaOpp,
+          scale: MARKET_EP_SCALE,
+        });
 
         epSum += ep;
         lambdaGSum += lambdaGf;
         lambdaASum += lambdaAf;
       }
 
+      if (usedFixtures === 0) continue;
       eventEP[event] = Math.round(epSum * 10) / 10; // precision1
       lambdaGArr[event] = Math.round(lambdaGSum * 1000) / 1000;
       lambdaAArr[event] = Math.round(lambdaASum * 1000) / 1000;
-      pCSArr[event] = Math.round((pCsSum / fixtures.length) * 1000) / 1000; // display average per fixture
+      pCSArr[event] = Math.round((pCsSum / usedFixtures) * 1000) / 1000;
       p60Arr[event] = Math.round(p60 * 1000) / 1000;
     }
 
     const ex = p.expExplain;
     const nextEp = typeof eventEP[0] === 'number' ? eventEP[0] : undefined;
+    if (nextEp === undefined) {
+      return {
+        ...p,
+        expExplain: ex ? { ...ex, source: 'fpl' } : undefined,
+      };
+    }
     return {
       ...p,
-      expPoints: nextEp ?? p.expPoints,
+      expPoints: nextEp,
       expExplain: {
+        ...ex,
         base: ex?.base ?? p.baseExp ?? p.expPoints,
-        minutesProb: typeof p.minutesProb === 'number' ? p.minutesProb : p60Base,
+        minutesProb: p60,
         minutesFactor: ex?.minutesFactor ?? 1,
         injuryPenalty: ex?.injuryPenalty ?? 1,
+        modelVersion: ex?.modelVersion,
+        playingTime,
         form: ex?.form ?? (typeof p.form === 'number' ? p.form : 1),
         formFactor: ex?.formFactor ?? 1,
         positionFactor: ex?.positionFactor ?? 1,
@@ -165,7 +171,7 @@ export async function fetchPlayersWithMarket(preset?: CalPresetName | string | n
         lambdaA: eventEP.length ? lambdaAArr : ex?.lambdaA,
         pCS: eventEP.length ? pCSArr : ex?.pCS,
         p60: eventEP.length ? p60Arr : ex?.p60,
-        final: nextEp ?? ex?.final ?? p.expPoints,
+        final: nextEp,
         nextWeekFactor: ex?.nextWeekFactor,
         eventFactors: ex?.eventFactors,
         eventFixtureCounts: ex?.eventFixtureCounts,

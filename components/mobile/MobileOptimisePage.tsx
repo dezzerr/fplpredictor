@@ -181,7 +181,7 @@ export function MobileOptimisePage({ onBack, weekOffset = 0 }: MobileOptimisePag
         {activeTab === 'optimised' ? (
           <>
         {/* Stats Header */}
-        <div className="bg-gradient-to-br from-violet-500 via-purple-500 to-indigo-600 px-4 py-5 text-white">
+        <div className="bg-gradient-to-br from-violet-500 via-violet-600 to-cyan-600 px-4 py-5 text-white">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="p-2.5 bg-white/20 backdrop-blur-sm rounded-xl">
@@ -419,7 +419,7 @@ export function MobileOptimisePage({ onBack, weekOffset = 0 }: MobileOptimisePag
       <div className="border-t bg-white px-4 py-4 pb-safe">
         <button
           onClick={handleApplyOptimal}
-          className="w-full py-3.5 rounded-full font-semibold text-white bg-gradient-to-r from-violet-500 to-indigo-600 hover:from-violet-600 hover:to-indigo-700 flex items-center justify-center gap-2"
+          className="w-full py-3.5 rounded-full font-semibold text-white bg-gradient-brand-cta hover:opacity-90 flex items-center justify-center gap-2"
         >
           <TrendingUp className="w-5 h-5" />
           Apply Optimal Team

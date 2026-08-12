@@ -7,15 +7,6 @@ import { weeklyExp } from "@/lib/optimizer";
 import { ArrowLeft, Search, ChevronDown, Info, Loader2, Pencil } from "lucide-react";
 import { toast } from "sonner";
 
-const TEAM_NAMES: Record<string, string> = {
-  ARS: "Arsenal", AVL: "Aston Villa", BOU: "Bournemouth", BRE: "Brentford",
-  BHA: "Brighton", BUR: "Burnley", CHE: "Chelsea", CRY: "Crystal Palace",
-  EVE: "Everton", FUL: "Fulham", LEE: "Leeds", LIV: "Liverpool",
-  MCI: "Man City", MUN: "Man Utd", NEW: "Newcastle", NFO: "Nott'm Forest",
-  SUN: "Sunderland", TOT: "Spurs", WHU: "West Ham", WOL: "Wolves"
-};
-
-const ALL_TEAMS = Object.keys(TEAM_NAMES);
 const ALL_POSITIONS = ["GK", "DEF", "MID", "FWD"] as const;
 
 interface MobileAddPlayerPageProps {
@@ -47,6 +38,11 @@ export function MobileAddPlayerPage({
   const [loading, setLoading] = useState(true);
   const [editingBank, setEditingBank] = useState(false);
   const [bankInput, setBankInput] = useState("");
+
+  const teams = useMemo(() => Array.from(
+    new Map(allPlayers.map((player) => [player.team, player.teamName || player.team])).entries()
+  ).sort((a, b) => a[1].localeCompare(b[1])), [allPlayers]);
+  const teamLabel = (player: Player) => player.teamName || player.team;
 
   const bank = squad.bank;
 
@@ -119,7 +115,7 @@ export function MobileAddPlayerPage({
         const query = searchQuery.toLowerCase();
         const nameMatch = p.name.toLowerCase().includes(query);
         const teamMatch = p.team.toLowerCase().includes(query) || 
-                         (TEAM_NAMES[p.team]?.toLowerCase().includes(query));
+                         teamLabel(p).toLowerCase().includes(query);
         if (!nameMatch && !teamMatch) return false;
       }
       return true;
@@ -231,7 +227,7 @@ export function MobileAddPlayerPage({
             placeholder="Search By Name"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+            className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
           />
         </div>
       </div>
@@ -240,7 +236,7 @@ export function MobileAddPlayerPage({
         <select
           value={positionFilter}
           onChange={(e) => setPositionFilter(e.target.value)}
-          className="px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+          className="px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-violet-500"
         >
           <option value="all">All Positions</option>
           {ALL_POSITIONS.map(pos => (
@@ -251,7 +247,7 @@ export function MobileAddPlayerPage({
         <select
           value={priceFilter === "unlimited" ? "unlimited" : String(priceFilter)}
           onChange={(e) => setPriceFilter(e.target.value === "unlimited" ? "unlimited" : parseFloat(e.target.value))}
-          className="px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+          className="px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-violet-500"
         >
           <option value="unlimited">Max Price</option>
           <option value="5">Under £5m</option>
@@ -266,11 +262,11 @@ export function MobileAddPlayerPage({
         <select
           value={teamFilter}
           onChange={(e) => setTeamFilter(e.target.value)}
-          className="px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+          className="px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-violet-500"
         >
           <option value="all">All Clubs</option>
-          {ALL_TEAMS.map(team => (
-            <option key={team} value={team}>{TEAM_NAMES[team] || team}</option>
+          {teams.map(([team, name]) => (
+            <option key={team} value={team}>{name}</option>
           ))}
         </select>
       </div>
@@ -283,19 +279,19 @@ export function MobileAddPlayerPage({
         </div>
         <button 
           onClick={() => toggleSort("form")} 
-          className={`w-14 text-center ${sortField === "form" ? "text-purple-600 font-medium" : ""}`}
+          className={`w-14 text-center ${sortField === "form" ? "text-violet-400 font-medium" : ""}`}
         >
           Form {sortField === "form" && (sortAsc ? "↑" : "↓")}
         </button>
         <button 
           onClick={() => toggleSort("price")} 
-          className={`w-16 text-center ${sortField === "price" ? "text-purple-600 font-medium" : ""}`}
+          className={`w-16 text-center ${sortField === "price" ? "text-violet-400 font-medium" : ""}`}
         >
           Price {sortField === "price" && (sortAsc ? "↑" : "↓")}
         </button>
         <button 
           onClick={() => toggleSort("selected")} 
-          className={`w-16 text-center ${sortField === "selected" ? "text-purple-600 font-medium" : ""}`}
+          className={`w-16 text-center ${sortField === "selected" ? "text-violet-400 font-medium" : ""}`}
         >
           Selected {sortField === "selected" && (sortAsc ? "↑" : "↓")}
         </button>
@@ -322,9 +318,9 @@ export function MobileAddPlayerPage({
               >
                 <div 
                   onClick={(e) => { e.stopPropagation(); }}
-                  className="w-6 h-6 rounded-full bg-purple-100 flex items-center justify-center cursor-pointer"
+                  className="w-6 h-6 rounded-full bg-violet-500/10 flex items-center justify-center cursor-pointer"
                 >
-                  <Info className="w-3.5 h-3.5 text-purple-600" />
+                  <Info className="w-3.5 h-3.5 text-violet-400" />
                 </div>
                 
                 <div className="w-10 h-10 bg-slate-100 rounded flex items-center justify-center">
@@ -342,7 +338,7 @@ export function MobileAddPlayerPage({
                     {player.status === "out" && <span className="text-red-500">🚫</span>}
                   </div>
                   <div className="text-xs text-slate-500">
-                    {TEAM_NAMES[player.team] || player.team} · {player.position}
+                    {teamLabel(player)} · {player.position}
                   </div>
                 </div>
                 

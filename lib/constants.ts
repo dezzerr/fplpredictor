@@ -12,102 +12,29 @@ import type { Position } from "@/lib/data";
 /** Primary kit colors by team short code (hex values) */
 export const TEAM_COLORS: Record<string, string> = {
   ARS: "#EF0107",
+  AVL: "#95BFE5",
+  BOU: "#DA291C",
+  BRE: "#E30613",
+  BHA: "#0057B8",
+  CHE: "#034694",
+  COV: "#6CABDD",
+  CRY: "#1B458F",
+  EVE: "#003399",
+  FUL: "#000000",
+  HUL: "#F5A623",
+  IPS: "#3A64A3",
+  LEE: "#1D428A",
+  LIV: "#D00027",
   MCI: "#6CABDD",
   MUN: "#DA291C",
-  LIV: "#D00027",
-  CHE: "#034694",
   NEW: "#241F20",
-  BHA: "#0057B8",
-  BRE: "#E30613",
-  AVL: "#95BFE5",
-  TOT: "#132257",
-  WHU: "#7A263A",
-  CRY: "#1B458F",
-  WOL: "#FDB913",
-  FUL: "#000000",
   NFO: "#DD0000",
-  LUT: "#FF5F00",
-  SHU: "#EE2737",
-  EVE: "#003399",
-  BOU: "#DA291C",
-  // 2025-26 promoted teams
-  LEI: "#003090",
-  IPS: "#0044AA",
-  SOU: "#D71920",
+  SUN: "#EB172B",
+  TOT: "#132257",
 } as const;
 
 /** Default color when team is not found */
 export const DEFAULT_TEAM_COLOR = "#9CA3AF";
-
-/**
- * Team strength ratings (1-5 scale, where 5 = strongest)
- * Based on Premier League season performance and squad quality.
- * Update at the start of each season.
- */
-export const TEAM_STRENGTH: Record<string, number> = {
-  // Elite tier - consistent top performers
-  MCI: 5,
-  LIV: 5,
-  ARS: 5,
-  // Strong tier - top 6 contenders
-  CHE: 4.5,
-  MUN: 4.5,
-  TOT: 4.5,
-  // Upper-mid tier - European contenders
-  NEW: 4,
-  AVL: 4,
-  // Mid-upper tier - improving clubs
-  BHA: 3.5,
-  BRE: 3.5,
-  CRY: 3.5,
-  BOU: 3.5,
-  // Mid tier
-  FUL: 3,
-  WHU: 3,
-  WOL: 3,
-  EVE: 3,
-  NFO: 3,
-  // Lower tier / newly promoted
-  BUR: 2.5,
-  LEE: 2.5,
-  SUN: 2.5,
-  LEI: 2.5,
-  IPS: 2.5,
-  SOU: 2.5,
-  LUT: 2.5,
-  SHU: 2.5,
-} as const;
-
-/**
- * Curated penalty takers per team (short codes).
- * Primary taker first, followed by likely backups.
- * Names should match FPL web_name/second_name.
- */
-export const PENALTY_TAKERS: Record<string, string[]> = {
-  MCI: ["Haaland", "De Bruyne", "Foden"],
-  MUN: ["Fernandes", "Rashford"],
-  LIV: ["Salah"],
-  ARS: ["Saka", "Odegaard"],
-  CHE: ["Palmer", "Sterling"],
-  TOT: ["Son", "Maddison"],
-  NEW: ["Isak"],
-  BHA: ["Pedro"], // Joao Pedro
-  AVL: ["Watkins"],
-  BRE: ["Toney"],
-  WHU: ["Bowen"],
-  CRY: ["Eze"],
-  NFO: ["Gibbs-White"],
-  BOU: ["Solanke"],
-  WOL: ["Hwang", "Cunha"],
-  FUL: ["Willian"],
-  EVE: ["Calvert-Lewin"],
-  SHU: [],
-  LUT: [],
-  BUR: [],
-  LEI: [],
-  IPS: [],
-  SOU: [],
-} as const;
 
 // ============================================================================
 // SQUAD CONSTRAINTS

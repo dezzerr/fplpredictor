@@ -99,9 +99,9 @@ export function FixtureTicker({
     <div className="space-y-3">
       {/* FDR Summary */}
       {showFDR && (
-        <div className="flex items-center justify-between p-3 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
+        <div className="flex items-center justify-between p-3 bg-surface-1 rounded-lg border border-surface-border">
           <div className="flex items-center gap-2">
-            <Shield className="h-4 w-4 text-blue-600" />
+            <Shield className="h-4 w-4 text-violet-400" />
             <div>
               <div className="text-xs text-muted-foreground">FDR Rating</div>
               <div className={cn("font-bold text-sm", getFDRColor())}>
@@ -160,7 +160,7 @@ export function FixtureTicker({
                   {/* Home/Away Icon */}
                   <div className={cn(
                     "p-1.5 rounded",
-                    fix.H ? "bg-blue-100 text-blue-700" : "bg-purple-100 text-purple-700"
+                    fix.H ? "bg-blue-100 text-blue-700" : "bg-violet-500/10 text-violet-400"
                   )}>
                     {fix.H ? (
                       <Home className="h-3 w-3" />

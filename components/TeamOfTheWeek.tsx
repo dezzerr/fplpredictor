@@ -128,7 +128,7 @@ export function TeamOfTheWeek({ gwOffset = 0 }: TeamOfTheWeekProps) {
 
   if (loading) {
     return (
-      <div className="bg-gradient-to-br from-emerald-50 via-blue-50 to-purple-50 rounded-xl border border-emerald-200/60 shadow-lg">
+      <div className="bg-gradient-to-br from-surface-1 via-surface-1 to-surface-1 rounded-xl border border-surface-border shadow-lg">
         <div className="p-6">
           <div className="flex items-center gap-3 mb-6">
             <div className="p-2 bg-gradient-to-br from-amber-400 to-orange-500 rounded-lg shadow-sm">
@@ -154,7 +154,7 @@ export function TeamOfTheWeek({ gwOffset = 0 }: TeamOfTheWeekProps) {
 
   if (error || !teamOfTheWeek) {
     return (
-      <div className="bg-gradient-to-br from-emerald-50 via-blue-50 to-purple-50 rounded-xl border border-emerald-200/60 shadow-lg">
+      <div className="bg-gradient-to-br from-surface-1 via-surface-1 to-surface-1 rounded-xl border border-surface-border shadow-lg">
         <div className="p-6">
           <div className="flex items-center gap-3 mb-6">
             <div className="p-2 bg-gradient-to-br from-amber-400 to-orange-500 rounded-lg shadow-sm">
@@ -179,9 +179,9 @@ export function TeamOfTheWeek({ gwOffset = 0 }: TeamOfTheWeekProps) {
   }
 
   return (
-    <div className="bg-gradient-to-br from-emerald-50 via-blue-50 to-purple-50 rounded-xl border border-emerald-200/60 shadow-lg overflow-hidden">
+    <div className="bg-gradient-to-br from-surface-1 via-surface-1 to-surface-1 rounded-xl border border-surface-border shadow-lg overflow-hidden">
       {/* Header Section */}
-      <div className="bg-gradient-to-r from-emerald-600 via-blue-600 to-purple-600 p-6 text-white">
+      <div className="bg-gradient-to-r from-emerald-600 via-blue-600 to-violet-600 p-6 text-white">
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div className="flex items-center gap-4">
             <div className="p-3 bg-white/20 backdrop-blur-sm rounded-xl">

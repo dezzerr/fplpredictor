@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { rateLimitGuard } from "@/lib/request-security";
 
 export const revalidate = 900; // 15 minutes
 export const dynamic = 'force-dynamic';
@@ -44,6 +45,9 @@ function isValidPlayerId(id: string | null): boolean {
 }
 
 export async function GET(req: Request) {
+  const protection = await rateLimitGuard(req, "player-history", 60, 60_000);
+  if (protection) return protection;
+
   try {
     const { searchParams } = new URL(req.url);
     const playerId = searchParams.get('playerId');

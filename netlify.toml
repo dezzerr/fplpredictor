@@ -9,3 +9,12 @@
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
+
+[functions."send-welcome-emails"]
+  schedule = "*/5 * * * *"
+
+[functions."fpl-data-health"]
+  schedule = "15 7 * * *"
+
+[functions."capture-player-usage"]
+  schedule = "45 6 * * *"

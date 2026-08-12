@@ -127,7 +127,7 @@ export async function getAllPosts() {
     return posts.map(normalizePostPreview)
   } catch (error) {
     console.error('Failed to fetch Sanity blog posts', error)
-    return []
+    return null
   }
 }
 

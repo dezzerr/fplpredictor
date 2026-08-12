@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenerativeAI, SchemaType, type GenerativeModel, type Schema } from "@google/generative-ai";
 import { fetchPlayersWithMarket } from "@/lib/market";
 import { pickXIForWeek, recommendTransfers, type PlanResult } from "@/lib/optimizer";
@@ -12,6 +12,7 @@ import {
   type ManagerContext,
 } from "@/lib/fplManagerContext";
 import { fetchOfficialPlanningGameweek, parseGameweek } from "@/lib/gameweek";
+import { protectRequest } from "@/lib/request-security";
 
 export const dynamic = "force-dynamic";
 
@@ -93,6 +94,14 @@ function toNumber(v: unknown, fallback = 0): number {
   return typeof v === "number" && Number.isFinite(v) ? v : fallback;
 }
 
+function sixtyMinuteChance(p: Player): number {
+  return clamp(toNumber(p.playingTime?.sixtyMinuteProbability, toNumber(p.minutesProb, 0.8)), 0, 1);
+}
+
+function expectedMinutes(p: Player): number {
+  return clamp(toNumber(p.playingTime?.expectedMinutes, sixtyMinuteChance(p) * 90), 0, 90);
+}
+
 function toRecord(v: unknown): Record<string, unknown> {
   return v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : {};
 }
@@ -138,9 +147,8 @@ function getCaptainNameFromSquad(squad: Squad, captainId: string): string {
 }
 
 function scorePlayer(p: Player): number {
-  const exp = toNumber(p.expPoints, 0);
-  const minutes = clamp(toNumber(p.minutesProb, 0.8), 0, 1);
-  return exp * (0.65 + 0.35 * minutes);
+  // usage-v2 availability is already included in expPoints.
+  return toNumber(p.expPoints, 0);
 }
 
 function tierFromRating(rating: number): TeamRatingResult["tier"] {
@@ -158,7 +166,7 @@ function buildFallbackRating(squad: Squad): TeamRatingResult {
   const sorted = [...players].sort((a, b) => scorePlayer(b) - scorePlayer(a));
   const topCore = sorted.slice(0, 3).map((p) => p.name).join(", ");
   const flagged = players.filter((p) => p.status !== "fit").length;
-  const lowMinutes = players.filter((p) => toNumber(p.minutesProb, 0.8) < 0.72).length;
+  const lowMinutes = players.filter((p) => sixtyMinuteChance(p) < 0.72).length;
   const easyFixtures = players.filter((p) => (p.nextFixtures?.[0]?.diff ?? 3) <= 2).length;
   const captainPick = getCaptainNameFromSquad(squad, optimized.capId);
   const tier = tierFromRating(overallRating);
@@ -166,7 +174,7 @@ function buildFallbackRating(squad: Squad): TeamRatingResult {
   const strengths = [
     topCore ? `Reliable core: ${topCore}` : "Reliable premium core in attack",
     `${easyFixtures} players have favorable next fixtures`,
-    `${players.filter((p) => toNumber(p.minutesProb, 0.8) >= 0.85).length} players project as high-minute starters`,
+    `${players.filter((p) => sixtyMinuteChance(p) >= 0.85).length} players project as high-minute starters`,
   ];
 
   const risks = [
@@ -321,12 +329,15 @@ function formatPlayersForPrompt(squad: Squad): string {
         .slice(0, 3)
         .map((f) => `${f.opp}(${f.H ? "H" : "A"},FDR${f.diff})`)
         .join(", ");
-      return `${p.name} | ${p.position} | ${p.team} | £${p.price.toFixed(1)}m | EP ${toNumber(p.expPoints, 0).toFixed(1)} | Min ${Math.round(clamp(toNumber(p.minutesProb, 0.8), 0, 1) * 100)}% | Form ${toNumber(p.form, 0).toFixed(1)} | ${fixtures || "No fixtures"}`;
+      return `${p.name} | ${p.position} | ${p.team} | £${p.price.toFixed(1)}m | EP ${toNumber(p.expPoints, 0).toFixed(1)} | xMins ${expectedMinutes(p).toFixed(0)} | P60 ${Math.round(sixtyMinuteChance(p) * 100)}% | Form ${toNumber(p.form, 0).toFixed(1)} | ${fixtures || "No fixtures"}`;
     })
     .join("\n");
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  const protection = await protectRequest(request, "ai-team-rating", 10, 60_000);
+  if (protection) return protection;
+
   const apiKey = (process.env.GEMINI_API_KEY || "").trim();
   if (!apiKey) {
     return NextResponse.json({ error: "GEMINI_API_KEY not configured" }, { status: 500 });

@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenerativeAI, SchemaType, type Schema } from '@google/generative-ai';
 import { fetchPlayersWithMarket } from '@/lib/market';
 import { extractGeminiResponseText, parseGeminiJsonArray } from '@/lib/ai/parseGeminiResponse';
@@ -16,6 +16,7 @@ import {
   type ChipUsage,
 } from '@/lib/fplManagerContext';
 import { fetchOfficialPlanningGameweek, parseGameweek } from '@/lib/gameweek';
+import { protectRequest } from '@/lib/request-security';
 
 export const dynamic = 'force-dynamic';
 
@@ -39,6 +40,7 @@ type InputPlayer = {
   form?: number;
   expPoints?: number;
   minutesProb?: number;
+  playingTime?: Player['playingTime'];
   ownership?: number;
   status?: 'fit' | 'flag' | 'out';
   fixtures?: InputFixture[];
@@ -111,6 +113,14 @@ function toNum(v: unknown, fallback = 0): number {
   return typeof v === 'number' && Number.isFinite(v) ? v : fallback;
 }
 
+function sixtyMinuteChance(p: Pick<InputPlayer, 'minutesProb' | 'playingTime'>): number {
+  return clamp(toNum(p.playingTime?.sixtyMinuteProbability, toNum(p.minutesProb, 0.75)), 0, 1);
+}
+
+function playerExpectedMinutes(p: Pick<InputPlayer, 'minutesProb' | 'playingTime'>): number {
+  return clamp(toNum(p.playingTime?.expectedMinutes, sixtyMinuteChance(p) * 90), 0, 90);
+}
+
 function toPlayer(raw: unknown): Player | null {
   if (!raw || typeof raw !== 'object') return null;
   const obj = raw as Record<string, unknown>;
@@ -153,6 +163,9 @@ function toPlayer(raw: unknown): Player | null {
     baseExp: Number.isFinite(obj.baseExp as number) ? toNum(obj.baseExp) : undefined,
     form: Number.isFinite(obj.form as number) ? toNum(obj.form) : undefined,
     minutesProb: Number.isFinite(obj.minutesProb as number) ? clamp(toNum(obj.minutesProb, 0.75), 0, 1) : undefined,
+    playingTime: obj.playingTime && typeof obj.playingTime === 'object'
+      ? (obj.playingTime as Player['playingTime'])
+      : undefined,
     playingStyle: typeof obj.playingStyle === 'string' ? (obj.playingStyle as Player['playingStyle']) : undefined,
     nextFixtures,
     status: obj.status === 'out' ? 'out' : obj.status === 'flag' ? 'flag' : 'fit',
@@ -306,6 +319,7 @@ function toInputPlayer(raw: unknown): InputPlayer | null {
     form: toNum(p.form, 0),
     expPoints: toNum(p.expPoints, 0),
     minutesProb: clamp(toNum(p.minutesProb, 0.75), 0, 1),
+    playingTime: p.playingTime,
     ownership: clamp(toNum(p.ownership, 100), 0, 100),
     status: p.status === 'out' ? 'out' : p.status === 'flag' ? 'flag' : 'fit',
     fixtures: Array.isArray(p.fixtures)
@@ -364,6 +378,7 @@ function buildUniverseFallback(squadPlayers: InputPlayer[]): Player[] {
     expPoints: toNum(p.expPoints, 0),
     form: toNum(p.form, 0),
     minutesProb: clamp(toNum(p.minutesProb, 0.75), 0, 1),
+    playingTime: p.playingTime,
     nextFixtures: (p.fixtures || []).map((f) => ({
       opp: String(f.opp || ''),
       H: !!f.H,
@@ -417,8 +432,7 @@ function buildChipAdviceInsight(params: {
   const weighted = [...squadPlayers]
     .map((p) => ({
       p,
-      weightedExp:
-        toNum(p.expPoints, 0) * (0.6 + 0.4 * clamp(toNum(p.minutesProb, 0.75), 0, 1)),
+      weightedExp: toNum(p.expPoints, 0),
     }))
     .sort((a, b) => b.weightedExp - a.weightedExp);
 
@@ -426,27 +440,17 @@ function buildChipAdviceInsight(params: {
   const bench = weighted.slice(11).map((x) => x.p);
   const captain = starters[0];
 
-  const captainProjection = captain
-    ? round1(
-        toNum(captain.expPoints, 0) *
-          (0.7 + 0.3 * clamp(toNum(captain.minutesProb, 0.75), 0, 1))
-      )
-    : 0;
+  const captainProjection = captain ? round1(toNum(captain.expPoints, 0)) : 0;
 
   const benchProjection = round1(
-    bench.reduce(
-      (sum, p) =>
-        sum +
-        toNum(p.expPoints, 0) * (0.55 + 0.45 * clamp(toNum(p.minutesProb, 0.75), 0, 1)),
-      0
-    )
+    bench.reduce((sum, p) => sum + toNum(p.expPoints, 0), 0)
   );
 
   const weakStarters = starters.filter(
     (p) =>
       p.status !== 'fit' ||
       toNum(p.expPoints, 0) < 3.4 ||
-      clamp(toNum(p.minutesProb, 0.75), 0, 1) < 0.65
+      sixtyMinuteChance(p) < 0.65
   ).length;
 
   const hardFixtureStarters = starters.filter(
@@ -457,7 +461,7 @@ function buildChipAdviceInsight(params: {
     (p) =>
       p.status !== 'fit' ||
       toNum(p.expPoints, 0) < 3.3 ||
-      clamp(toNum(p.minutesProb, 0.75), 0, 1) < 0.65
+      sixtyMinuteChance(p) < 0.65
   ).length;
 
   type ChipScore = {
@@ -547,15 +551,14 @@ function buildDeterministicInsights(params: {
 
   const scoreStarter = (p: InputPlayer) => {
     const exp = toNum(p.expPoints, 0);
-    const mins = clamp(toNum(p.minutesProb, 0.75), 0, 1);
     const form = toNum(p.form, 0);
     const fixtureAdj = 1 + (3 - avgFixtureDiff(inputFixtures(p))) * 0.08;
-    return exp * (0.7 + 0.3 * mins) * fixtureAdj + form * 0.08;
+    return exp * fixtureAdj + form * 0.08;
   };
 
   const weakScore = (p: InputPlayer) => {
     const exp = toNum(p.expPoints, 0);
-    const mins = clamp(toNum(p.minutesProb, 0.75), 0, 1);
+    const mins = sixtyMinuteChance(p);
     const diff = avgFixtureDiff(inputFixtures(p));
     const flaggedPenalty = p.status === 'out' ? 2.2 : p.status === 'flag' ? 1.2 : 0;
     return (5.6 - exp) + (1 - mins) * 2 + Math.max(0, diff - 3) * 0.6 + flaggedPenalty;
@@ -570,7 +573,7 @@ function buildDeterministicInsights(params: {
     .filter((p) => !isInSquad(p))
     .filter((p) => p.price <= budget)
     .filter((p) => p.status !== 'out')
-    .filter((p) => toNum(p.minutesProb, 0.75) >= 0.6)
+    .filter((p) => sixtyMinuteChance(p) >= 0.6)
     .sort((a, b) => {
       const gainA = toNum(a.expPoints, 0) - toNum(transferOut?.expPoints, 0);
       const gainB = toNum(b.expPoints, 0) - toNum(transferOut?.expPoints, 0);
@@ -588,7 +591,7 @@ function buildDeterministicInsights(params: {
     .filter((p) => !isInSquad(p))
     .filter((p) => p.status !== 'out')
     .filter((p) => toNum(p.ownership, 100) <= 15)
-    .filter((p) => toNum(p.minutesProb, 0.75) >= 0.65)
+    .filter((p) => sixtyMinuteChance(p) >= 0.65)
     .sort((a, b) => {
       const aScore = toNum(a.expPoints, 0) + (15 - toNum(a.ownership, 100)) * 0.08 - avgFixtureDiff(a.nextFixtures || []) * 0.1;
       const bScore = toNum(b.expPoints, 0) + (15 - toNum(b.ownership, 100)) * 0.08 - avgFixtureDiff(b.nextFixtures || []) * 0.1;
@@ -611,10 +614,10 @@ function buildDeterministicInsights(params: {
     })[0];
 
   const rotationRisk = [...squadPlayers]
-    .filter((p) => p.status !== 'fit' || toNum(p.minutesProb, 0.75) < 0.72)
+    .filter((p) => p.status !== 'fit' || sixtyMinuteChance(p) < 0.72)
     .sort((a, b) => {
-      const aRisk = (1 - toNum(a.minutesProb, 0.75)) + (a.status === 'out' ? 1 : a.status === 'flag' ? 0.5 : 0);
-      const bRisk = (1 - toNum(b.minutesProb, 0.75)) + (b.status === 'out' ? 1 : b.status === 'flag' ? 0.5 : 0);
+      const aRisk = (1 - sixtyMinuteChance(a)) + (a.status === 'out' ? 1 : a.status === 'flag' ? 0.5 : 0);
+      const bRisk = (1 - sixtyMinuteChance(b)) + (b.status === 'out' ? 1 : b.status === 'flag' ? 0.5 : 0);
       return bRisk - aRisk;
     })[0];
 
@@ -641,7 +644,7 @@ function buildDeterministicInsights(params: {
       playerName: captain.name || '',
       team: captain.team || '',
       title: `Captain ${captain.name}`,
-      detail: `${captain.name} leads your squad projections at ${toNum(captain.expPoints, 0).toFixed(1)} pts with ${Math.round(clamp(toNum(captain.minutesProb, 0.75), 0, 1) * 100)}% minutes confidence and ${fixtureText(inputFixtures(captain))}.`,
+      detail: `${captain.name} leads your squad projections at ${toNum(captain.expPoints, 0).toFixed(1)} pts with ${playerExpectedMinutes(captain).toFixed(0)} expected minutes and ${fixtureText(inputFixtures(captain))}.`,
       sentiment: 'positive',
       source: 'model',
     });
@@ -653,7 +656,7 @@ function buildDeterministicInsights(params: {
       playerName: transferOut.name || '',
       team: transferOut.team || '',
       title: `Consider selling ${transferOut.name}`,
-      detail: `${transferOut.name} projects only ${toNum(transferOut.expPoints, 0).toFixed(1)} pts with ${Math.round(clamp(toNum(transferOut.minutesProb, 0.75), 0, 1) * 100)}% minutes and fixtures ${fixtureText(inputFixtures(transferOut))}.`,
+      detail: `${transferOut.name} projects only ${toNum(transferOut.expPoints, 0).toFixed(1)} pts with ${playerExpectedMinutes(transferOut).toFixed(0)} expected minutes and fixtures ${fixtureText(inputFixtures(transferOut))}.`,
       sentiment: 'negative',
       source: 'model',
       transferOut: transferOut.name || '',
@@ -716,7 +719,7 @@ function buildDeterministicInsights(params: {
       playerName: rotationRisk.name || '',
       team: rotationRisk.team || '',
       title: `Minutes risk: ${rotationRisk.name}`,
-      detail: `${rotationRisk.name} has only ${Math.round(clamp(toNum(rotationRisk.minutesProb, 0.75), 0, 1) * 100)}% minutes confidence${rotationRisk.status !== 'fit' ? ` and status ${rotationRisk.status}` : ''}. Have a playable bench cover ready.`,
+      detail: `${rotationRisk.name} has only ${Math.round(sixtyMinuteChance(rotationRisk) * 100)}% chance of reaching 60 minutes${rotationRisk.status !== 'fit' ? ` and status ${rotationRisk.status}` : ''}. Have a playable bench cover ready.`,
       sentiment: 'negative',
       source: 'model',
     });
@@ -739,7 +742,7 @@ function buildDeterministicInsights(params: {
         playerName: valuePick.name,
         team: valuePick.team,
         title: `Value pick: ${valuePick.name}`,
-        detail: `${valuePick.name} offers strong value at £${valuePick.price.toFixed(1)}m with ${toNum(valuePick.expPoints, 0).toFixed(1)} projected points and ${Math.round(clamp(toNum(valuePick.minutesProb, 0.75), 0, 1) * 100)}% minutes confidence.`,
+        detail: `${valuePick.name} offers strong value at £${valuePick.price.toFixed(1)}m with ${toNum(valuePick.expPoints, 0).toFixed(1)} projected points and ${playerExpectedMinutes(valuePick).toFixed(0)} expected minutes.`,
         sentiment: 'positive',
         source: 'model',
       });
@@ -804,7 +807,10 @@ async function generateGeminiWithTimeout(apiKey: string, prompt: string, timeout
   return { insights: winner, timedOut: false };
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  const protection = await protectRequest(request, 'insights-generate', 10, 60_000);
+  if (protection) return protection;
+
   const started = Date.now();
 
   let body: unknown;
@@ -855,7 +861,7 @@ export async function POST(request: Request) {
   const summary = squadPlayers
     .map((p) => {
       const fText = fixtureText(inputFixtures(p));
-      return `${p.name} | ${p.position} | ${p.team} | £${toNum(p.price, 0).toFixed(1)}m | EP ${toNum(p.expPoints, 0).toFixed(1)} | Min ${Math.round(clamp(toNum(p.minutesProb, 0.75), 0, 1) * 100)}% | Own ${toNum(p.ownership, 0).toFixed(1)}% | ${fText}`;
+      return `${p.name} | ${p.position} | ${p.team} | £${toNum(p.price, 0).toFixed(1)}m | EP ${toNum(p.expPoints, 0).toFixed(1)} | xMins ${playerExpectedMinutes(p).toFixed(0)} | P60 ${Math.round(sixtyMinuteChance(p) * 100)}% | Own ${toNum(p.ownership, 0).toFixed(1)}% | ${fText}`;
     })
     .join('\n');
 

@@ -15,26 +15,31 @@ import { extractSignals } from '@/lib/ai/gemini';
 import { GeminiParseError } from '@/lib/ai/parseGeminiResponse';
 import { matchSignalsToPlayers } from '@/lib/ai/matching';
 import { fetchFplPlayers } from '@/lib/fpl';
+import { rateLimitGuard, readConfiguredSecret, sameOriginGuard } from '@/lib/request-security';
+import { getConfiguredSupabaseServiceKey } from '@/lib/supabase/service-key';
 
 /**
  * POST /api/signals/scan
  * Triggers a full source scan → Gemini extraction → Supabase upsert.
- * Protected by SCAN_SECRET header or query param.
+ * Protected by the SCAN_SECRET request header.
  */
 export async function POST(request: Request) {
-  // Auth check
-  const secret = process.env.SCAN_SECRET;
-  if (secret) {
-    const { searchParams } = new URL(request.url);
-    const headerToken = request.headers.get('x-scan-secret');
-    const queryToken = searchParams.get('secret');
-    if (headerToken !== secret && queryToken !== secret) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+  const originGuard = sameOriginGuard(request);
+  if (originGuard) return originGuard;
+
+  const secret = readConfiguredSecret(request, 'x-scan-secret', 'SCAN_SECRET');
+  if (!secret.configured) {
+    return NextResponse.json({ error: 'Signal scanning is not configured' }, { status: 503 });
+  }
+  if (!secret.valid) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  const rateLimit = await rateLimitGuard(request, 'signal-scan', 3, 15 * 60_000);
+  if (rateLimit) return rateLimit;
+
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const supabaseKey = getConfiguredSupabaseServiceKey();
   if (!supabaseUrl || !supabaseKey) {
     return NextResponse.json(
       { error: 'Supabase not configured' },

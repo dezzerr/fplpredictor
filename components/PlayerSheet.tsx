@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { Player, players as allPlayers } from "@/lib/data";
+import { Player } from "@/lib/data";
 import { useSquadStore } from "@/store/squad";
 import { PlayerDetailModal } from "@/components/PlayerDetailModal";
 
@@ -26,7 +26,7 @@ export function PlayerSheet({ playerId, open, onOpenChange, weekOffset = 0, onSe
       ...squad.starters.FWD,
       ...squad.bench,
     ];
-    return all.find(p => p.id === playerId) ?? allPlayers.find(p => p.id === playerId) ?? null;
+    return all.find(p => p.id === playerId) ?? null;
   }, [playerId, squad]);
 
   return (

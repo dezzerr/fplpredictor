@@ -8,7 +8,7 @@ export const portableTextComponents: PortableTextComponents = {
     h2: ({children}) => <h2 className="mt-10 text-2xl font-semibold text-slate-900">{children}</h2>,
     h3: ({children}) => <h3 className="mt-8 text-xl font-semibold text-slate-900">{children}</h3>,
     normal: ({children}) => <p className="mt-5 text-base leading-8 text-slate-600">{children}</p>,
-    blockquote: ({children}) => <blockquote className="mt-6 border-l-2 border-fuchsia-500 pl-4 text-slate-700 italic">{children}</blockquote>,
+    blockquote: ({children}) => <blockquote className="mt-6 border-l-2 border-violet-500 pl-4 text-slate-300 italic">{children}</blockquote>,
   },
   list: {
     bullet: ({children}) => <ul className="mt-5 space-y-3 pl-5 text-slate-600">{children}</ul>,
@@ -25,14 +25,14 @@ export const portableTextComponents: PortableTextComponents = {
 
       if (external) {
         return (
-          <a href={href} target="_blank" rel="noreferrer" className="text-fuchsia-600 underline underline-offset-4 hover:text-fuchsia-500">
+          <a href={href} target="_blank" rel="noreferrer" className="text-violet-400 underline underline-offset-4 hover:text-violet-300">
             {children}
           </a>
         )
       }
 
       return (
-        <a href={href} className="text-fuchsia-600 underline underline-offset-4 hover:text-fuchsia-500">
+        <a href={href} className="text-violet-400 underline underline-offset-4 hover:text-violet-300">
           {children}
         </a>
       )

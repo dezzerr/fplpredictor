@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getLiveEvent } from "@/lib/liveWindow";
+import { rateLimitGuard } from "@/lib/request-security";
 
 export const revalidate = 900; // 15 minutes
 export const dynamic = 'force-dynamic';
@@ -28,7 +29,10 @@ interface FPLFixture {
   started: boolean;
 }
 
-export async function GET() {
+export async function GET(request: Request) {
+  const protection = await rateLimitGuard(request, "fixtures", 30, 60_000);
+  if (protection) return protection;
+
   try {
     const timestamp = Date.now();
     
@@ -125,6 +129,7 @@ export async function GET() {
 
       return {
         team: team.short_name,
+        teamName: team.name,
         fixtures: fixtures,
         fdrAvg: avg,
         fdrRating: rating

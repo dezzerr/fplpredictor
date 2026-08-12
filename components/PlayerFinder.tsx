@@ -24,7 +24,7 @@ function PlayerModal({ player }: { player: Player }) {
   return (
     <div className="space-y-2">
       {/* Compact Player Header */}
-      <div className="bg-gradient-to-r from-cyan-500 to-purple-500 text-white rounded-md p-2">
+      <div className="bg-gradient-to-r from-cyan-500 to-violet-500 text-white rounded-md p-2">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
             <TeamShirt team={player.team} className="w-6 h-6" />
@@ -150,8 +150,19 @@ function PlayerModal({ player }: { player: Player }) {
                 <div className="mt-2 p-2 bg-gray-50 rounded text-xs">
                   <div className="font-bold mb-1">Points Breakdown</div>
                   <div className="space-y-0.5">
-                    <div>Base: {player.expExplain.base.toFixed(1)}</div>
-                    <div>Minutes: {(player.expExplain.minutesProb * 100).toFixed(0)}%</div>
+                    <div>Projection base: {player.expExplain.base.toFixed(1)}</div>
+                    {player.expExplain.projectionBaseSource === 'preseason-blend' && (
+                      <div>
+                        Official EP {player.expExplain.officialBase?.toFixed(1)} blended with last-season scoring
+                      </div>
+                    )}
+                    <div>
+                      Expected minutes: {(player.expExplain.playingTime?.expectedMinutes ?? player.expExplain.minutesProb * 90).toFixed(0)}
+                    </div>
+                    <div>
+                      Start / 60+: {((player.expExplain.playingTime?.startProbability ?? player.expExplain.minutesProb) * 100).toFixed(0)}%
+                      {' / '}{((player.expExplain.playingTime?.sixtyMinuteProbability ?? player.expExplain.minutesProb) * 100).toFixed(0)}%
+                    </div>
                     <div>Form: {player.expExplain.formFactor.toFixed(2)}</div>
                     <div>Final: {player.expExplain.final.toFixed(1)} pts</div>
                   </div>

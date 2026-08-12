@@ -91,14 +91,17 @@ export function weeklyExp(p: Player, weekOffset: number): number {
     const ex = p.expExplain;
     const base = nonNeg(ex.base);
     const formF = nonNeg(ex.formFactor);
-    const minF = nonNeg(ex.minutesFactor);
-    const injF = nonNeg(ex.injuryPenalty);
     const posF = nonNeg(ex.positionFactor);
     const penaltyBoost = typeof ex.penaltyBoost === 'number' ? nonNeg(ex.penaltyBoost) : 1;
     const cal = typeof ex.calibration === 'number' ? nonNeg(ex.calibration) : 1;
 
-    // If minutes probability is explicitly zero, short-circuit to 0
-    if (typeof ex.minutesProb === 'number' && clamp01(ex.minutesProb) === 0) return 0;
+    // A usage-v2 cameo can have zero chance of 60+ while still appearing and
+    // scoring points. Only zero appearance probability means no projection.
+    if (ex.playingTime) {
+      if (clamp01(ex.playingTime.appearanceProbability) === 0) return 0;
+    } else if (typeof ex.minutesProb === 'number' && clamp01(ex.minutesProb) === 0) {
+      return 0;
+    }
 
     // Anchor to week-0 points to preserve global calibration (CAL) and DGW accounting
     const ef0 = (typeof ex.nextWeekFactor === 'number'
@@ -160,7 +163,9 @@ export function weeklyExp(p: Player, weekOffset: number): number {
   }
 
   // Fallback using realistic expected points and fixture difficulty scaling, if available
-  const base = typeof p.expPoints === 'number' ? nonNeg(p.expPoints * (p.minutesProb ?? 0.8)) : 0;
+  const base = typeof p.expPoints === 'number'
+    ? nonNeg(p.playingTime ? p.expPoints : p.expPoints * (p.minutesProb ?? 0.8))
+    : 0;
   const currentF = p.nextFixtures?.[0];
   const targetF = p.nextFixtures?.[weekOffset];
   const factor = (f: any) => {
@@ -490,7 +495,9 @@ export function recommendChips(s: Squad, weeks: number, players?: Player[]): Chi
     const selected = pickXIForWeek(s, w);
     const lowProjected = squadPlayers.filter(p => weeklyExp(p, w) < (p.position === "GK" || p.position === "DEF" ? 3 : 4)).length;
     const unavailable = squadPlayers.filter(p => p.status === "out" || getFixturesForWeek(p, w).length === 0).length;
-    const minutesRisk = squadPlayers.filter(p => (p.minutesProb ?? 0.8) < 0.65).length;
+    const minutesRisk = squadPlayers.filter(p =>
+      (p.playingTime?.sixtyMinuteProbability ?? p.minutesProb ?? 0.8) < 0.65
+    ).length;
     const topThreeReliance = selected.xi
       .map(p => weeklyExp(p, w))
       .sort((a,b)=> b - a)

@@ -9,7 +9,7 @@ import { LiveGwProvider } from "@/components/LiveGwProvider";
 export default function ComparePage() {
   return (
     <LiveGwProvider>
-    <div className="min-h-dvh bg-slate-50">
+    <div className="min-h-dvh bg-surface-0">
       <ErrorBoundary compact name="AppNavbar">
         <AppNavbar />
         <GwInfoBar />

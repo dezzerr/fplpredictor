@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { rateLimitGuard } from "@/lib/request-security";
 
 export const revalidate = 0;
 export const dynamic = "force-dynamic";
@@ -10,6 +11,9 @@ export const dynamic = "force-dynamic";
  * Returns each league with the manager's current rank and live points context.
  */
 export async function GET(req: NextRequest) {
+  const protection = await rateLimitGuard(req, "live-leagues", 30, 60_000);
+  if (protection) return protection;
+
   try {
     const { searchParams } = new URL(req.url);
     const entryId = searchParams.get("entryId");

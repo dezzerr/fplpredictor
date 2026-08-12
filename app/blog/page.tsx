@@ -36,15 +36,17 @@ function formatDate(value: string) {
 
 export default async function BlogIndexPage() {
   const posts = await getAllPosts()
+  const contentUnavailable = posts === null
+  const visiblePosts = posts ?? []
 
   return (
     <main className="min-h-screen">
       <PublicNavbar />
       <section className="relative border-b border-slate-800 overflow-hidden">
         <div className="absolute inset-0 bg-slate-950" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(217,70,239,0.18),_transparent_40%),radial-gradient(circle_at_top_right,_rgba(99,102,241,0.16),_transparent_30%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(168,85,247,0.18),_transparent_40%),radial-gradient(circle_at_top_right,_rgba(34,211,238,0.16),_transparent_30%)]" />
         <div className="relative mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
-          <Badge className="border-fuchsia-500/30 bg-fuchsia-500/10 text-fuchsia-200">FPL Content Hub</Badge>
+          <Badge className="border-violet-500/30 bg-violet-500/10 text-violet-200">FPL Content Hub</Badge>
           <h1 className="mt-6 max-w-3xl text-4xl font-bold tracking-tight text-white sm:text-5xl">FPL guides, captain picks, and transfer strategy that support your next move.</h1>
           <p className="mt-6 max-w-2xl text-lg text-slate-300">Use the blog to capture search traffic around gameweek questions and connect readers directly to your comparison, fixture, and optimization tools.</p>
           <div className="mt-8 flex flex-wrap gap-4">
@@ -61,7 +63,19 @@ export default async function BlogIndexPage() {
 
       <section className="bg-slate-50 py-14">
         <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
-        {posts.length === 0 ? (
+        {contentUnavailable ? (
+          <Card className="border-red-200 bg-white">
+            <CardHeader>
+              <CardTitle className="text-slate-900">Blog content is temporarily unavailable</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4 text-slate-600">
+              <p>We could not reach the content service. Please try again shortly.</p>
+              <Link href="/blog" className="inline-flex items-center rounded-lg bg-gradient-brand-cta px-4 py-2 font-medium text-white transition-opacity hover:opacity-90">
+                Try again
+              </Link>
+            </CardContent>
+          </Card>
+        ) : visiblePosts.length === 0 ? (
           <Card className="border-slate-200 bg-white">
             <CardHeader>
               <CardTitle className="text-slate-900">No blog posts published yet</CardTitle>
@@ -69,7 +83,7 @@ export default async function BlogIndexPage() {
             <CardContent className="space-y-4 text-slate-600">
               <p>Your Sanity integration is live. Publish your first article in the Studio and it will appear here automatically.</p>
               <div className="flex flex-wrap gap-3">
-                <Link href="/login" className="inline-flex items-center rounded-lg bg-fuchsia-600 px-4 py-2 font-medium text-white transition-colors hover:bg-fuchsia-500">
+                <Link href="/login" className="inline-flex items-center rounded-lg bg-gradient-brand-cta px-4 py-2 font-medium text-white transition-opacity hover:opacity-90">
                   Go to app
                 </Link>
                 <Link href="/fixtures" className="inline-flex items-center rounded-lg border border-slate-300 px-4 py-2 font-medium text-slate-700 transition-colors hover:bg-slate-100">
@@ -80,13 +94,13 @@ export default async function BlogIndexPage() {
           </Card>
         ) : (
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {posts.map((post: BlogPostPreview) => {
+            {visiblePosts.map((post: BlogPostPreview) => {
               const coverImageUrl = post.coverImage?.asset ? urlForImage(post.coverImage).width(800).height(450).fit('crop').auto('format').url() : null
 
               return (
                 <Link key={post._id} href={`/blog/${post.slug}` as Route} className="group block">
-                  <Card className="h-full overflow-hidden border-slate-200 bg-white shadow-sm transition-all duration-200 hover:border-fuchsia-300 hover:shadow-md">
-                    <div className="relative aspect-[16/9] overflow-hidden border-b border-slate-100 bg-gradient-to-br from-fuchsia-50 to-indigo-50">
+                  <Card className="h-full overflow-hidden border-surface-border bg-surface-1 shadow-sm transition-all duration-200 hover:border-violet-500/40 hover:shadow-md">
+                    <div className="relative aspect-[16/9] overflow-hidden border-b border-surface-border bg-gradient-to-br from-violet-500/10 to-cyan-500/10">
                       {coverImageUrl ? (
                         <Image
                           src={coverImageUrl}
@@ -96,7 +110,7 @@ export default async function BlogIndexPage() {
                           className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
                         />
                       ) : (
-                        <div className="flex h-full items-end bg-gradient-to-br from-fuchsia-100 to-indigo-100 p-4 text-sm font-medium text-slate-500">
+                        <div className="flex h-full items-end bg-gradient-to-br from-violet-500/10 to-cyan-500/10 p-4 text-sm font-medium text-slate-400">
                           FPL Companion Blog
                         </div>
                       )}
@@ -109,20 +123,20 @@ export default async function BlogIndexPage() {
                         </span>
                         {post.author?.name ? <span>By {post.author.name}</span> : null}
                       </div>
-                      <CardTitle className="text-base font-semibold text-slate-900 leading-snug transition-colors group-hover:text-fuchsia-600">{post.title}</CardTitle>
-                      <p className="text-sm leading-relaxed text-slate-600 line-clamp-2">{post.excerpt}</p>
+                      <CardTitle className="text-base font-semibold text-white leading-snug transition-colors group-hover:text-violet-300">{post.title}</CardTitle>
+                      <p className="text-sm leading-relaxed text-slate-400 line-clamp-2">{post.excerpt}</p>
                     </CardHeader>
                     <CardContent className="px-4 pb-4 pt-0 space-y-3">
                       {post.categories?.length ? (
                         <div className="flex flex-wrap gap-1.5">
                           {post.categories.map((category: BlogCategory) => (
-                            <Badge key={`${post._id}-${category.title}`} className="border-slate-200 bg-slate-100 text-slate-600 text-[10px] px-2 py-0.5">
+                            <Badge key={`${post._id}-${category.title}`} className="border-surface-border bg-surface-2 text-slate-400 text-[10px] px-2 py-0.5">
                               {category.title}
                             </Badge>
                           ))}
                         </div>
                       ) : null}
-                      <div className="inline-flex items-center gap-1.5 text-sm font-medium text-fuchsia-600 transition-colors group-hover:text-fuchsia-500">
+                      <div className="inline-flex items-center gap-1.5 text-sm font-medium text-violet-400 transition-colors group-hover:text-violet-300">
                         Read article
                         <ArrowRight className="h-3.5 w-3.5" />
                       </div>

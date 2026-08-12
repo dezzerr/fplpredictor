@@ -18,12 +18,35 @@ export type PlayingStyle =
   | 'creative_forward'  // Forwards who create and score
   | 'poacher';          // Pure finishers in the box
 
+export type PlayingTimeSource = 'recent' | 'season' | 'historical' | 'prior';
+export type PlayingTimeConfidence = 'high' | 'medium' | 'low';
+
+/** usage-v2 estimate of how a player is expected to be used in the next match. */
+export type PlayingTimeEstimate = {
+  modelVersion: 'usage-v2';
+  startProbability: number;
+  appearanceProbability: number;
+  sixtyMinuteProbability: number;
+  expectedMinutes: number;
+  factor: number;
+  source: PlayingTimeSource;
+  confidence: PlayingTimeConfidence;
+  sampleMatches: number;
+  recentMatches: number;
+};
+
 /** Detailed breakdown of how expected points were calculated */
 export type ExpExplain = {
   // Core calculation factors
   base: number;
+  officialBase?: number;
+  projectionBaseSource?: 'official-ep' | 'preseason-blend';
+  historicalPointsPerGame?: number;
+  historicalWeight?: number;
+  historicalFixturePoints?: number;
   minutesProb: number;
   minutesFactor: number;
+  /** @deprecated Availability is already included in usage-v2 playing time. */
   injuryPenalty: number;
   form: number;
   formFactor: number;
@@ -31,6 +54,8 @@ export type ExpExplain = {
   fixtureWeights: Array<{ w: number; d: number; H: boolean; factor: number }>;
   blendedFixtureFactor: number;
   final: number;
+  modelVersion?: 'usage-v2';
+  playingTime?: PlayingTimeEstimate;
 
   // Week-aware factors
   nextWeekFactor?: number;
@@ -65,12 +90,12 @@ export type ExpExplain = {
   baseEvent?: number;
 
   // Market-first additions
-  source?: 'market' | 'fpl'; // which projection source produced expPoints/eventEP
+  source?: 'market' | 'fpl'; // per-player source; the API can be hybrid across players
   eventEP?: number[]; // per-event expected points if computed from market model
   lambdaG?: number[]; // per-event attacking goal intensity (Poisson)
   lambdaA?: number[]; // per-event assist intensity proxy
   pCS?: number[]; // per-event clean sheet probability for player's team
-  p60?: number[]; // per-event minutes fraction (mins/90)
+  p60?: number[]; // per-event probability of reaching 60 minutes
 };
 
 export type Player = {
@@ -78,11 +103,14 @@ export type Player = {
   name: string;
   position: Position;
   team: string; // short code e.g. LIV, ARS
+  teamName?: string; // official club name from the FPL bootstrap feed
   price: number; // e.g. 10.5
   expPoints: number; // expected points next GW (refined)
   baseExp?: number; // raw FPL ep_next
   form?: number; // FPL form
-  minutesProb?: number; // probability of playing next GW (0-1)
+  /** @deprecated Compatibility alias for playingTime.sixtyMinuteProbability. */
+  minutesProb?: number;
+  playingTime?: PlayingTimeEstimate;
   playingStyle?: PlayingStyle;
   nextFixtures: Fixture[]; // length 3
   status: 'fit'|'flag'|'out';
@@ -105,9 +133,6 @@ export type Squad = {
   importEventId?: number;
   activeChip?: string | null;
 };
-
-// Small helper to build fixtures
-const F = (opp: string, H: boolean, diff: number): Fixture => ({ opp, H, diff });
 
 /**
  * Get all fixtures for a player at a given week offset, grouped by event.
@@ -201,13 +226,13 @@ export const PLAYING_STYLE_FACTORS: Record<PlayingStyle, number> = {
   'poacher': 1.20,          // Pure finishers (Haaland)
 };
 
-// Helper to calculate realistic expected points accounting for minutes probability and playing style
+// expPoints already includes playing-time availability in usage-v2. Do not
+// multiply by minutesProb again here.
 export function getRealisticExpPoints(player: Player): number {
   const expPoints = player.expPoints ?? 0;
-  const minutesProb = player.minutesProb ?? 0.8;
   const styleMultiplier = player.playingStyle ? PLAYING_STYLE_FACTORS[player.playingStyle] : 1.0;
   
-  return Math.round(expPoints * minutesProb * styleMultiplier * 10) / 10; // Round to 1 decimal
+  return Math.round(expPoints * styleMultiplier * 10) / 10; // Round to 1 decimal
 }
 
 /**
@@ -223,6 +248,8 @@ export function getRealisticExpPoints(player: Player): number {
  * 
  * @deprecated Use fetchFplPlayers() or fetchPlayersWithMarket() instead
  */
+/* Removed from runtime: the official FPL feed is the only player universe. */
+/*
 export const SEED_PLAYERS: Player[] = [
   // Premiums - Guaranteed starters
   { id: 'haaland', name: 'E. Haaland', position: 'FWD', team: 'MCI', price: 14.0, expPoints: 7.5, minutesProb: 0.95, playingStyle: 'poacher', nextFixtures: [F('CHE', false, 4), F('WHU', true, 2), F('BHA', false, 3)], status: 'fit', eo: 110, ownership: 85 },
@@ -304,3 +331,4 @@ export const initialSquad: Squad = {
   captainId: undefined,
   viceId: undefined,
 };
+*/
