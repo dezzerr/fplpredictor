@@ -10,6 +10,9 @@ import { MobileAddPlayerPage } from "./MobileAddPlayerPage";
 import { MobileImportPage } from "./MobileImportPage";
 import { MobileOptimisePage } from "./MobileOptimisePage";
 import { MobileComparePage } from "./MobileComparePage";
+import { PlayerFinder } from "@/components/PlayerFinder";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { SquadViewTabs, type SquadView } from "@/components/SquadViewTabs";
 import { InsightPanel } from "@/components/InsightPanel";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 import { useSquadStore } from "@/store/squad";
@@ -38,6 +41,9 @@ export function MobileSquadView({ currentGw, gwOffset, deadline, onGwChange }: M
   const [importMode, setImportMode] = useState(false);
   const [optimiseMode, setOptimiseMode] = useState(false);
   const [compareMode, setCompareMode] = useState(false);
+  const [activeView, setActiveView] = useState<SquadView>("squad");
+  const [finderPosition, setFinderPosition] = useState<Position | null>(null);
+  const [finderAddToBench, setFinderAddToBench] = useState(false);
   const [substituteMode, setSubstituteMode] = useState(false);
   const [substitutePlayer, setSubstitutePlayer] = useState<Player | null>(null);
   const [insightsOpen, setInsightsOpen] = useState(false);
@@ -87,6 +93,7 @@ export function MobileSquadView({ currentGw, gwOffset, deadline, onGwChange }: M
   const handleSubstitute = (player: Player) => {
     setSubstitutePlayer(player);
     setSubstituteMode(true);
+    selectPlayer(player.id);
     toast.info(`Select a player to swap with ${player.name}`);
   };
 
@@ -109,6 +116,12 @@ export function MobileSquadView({ currentGw, gwOffset, deadline, onGwChange }: M
   const handleAddPlayer = (position: Position) => {
     setAddPlayerPosition(position);
     setAddPlayerMode(true);
+  };
+
+  const handleFindPlayer = (position?: Position, addToBench = false) => {
+    setFinderPosition(position ?? null);
+    setFinderAddToBench(addToBench);
+    setActiveView("find");
   };
 
   const deadlineStr = formatDeadline(deadline, "").replace(/Gameweek \d+/, "").trim();
@@ -134,6 +147,22 @@ export function MobileSquadView({ currentGw, gwOffset, deadline, onGwChange }: M
         showBack={false}
       />
 
+      <div className="px-3 pt-3">
+        <div className="mx-auto flex max-w-md justify-center">
+          <SquadViewTabs value={activeView} onChange={setActiveView} />
+        </div>
+      </div>
+
+      {activeView === "find" ? (
+        <div className="px-3 py-4">
+          <div className="mx-auto max-w-md rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <ErrorBoundary compact name="PlayerFinder">
+              <PlayerFinder initialPosition={finderPosition} addToBench={finderAddToBench} />
+            </ErrorBoundary>
+          </div>
+        </div>
+      ) : (
+        <>
       {/* Action Bar - below header */}
       <div className="bg-slate-50 border-b border-slate-200 px-3 py-2">
         <div className="flex items-center justify-between max-w-md mx-auto gap-1.5">
@@ -259,9 +288,13 @@ export function MobileSquadView({ currentGw, gwOffset, deadline, onGwChange }: M
         {/* Bench */}
         <MobileBench 
           onPlayerClick={handlePlayerClick}
+          onSubstitute={handleSubstitute}
+          onAddPlayer={(position) => handleFindPlayer(position, true)}
           weekOffset={localGwOffset}
         />
       </div>
+        </>
+      )}
 
       {/* Substitute Mode Banner */}
       {substituteMode && substitutePlayer && (

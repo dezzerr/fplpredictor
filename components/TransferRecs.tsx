@@ -11,7 +11,7 @@ import { toast } from "sonner";
 import { Player } from "@/lib/data";
 import type { CalPresetName } from "@/lib/calibration";
 import { useSquadStore } from "@/store/squad";
-import { recommendTransfers, recommendChips, weeklyExp, totalHorizonPoints, simulatePlannedHorizon, type PlanWeekMap, pickXIForWeek } from "@/lib/optimizer";
+import { recommendTransfers, recommendChips, selectDiverseTransferPlans, weeklyExp, totalHorizonPoints, simulatePlannedHorizon, type PlanWeekMap, pickXIForWeek } from "@/lib/optimizer";
 import { usePlansStore } from "@/store/plans";
 
 export default function TransferRecs() {
@@ -67,7 +67,8 @@ export default function TransferRecs() {
       maxTransfersToConsider: maxTransfers,
       perPosCandidateLimit: perPosLimit,
     });
-    return onlyPositive ? res.filter(p => p.netGain > 0) : res;
+    const filtered = onlyPositive ? res.filter(p => p.netGain > 0) : res;
+    return selectDiverseTransferPlans(filtered, 20);
   }, [players, squad, weeks, freeTransfers, hitCost, maxTransfers, perPosLimit, onlyPositive]);
 
   const chips = useMemo(() => recommendChips(squad, weeks, players), [squad, weeks, players]);

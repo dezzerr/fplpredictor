@@ -331,6 +331,56 @@ function isValidAfter(s: Squad, outIds: string[], inPlayers: Player[]): boolean 
   return true;
 }
 
+/**
+ * Select a useful spread of transfer plans for presentation.
+ *
+ * Pure net-gain sorting is mathematically valid but can surface several
+ * alternatives for the same weak player, hiding other viable routes through
+ * the squad. Take the best plan for each distinct outgoing player first, then
+ * fill any remaining slots by net gain. The optimizer still evaluates every
+ * candidate; this only controls how recommendations are presented.
+ */
+export function selectDiverseTransferPlans(
+  plans: PlanResult[],
+  limit: number,
+  maxPerOutgoing = 1,
+): PlanResult[] {
+  if (limit <= 0) return [];
+
+  const sorted = [...plans].sort((a, b) => b.netGain - a.netGain);
+  const selected: PlanResult[] = [];
+  const outgoingCounts = new Map<string, number>();
+
+  const canSelect = (plan: PlanResult) => {
+    if (plan.transfers.length === 0) return selected.length === 0;
+    return plan.transfers.every((transfer) =>
+      (outgoingCounts.get(transfer.outId) ?? 0) < maxPerOutgoing,
+    );
+  };
+
+  const add = (plan: PlanResult) => {
+    selected.push(plan);
+    for (const transfer of plan.transfers) {
+      outgoingCounts.set(transfer.outId, (outgoingCounts.get(transfer.outId) ?? 0) + 1);
+    }
+  };
+
+  // First pass: maximize outgoing-player variety.
+  for (const plan of sorted) {
+    if (selected.length >= limit) break;
+    if (canSelect(plan)) add(plan);
+  }
+
+  // Second pass: fill the requested number with the strongest remaining
+  // plans, including additional alternatives for already represented players.
+  for (const plan of sorted) {
+    if (selected.length >= limit) break;
+    if (!selected.includes(plan)) add(plan);
+  }
+
+  return selected;
+}
+
 export function recommendTransfers(params: {
   squad: Squad;
   players: Player[];
@@ -416,9 +466,10 @@ export function recommendTransfers(params: {
     }
   }
 
-  // sort by net gain desc and keep top 20
+  // Keep a wider ranked pool so presentation layers can diversify outgoing
+  // players before trimming to the number shown to managers.
   plans.sort((a,b)=> b.netGain - a.netGain);
-  return plans.slice(0, 20);
+  return plans.slice(0, 100);
 }
 
 export function recommendChips(s: Squad, weeks: number, players?: Player[]): ChipRecommendation[] {

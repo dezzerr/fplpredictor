@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenerativeAI, SchemaType, type GenerativeModel, type Schema } from "@google/generative-ai";
 import { fetchPlayersWithMarket } from "@/lib/market";
-import { pickXIForWeek, recommendTransfers, type PlanResult } from "@/lib/optimizer";
+import { pickXIForWeek, recommendTransfers, selectDiverseTransferPlans, type PlanResult } from "@/lib/optimizer";
+import { TEAM_RATING_BENCHMARK } from "@/lib/constants";
 import type { Player, Squad } from "@/lib/data";
 import { extractGeminiResponseText, parseGeminiJsonArray } from "@/lib/ai/parseGeminiResponse";
 import {
@@ -162,7 +163,13 @@ function buildFallbackRating(squad: Squad): TeamRatingResult {
   const players = flattenSquad(squad);
   const optimized = pickXIForWeek(squad, 0);
   const projectedPoints = Number.isFinite(optimized.points) ? optimized.points : 0;
-  const overallRating = clamp(Math.round((projectedPoints / 90) * 100), 35, 99);
+  // Keep the AI fallback on the same scale as the squad KPI: projected points
+  // include the captain's extra return, so divide by 12 effective slots.
+  const overallRating = clamp(
+    Math.round(((projectedPoints / 12) / TEAM_RATING_BENCHMARK) * 100),
+    35,
+    99,
+  );
   const sorted = [...players].sort((a, b) => scorePlayer(b) - scorePlayer(a));
   const topCore = sorted.slice(0, 3).map((p) => p.name).join(", ");
   const flagged = players.filter((p) => p.status !== "fit").length;
@@ -229,7 +236,10 @@ function confidenceFromGain(gain: number): TransferSuggestion["confidence"] {
 
 function buildFallbackTransfers(plans: PlanResult[], squad: Squad): TransferSuggestion[] {
   const squadById = new Map(flattenSquad(squad).map((p) => [p.id, p]));
-  const singleMoves = plans.filter((p) => p.transfers.length > 0).slice(0, 4);
+  const singleMoves = selectDiverseTransferPlans(
+    plans.filter((p) => p.transfers.length === 1),
+    4,
+  );
   return singleMoves.map((plan) => {
     const move = plan.transfers[0];
     const outPlayer = squadById.get(move.outId);
@@ -318,7 +328,20 @@ function sanitizeTransfers(raw: unknown[], fallback: TransferSuggestion[]): Tran
     .filter((item) => item.outPlayer && item.inPlayer && item.reason)
     .slice(0, 4);
 
-  return normalized.length > 0 ? normalized : fallback;
+  // Keep the AI output useful even when the model repeats the same weak player
+  // with several incoming alternatives. Fill duplicate slots from the
+  // diversified deterministic fallback instead of showing repetitive advice.
+  const result: TransferSuggestion[] = [];
+  const seenOutgoing = new Set<string>();
+  for (const suggestion of [...normalized, ...fallback]) {
+    const outgoingKey = suggestion.outPlayer.trim().toLowerCase();
+    if (!outgoingKey || seenOutgoing.has(outgoingKey)) continue;
+    seenOutgoing.add(outgoingKey);
+    result.push(suggestion);
+    if (result.length >= 4) break;
+  }
+
+  return result;
 }
 
 function formatPlayersForPrompt(squad: Squad): string {
@@ -415,14 +438,17 @@ export async function POST(request: NextRequest) {
       maxTransfersToConsider: 2,
       perPosCandidateLimit: 16,
     })
-      .filter((plan) => plan.transfers.length === 1)
-      .slice(0, 10);
+      .filter((plan) => plan.transfers.length === 1);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error("[AI Team Rating] Transfer candidate generation failed:", msg);
   }
 
-  const fallbackTransfers = buildFallbackTransfers(plans, squad);
+  const diversePlans = selectDiverseTransferPlans(
+    plans.filter((plan) => plan.transfers.length === 1),
+    12,
+  );
+  const fallbackTransfers = buildFallbackTransfers(diversePlans, squad);
   if (plans.length === 0) {
     return NextResponse.json({
       transfers: fallbackTransfers,
@@ -436,7 +462,7 @@ export async function POST(request: NextRequest) {
   }
 
   const squadById = new Map(flattenSquad(squad).map((p) => [p.id, p]));
-  const candidateLines = plans
+  const candidateLines = diversePlans
     .map((plan, index) => {
       const move = plan.transfers[0];
       const outPlayer = squadById.get(move.outId);
@@ -444,7 +470,7 @@ export async function POST(request: NextRequest) {
     })
     .join("\n");
 
-  const transferPrompt = `You are an elite FPL transfer strategist.\nUse ONLY these candidate transfers and return exactly 3 suggestions.\nOutput must be a JSON array with objects containing:\n- outPlayer\n- inPlayer\n- reason (max 160 chars)\n- expectedGain (number)\n- confidence (high|medium|low)\n\nManager context:\n${buildManagerContextText(managerContext)}\n\nCandidate transfer plans:\n${candidateLines}\n\nPrioritise highest net gains with realistic risk commentary. Account for the manager's chip and transfer state. Chip availability in Manager context is authoritative: never recommend a chip unless it is listed as available, and never describe an active or used chip as available.`;
+  const transferPrompt = `You are an elite FPL transfer strategist.\nUse ONLY these candidate transfers and return exactly 3 suggestions.\nEach suggestion must use a different transfer-out player whenever at least 3 distinct outgoing players are available. Do not repeat an outgoing player with a different incoming player.\nOutput must be a JSON array with objects containing:\n- outPlayer\n- inPlayer\n- reason (max 160 chars)\n- expectedGain (number)\n- confidence (high|medium|low)\n\nManager context:\n${buildManagerContextText(managerContext)}\n\nCandidate transfer plans:\n${candidateLines}\n\nPrioritise highest net gains with realistic risk commentary. Account for the manager's chip and transfer state. Chip availability in Manager context is authoritative: never recommend a chip unless it is listed as available, and never describe an active or used chip as available.`;
 
   try {
     const model = createModel(apiKey, TRANSFER_SCHEMA);

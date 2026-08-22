@@ -2,19 +2,17 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { Fixture } from "@/lib/data";
-import type { Player } from "@/lib/data";
+import type { Player, Position } from "@/lib/data";
 import { useFilters, MIN_PRICE, MAX_PRICE } from "@/store/filters";
 import { useSquadStore } from "@/store/squad";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog";
 import { TeamShirt } from "@/components/TeamShirt";
 import { PlayerRow } from "@/components/PlayerRow";
 import { getFPLDisplayName } from "@/lib/utils";
-import { Search, RotateCcw, Info, ChevronDown, ChevronUp, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, RotateCcw, Info, X } from "lucide-react";
 import { toast } from "sonner";
 import { weeklyExp } from "@/lib/optimizer";
 
@@ -219,7 +217,12 @@ function PlayerModal({ player }: { player: Player }) {
 
 const PLAYERS_PER_PAGE = 10;
 
-export function PlayerFinder() {
+interface PlayerFinderProps {
+  initialPosition?: Position | null;
+  addToBench?: boolean;
+}
+
+export function PlayerFinder({ initialPosition, addToBench = false }: PlayerFinderProps) {
   const [players, setPlayers] = useState<Player[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -258,8 +261,13 @@ export function PlayerFinder() {
   const setPosition = useFilters((s) => s.setPosition);
   const setSort = useFilters((s) => s.setSort);
 
+  useEffect(() => {
+    if (initialPosition) setPosition(initialPosition);
+  }, [initialPosition, setPosition]);
+
   const squad = useSquadStore((s) => s.squad);
   const addPlayer = useSquadStore((s) => s.addPlayer);
+  const addPlayerToBench = useSquadStore((s) => s.addPlayerToBench);
 
   const inSquad = useMemo(() => new Set([
     ...squad.starters.GK,
@@ -309,7 +317,7 @@ export function PlayerFinder() {
   }, [players, search, price, auto, inSquad, position, sort, teamFilter]);
 
   const handleAdd = (p: Player) => {
-    const res = addPlayer(p);
+    const res = addToBench ? addPlayerToBench(p) : addPlayer(p);
     if (!res.ok) toast.error(res.reason);
     else toast.success(`Added ${p.name}`);
   };
@@ -350,113 +358,110 @@ export function PlayerFinder() {
   }, [search, price, teamFilter, sort, position]);
 
   return (
-    <div className="space-y-4 sm:space-y-6">
-      {/* Find a player section */}
-      <div className="space-y-3 sm:space-y-4">
-        <h2 className="text-base sm:text-lg font-semibold text-gray-900">Find a player</h2>
-        
-        {/* Search bar */}
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+    <div className="space-y-5 sm:space-y-6">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-violet-600">Squad builder</p>
+          <h2 className="mt-1 text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">Find Player</h2>
+          <p className="mt-1 max-w-xl text-sm leading-6 text-slate-500">
+            Search by player or club, then add the right fit to your squad.
+          </p>
+        </div>
+        <div className="hidden shrink-0 rounded-xl bg-slate-50 px-3 py-2 text-right sm:block">
+          <div className="text-lg font-bold text-slate-900">{filtered.length}</div>
+          <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">available</div>
+        </div>
+      </div>
+
+      <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-3 transition-colors focus-within:border-violet-300 focus-within:bg-white focus-within:ring-4 focus-within:ring-violet-100 sm:p-4">
+        <label htmlFor="player-finder-search" className="sr-only">Search for a player or club</label>
+        <div className="flex items-center gap-3">
+          <Search className="h-5 w-5 shrink-0 text-violet-500" aria-hidden="true" />
           <Input
-            placeholder="Search by name"
+            id="player-finder-search"
+            placeholder="Search player or club…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-10 h-10 sm:h-12 text-sm sm:text-base"
+            className="h-11 border-0 bg-transparent px-0 text-base text-slate-900 shadow-none placeholder:text-slate-400 focus-visible:ring-0"
+            autoComplete="off"
           />
-        </div>
-
-        {/* Filter row - wrap on mobile */}
-        <div className="flex flex-wrap gap-2 sm:gap-3 items-center">
-          <Select value={position === "ALL" ? "all" : position} onValueChange={(value) => setPosition(value === "all" ? "ALL" : value as any)}>
-            <SelectTrigger className="w-[100px] sm:w-32 h-9 sm:h-10 text-xs sm:text-sm">
-              <SelectValue placeholder="All" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All</SelectItem>
-              <SelectItem value="GK">GK</SelectItem>
-              <SelectItem value="DEF">DEF</SelectItem>
-              <SelectItem value="MID">MID</SelectItem>
-              <SelectItem value="FWD">FWD</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <Select value={sort} onValueChange={setSort}>
-            <SelectTrigger className="w-[100px] sm:w-32 h-9 sm:h-10 text-xs sm:text-sm">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="EXP_POINTS">Points</SelectItem>
-              <SelectItem value="PRICE">Price</SelectItem>
-              <SelectItem value="OWNERSHIP">Owned</SelectItem>
-              <SelectItem value="FORM">Form</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <Select value={`£${price[1]}m`} onValueChange={(value) => {
-            const maxPrice = parseFloat(value.replace('£', '').replace('m', ''));
-            setPrice([MIN_PRICE, maxPrice]);
-          }}>
-            <SelectTrigger className="w-[80px] sm:w-24 h-9 sm:h-10 text-xs sm:text-sm">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="£16.0m">£16m</SelectItem>
-              <SelectItem value="£14.0m">£14m</SelectItem>
-              <SelectItem value="£12.0m">£12m</SelectItem>
-              <SelectItem value="£10.0m">£10m</SelectItem>
-              <SelectItem value="£8.0m">£8m</SelectItem>
-              <SelectItem value="£6.0m">£6m</SelectItem>
-              <SelectItem value="£4.0m">£4m</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <Button variant="outline" onClick={resetFilters} size="sm" className="gap-1 sm:gap-2 h-9 sm:h-10 px-2 sm:px-3">
-            <RotateCcw className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-            <span className="hidden sm:inline">Reset</span>
-          </Button>
-        </div>
-      </div>
-
-      {/* Players count banner */}
-      <div className="bg-gradient-to-r from-cyan-400 to-blue-500 text-white text-center py-2 sm:py-3 rounded-lg font-medium text-sm sm:text-base">
-        {filtered.length} players
-      </div>
-
-      {/* Position filter tabs - compact on mobile */}
-      <div className="space-y-1">
-        <div className="grid grid-cols-4 gap-1 sm:gap-2">
-          {(['GK', 'DEF', 'MID', 'FWD'] as const).map((pos) => (
-            <Button
-              key={pos}
-              variant={position === pos ? "default" : "outline"}
-              onClick={() => setPosition(pos)}
-              size="sm"
-              className="text-xs sm:text-sm px-2 sm:px-3"
+          {search && (
+            <button
+              type="button"
+              onClick={() => setSearch("")}
+              className="rounded-full p-1.5 text-slate-400 transition-colors hover:bg-slate-200 hover:text-slate-700"
+              aria-label="Clear player search"
             >
-              {pos}
-            </Button>
-          ))}
+              <X className="h-4 w-4" />
+            </button>
+          )}
         </div>
+        <p className="mt-2 pl-8 text-xs text-slate-400">Try a name or club, for example “Saka” or “Arsenal”.</p>
       </div>
 
-      {/* Teams filter - scrollable on mobile */}
-      <div className="space-y-2">
-        <h3 className="text-xs sm:text-sm font-medium text-gray-600">Teams</h3>
-        <div className="flex flex-wrap gap-1.5 sm:gap-2 max-h-[120px] sm:max-h-none overflow-y-auto">
-          {teams.slice(0, 20).map((team) => (
-            <Button
-              key={team}
-              variant={teamFilter === team ? "default" : "ghost"}
-              onClick={() => setTeamFilter(teamFilter === team ? "all" : team)}
-              size="sm"
-              className="gap-1 h-auto p-1.5 sm:p-2"
-            >
-              <TeamShirt team={team} className="w-4 h-4 sm:w-5 sm:h-5" />
-              <span className="text-[10px] sm:text-xs">{team}</span>
-            </Button>
-          ))}
-        </div>
+      <div className="flex flex-wrap items-center gap-2">
+        <Select value={position === "ALL" ? "all" : position} onValueChange={(value) => setPosition(value === "all" ? "ALL" : value as any)}>
+          <SelectTrigger className="h-10 w-[calc(50%-0.25rem)] rounded-xl border-slate-200 bg-white text-xs text-slate-700 sm:w-32 sm:text-sm">
+            <SelectValue placeholder="Position" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All positions</SelectItem>
+            <SelectItem value="GK">Goalkeepers</SelectItem>
+            <SelectItem value="DEF">Defenders</SelectItem>
+            <SelectItem value="MID">Midfielders</SelectItem>
+            <SelectItem value="FWD">Forwards</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Select value={teamFilter} onValueChange={setTeamFilter}>
+          <SelectTrigger className="h-10 w-[calc(50%-0.25rem)] rounded-xl border-slate-200 bg-white text-xs text-slate-700 sm:w-36 sm:text-sm">
+            <SelectValue placeholder="Club" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All clubs</SelectItem>
+            {teams.map((team) => <SelectItem key={team} value={team}>{team}</SelectItem>)}
+          </SelectContent>
+        </Select>
+
+        <Select value={sort} onValueChange={setSort}>
+          <SelectTrigger className="h-10 w-[calc(50%-0.25rem)] rounded-xl border-slate-200 bg-white text-xs text-slate-700 sm:w-32 sm:text-sm">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="EXP_POINTS">Expected points</SelectItem>
+            <SelectItem value="PRICE">Price</SelectItem>
+            <SelectItem value="OWNERSHIP">Ownership</SelectItem>
+            <SelectItem value="FORM">Form</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Select value={`£${price[1].toFixed(1)}m`} onValueChange={(value) => {
+          const maxPrice = parseFloat(value.replace('£', '').replace('m', ''));
+          setPrice([MIN_PRICE, maxPrice]);
+        }}>
+          <SelectTrigger className="h-10 w-[calc(50%-0.25rem)] rounded-xl border-slate-200 bg-white text-xs text-slate-700 sm:w-24 sm:text-sm">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="£16.0m">Up to £16m</SelectItem>
+            <SelectItem value="£14.0m">Up to £14m</SelectItem>
+            <SelectItem value="£12.0m">Up to £12m</SelectItem>
+            <SelectItem value="£10.0m">Up to £10m</SelectItem>
+            <SelectItem value="£8.0m">Up to £8m</SelectItem>
+            <SelectItem value="£6.0m">Up to £6m</SelectItem>
+            <SelectItem value="£4.0m">Up to £4m</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Button variant="outline" onClick={resetFilters} size="sm" className="h-10 gap-2 rounded-xl border-slate-200 px-3 text-slate-600">
+          <RotateCcw className="h-3.5 w-3.5" />
+          Reset
+        </Button>
+      </div>
+
+      <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm">
+        <span className="font-semibold text-slate-700">{filtered.length} players match</span>
+        {search && <span className="max-w-[55%] truncate text-xs text-slate-400">“{search}”</span>}
       </div>
 
       {/* Player display */}
@@ -473,7 +478,9 @@ export function PlayerFinder() {
                 {position === "ALL" ? "Top Players" : positionNames[position as keyof typeof positionNames]}
               </h3>
               <div className="text-sm text-gray-500">
-                Showing {currentPage * PLAYERS_PER_PAGE + 1}-{Math.min((currentPage + 1) * PLAYERS_PER_PAGE, filtered.length)} of {filtered.length}
+                {filtered.length === 0
+                  ? "No players found"
+                  : `Showing ${currentPage * PLAYERS_PER_PAGE + 1}-${Math.min((currentPage + 1) * PLAYERS_PER_PAGE, filtered.length)} of ${filtered.length}`}
               </div>
             </div>
             

@@ -54,6 +54,8 @@ export const MobilePlayerTile = memo(function MobilePlayerTile({
   return (
     <button
       onClick={onClick}
+      type="button"
+      aria-label={`${getFPLDisplayName(player.name)}. ${isSelected ? "Selected for substitution." : "Open player details."}`}
       className={cn(
         "flex flex-col items-center w-full transition-all",
         isSelected && "scale-105 ring-2 ring-blue-400 rounded-lg"

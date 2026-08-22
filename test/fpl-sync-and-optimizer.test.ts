@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import type { Player, Position, Squad } from '@/lib/data'
-import { pickXIForWeek, weeklyExp } from '@/lib/optimizer'
+import { pickXIForWeek, selectDiverseTransferPlans, weeklyExp } from '@/lib/optimizer'
 import { FPL_WRITE_SYNC_UNAVAILABLE_CODE, readOnlyFplSyncStatusResponse, retiredFplWriteSyncResponse } from '@/lib/fpl-sync-retired'
 
 function player(id: number, position: Position, team: string): Player {
@@ -109,6 +109,98 @@ test('a usage-v2 cameo projection is not erased by a zero 60-minute chance', () 
 
   assert.equal(weeklyExp(midfielder, 0), 1.2)
   assert.equal(weeklyExp(midfielder, 1), 1.2)
+})
+
+test('GW1 official projections are not reduced by the neutral usage prior', async () => {
+  const originalFetch = globalThis.fetch
+  globalThis.fetch = (async (url: string | URL) => {
+    const href = String(url)
+    if (href.includes('bootstrap-static')) {
+      return Response.json({
+        teams: [{
+          id: 1,
+          short_name: 'AAA',
+          name: 'Test FC',
+          strength_overall_home: 1100,
+          strength_overall_away: 1100,
+          played: 0,
+        }, {
+          id: 2,
+          short_name: 'BBB',
+          name: 'Opponent FC',
+          strength_overall_home: 1100,
+          strength_overall_away: 1100,
+          played: 0,
+        }],
+        events: [{ id: 1, is_next: true, deadline_time: '2026-08-21T17:30:00Z', finished: false }],
+        elements: [{
+          id: 500,
+          team: 1,
+          web_name: 'Starter',
+          second_name: 'Starter',
+          first_name: 'Test',
+          element_type: 3,
+          now_cost: 65,
+          ep_next: '5.2',
+          form: '3.1',
+          status: 'a',
+          minutes: 0,
+          starts: 0,
+          chance_of_playing_next_round: 100,
+          total_points: 0,
+          selected_by_percent: '5',
+          code: 500,
+          news: '',
+          news_added: '',
+        }],
+      })
+    }
+    if (href.includes('fantasy.premierleague.com/api/fixtures')) {
+      return Response.json([{
+        event: 1,
+        team_h: 1,
+        team_a: 2,
+        team_h_difficulty: 3,
+        team_a_difficulty: 3,
+        kickoff_time: '2026-08-22T14:00:00Z',
+      }])
+    }
+    throw new Error(`Unexpected URL ${href}`)
+  }) as typeof fetch
+
+  try {
+    const { fetchFplPlayers } = await import('@/lib/fpl')
+    const [starter] = await fetchFplPlayers()
+    assert.ok(starter.expPoints > 4.5)
+    assert.equal(starter.expExplain?.minutesFactor, 1)
+  } finally {
+    globalThis.fetch = originalFetch
+  }
+})
+
+test('transfer presentation keeps distinct outgoing players visible', () => {
+  const plan = (outId: string, inId: string, netGain: number) => ({
+    transfers: [{ outId, inPlayer: player(Number(inId), 'MID', 'ZZZ') }],
+    weeks: 3,
+    hitCost: 0,
+    baseline: 40,
+    projected: 40 + netGain,
+    netGain,
+    weeklyCaptainIds: [],
+  })
+
+  const selected = selectDiverseTransferPlans([
+    plan('calafiori', '101', 10),
+    plan('calafiori', '102', 9),
+    plan('mbeumo', '103', 8),
+    plan('gakpo', '104', 7),
+  ], 3)
+
+  assert.deepEqual(selected.map((candidate) => candidate.transfers[0].outId), [
+    'calafiori',
+    'mbeumo',
+    'gakpo',
+  ])
 })
 
 test('optimiser returns a valid starting XI and captain from a valid squad', () => {

@@ -7,10 +7,10 @@ import { PitchCard } from "@/components/PitchCard";
 import { useSquadStore, type SquadState } from "@/store/squad";
 import type { Player, Position } from "@/lib/data";
 import { ChevronLeft, ChevronRight, Undo2, TrendingUp, RefreshCw } from "lucide-react";
-import { Sheet, SheetContent, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { BenchRail } from "@/components/BenchRail";
 import { PlayerSheet } from "@/components/PlayerSheet";
 import { PlayerFinder } from "@/components/PlayerFinder";
+import { SquadViewTabs, type SquadView } from "@/components/SquadViewTabs";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { weeklyExp } from "@/lib/optimizer";
 import { OnboardingDialog } from "@/components/OnboardingDialog";
@@ -98,7 +98,9 @@ export default function Page() {
   const starters = useSquadStore((s) => s.squad.starters);
   const [playerOpen, setPlayerOpen] = useState(false);
   const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
-  const [finderOpen, setFinderOpen] = useState(false);
+  const [activeView, setActiveView] = useState<SquadView>("squad");
+  const [finderPosition, setFinderPosition] = useState<Position | null>(null);
+  const [finderAddToBench, setFinderAddToBench] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [transferOpen, setTransferOpen] = useState(false);
   const [outgoingPlayer, setOutgoingPlayer] = useState<Player | null>(null);
@@ -221,6 +223,7 @@ export default function Page() {
   const handleSubstitute = (player: Player) => {
     setSubstitutePlayer(player);
     setSubstituteMode(true);
+    selectPlayer(player.id);
     toast.info(`Select a player to swap with ${player.name}`);
   };
 
@@ -228,6 +231,12 @@ export default function Page() {
     setSubstituteMode(false);
     setSubstitutePlayer(null);
     selectPlayer(null);
+  };
+
+  const handleFindPlayer = (position?: Position, addToBench = false) => {
+    setFinderPosition(position ?? null);
+    setFinderAddToBench(addToBench);
+    setActiveView("find");
   };
 
   // Mobile view
@@ -252,20 +261,45 @@ export default function Page() {
       <ErrorBoundary compact name="AppNavbar">
         <AppNavbar
           onImportOpen={() => setImportOpen(true)}
-          onSearchOpen={() => setFinderOpen(true)}
+          onSearchOpen={() => handleFindPlayer()}
+          centerOffset={0}
         />
-        <GwInfoBar currentGw={currentGw} gwOffset={gwOffset} />
+        <GwInfoBar currentGw={currentGw} gwOffset={gwOffset} centerOffset={0} />
       </ErrorBoundary>
-
       {/* Main Layout with Sidebar */}
-      <div className="flex gap-4 px-4 py-4">
+      <div
+        className={cn(
+          "grid items-start gap-4 px-4 py-4",
+          activeView === "find"
+            ? "grid-cols-[minmax(0,1fr)_minmax(0,1024px)_minmax(0,1fr)]"
+            : "grid-cols-[minmax(0,1fr)_minmax(0,576px)_minmax(0,1fr)]"
+        )}
+      >
         {/* Left Sidebar - Manager Stats (fixed to far left) */}
-        <aside className="hidden lg:block flex-shrink-0 sticky top-24 self-start">
-          <ManagerSidebar />
-        </aside>
+        {activeView === "squad" && (
+          <aside className="col-start-1 row-start-1 hidden self-start min-[1200px]:sticky min-[1200px]:top-24 min-[1200px]:block">
+            <ManagerSidebar />
+          </aside>
+        )}
 
         {/* Main Content */}
-        <main className="flex-1 max-w-xl mx-auto">
+        <main
+          className={cn(
+            "col-start-2 row-start-1 w-full",
+            activeView === "find" ? "max-w-5xl" : "max-w-xl"
+          )}
+        >
+          <div className="mb-3 flex justify-center">
+            <SquadViewTabs value={activeView} onChange={setActiveView} />
+          </div>
+          {activeView === "find" ? (
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+              <ErrorBoundary compact name="PlayerFinder">
+                <PlayerFinder initialPosition={finderPosition} addToBench={finderAddToBench} />
+              </ErrorBoundary>
+            </div>
+          ) : (
+            <>
           {/* Action Bar - Compact squad actions */}
           <div className="px-4 py-3 mb-3">
             <div className="flex items-center justify-center gap-2">
@@ -339,7 +373,7 @@ export default function Page() {
             <ErrorBoundary compact name="PitchCard">
               <PitchCard
                 onPlayerClick={handlePlayerClick}
-                onAddPlayer={() => setFinderOpen(true)}
+                onAddPlayer={() => handleFindPlayer()}
                 weekOffset={gwOffset}
               />
             </ErrorBoundary>
@@ -349,6 +383,8 @@ export default function Page() {
               <ErrorBoundary compact name="BenchRail">
                 <BenchRail
                   onPlayerClick={handlePlayerClick}
+                  onSubstitute={handleSubstitute}
+                  onAddPlayer={(position) => handleFindPlayer(position, true)}
                   weekOffset={gwOffset}
                 />
               </ErrorBoundary>
@@ -371,22 +407,26 @@ export default function Page() {
               </div>
             )}
           </div>
+            </>
+          )}
         </main>
 
         {/* Right Sidebar - AI Insights */}
-        <aside className="hidden xl:block w-[300px] flex-shrink-0 sticky top-24 self-start">
-          <InsightPanel
-            gameweek={selectedGameweek}
-            players={[
-              ...squad.starters.GK,
-              ...squad.starters.DEF,
-              ...squad.starters.MID,
-              ...squad.starters.FWD,
-              ...squad.bench,
-            ].filter(Boolean)}
-            bank={squad.bank}
-          />
-        </aside>
+        {activeView === "squad" && (
+          <aside className="col-start-3 row-start-1 hidden w-[300px] self-start justify-self-end xl:sticky xl:top-24 xl:block">
+            <InsightPanel
+              gameweek={selectedGameweek}
+              players={[
+                ...squad.starters.GK,
+                ...squad.starters.DEF,
+                ...squad.starters.MID,
+                ...squad.starters.FWD,
+                ...squad.bench,
+              ].filter(Boolean)}
+              bank={squad.bank}
+            />
+          </aside>
+        )}
       </div>
 
       <PlayerSheet 
@@ -402,17 +442,6 @@ export default function Page() {
       />
       <OnboardingDialog />
       
-      {/* Player Finder Sheet */}
-      <Sheet open={finderOpen} onOpenChange={setFinderOpen}>
-        <SheetContent side="right" className="w-full sm:w-[400px] overflow-y-auto">
-          <SheetTitle className="sr-only">Find Players</SheetTitle>
-          <SheetDescription className="sr-only">Search and add players to your squad</SheetDescription>
-          <ErrorBoundary compact name="PlayerFinder">
-            <PlayerFinder />
-          </ErrorBoundary>
-        </SheetContent>
-      </Sheet>
-
       {/* Import Page */}
       {importOpen && (
         <MobileImportPage 

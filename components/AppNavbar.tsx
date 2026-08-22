@@ -148,9 +148,10 @@ function MobileDrawer({ open, onClose, onImport, onLogout }: { open: boolean; on
 interface AppNavbarProps {
   onImportOpen?: () => void
   onSearchOpen?: () => void
+  centerOffset?: number
 }
 
-export function AppNavbar({ onImportOpen, onSearchOpen }: AppNavbarProps) {
+export function AppNavbar({ onImportOpen, onSearchOpen, centerOffset }: AppNavbarProps) {
   const pathname = usePathname()
   const aiTeamRoute = '/ai-team-rating' as Route
   const [drawerOpen, setDrawerOpen] = useState(false)
@@ -202,14 +203,20 @@ export function AppNavbar({ onImportOpen, onSearchOpen }: AppNavbarProps) {
     <>
       <nav className="sticky top-0 z-50 glass-dark border-b border-white/[0.06]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-14">
+          <div className="relative flex h-14 items-center justify-between">
             {/* Left — Logo */}
             <Link href="/" className="flex items-center flex-shrink-0">
               <Logo wordmarkResponsive idSuffix="app-nav" />
             </Link>
 
             {/* Center — Nav links (desktop) */}
-            <div className="hidden md:flex items-center gap-1">
+            <div
+              className={cn(
+                'hidden items-center gap-1 md:flex',
+                centerOffset !== undefined && 'absolute top-1/2 -translate-x-1/2 -translate-y-1/2'
+              )}
+              style={centerOffset !== undefined ? { left: "calc(50% + " + centerOffset + "px)" } : undefined}
+            >
               <NavDropdown label="My Team" active={isTeamRoute}>
                 <DropdownItem href="/squad" icon={Users}>Pick Team</DropdownItem>
                 <DropdownItem href="/optimize" icon={TrendingUp}>Optimize</DropdownItem>
@@ -251,10 +258,11 @@ export function AppNavbar({ onImportOpen, onSearchOpen }: AppNavbarProps) {
               {onSearchOpen && (
                 <button
                   onClick={onSearchOpen}
-                  className="p-2 text-slate-400 hover:text-white hover:bg-white/5 rounded-md transition-colors"
+                  className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-2 text-sm font-medium text-slate-300 transition-colors hover:bg-white/5 hover:text-white"
                   title="Search players"
                 >
                   <Search className="h-4 w-4" />
+                  <span className="hidden sm:inline">Find Player</span>
                 </button>
               )}
               <button

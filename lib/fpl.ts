@@ -5,7 +5,7 @@ import { getLiveEvent } from "@/lib/liveWindow";
 import { createClient } from '@supabase/supabase-js';
 import { seedTeamAliasesFrom } from '@/lib/marketMapping';
 import { seasonKeyFromEvents } from '@/lib/fplSeason';
-import { estimatePlayingTime, performanceSignalMultiplier } from '@/lib/playingTime';
+import { estimatePlayingTime, isPlayingTimeSignal, performanceSignalMultiplier } from '@/lib/playingTime';
 import { estimateProjectionBase } from '@/lib/productivity';
 import { fetchPlayerUsageHistory } from '@/lib/playerUsage';
 import { getConfiguredSupabaseServiceKey } from '@/lib/supabase/service-key';
@@ -346,8 +346,15 @@ export async function fetchFplPlayers(preset?: CalPresetName | string | null): P
       ? 1
       : Math.max(0.85, Math.min(1.12, rawFormFactor)); // Cap at 0.85-1.12x
 
-    // Availability is applied exactly once inside usage-v2.
-    const minutesFactor = playingTime.factor;
+    // `ep_next` is already FPL's availability-aware projection for players
+    // without current-season usage evidence. Applying the neutral prior factor
+    // again at GW1 was depressing most healthy players by roughly 45%.
+    // Once we have actual minutes, starts, snapshots, or explicit lineup news,
+    // usage-v2 becomes an evidence-backed adjustment and is applied once.
+    const hasUsageEvidence = teamMatchesPlayed > 0 || starts > 0 || recentMinutes > 0 ||
+      (usageHistory.get(String(el.id))?.length ?? 0) > 0 ||
+      playerSignals.some((signal) => isPlayingTimeSignal(signal.signal));
+    const minutesFactor = hasUsageEvidence ? playingTime.factor : 1;
 
     // Position-aware scaling
     const positionFactor = calib.posFactor[position] ?? 1;

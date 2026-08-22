@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import type { Player, Squad } from "@/lib/data";
-import { recommendTransfers, weeklyExp, type PlanResult } from "@/lib/optimizer";
+import { recommendTransfers, selectDiverseTransferPlans, weeklyExp, type PlanResult } from "@/lib/optimizer";
 import { useSquadStore } from "@/store/squad";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -160,9 +160,10 @@ export function TransferRecommendations({
       perPosCandidateLimit: 25,
     });
     // keep only positive-gain 1-transfer plans
-    return results
-      .filter((p) => p.transfers.length === 1 && p.netGain > 0)
-      .slice(0, maxPlans);
+    return selectDiverseTransferPlans(
+      results.filter((p) => p.transfers.length === 1 && p.netGain > 0),
+      maxPlans,
+    );
   }, [allPlayers, squad, squadPlayers.length, horizonWeeks, maxPlans]);
 
   const playersById = useMemo(() => {

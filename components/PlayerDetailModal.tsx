@@ -133,6 +133,7 @@ export function PlayerDetailModal({
 
   const isCaptain = squad.captainId === player?.id;
   const isVice = squad.viceId === player?.id;
+  const isOnBench = !!player && squad.bench.some((benchPlayer) => benchPlayer.id === player.id);
 
   // Fetch player history when player changes
   useEffect(() => {
@@ -762,10 +763,10 @@ export function PlayerDetailModal({
           </div>
           <button
             onClick={handleSubstitute}
-            className="w-full py-3 rounded-full bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-semibold text-sm hover:from-blue-600 hover:to-cyan-600 flex items-center justify-center gap-2"
+            className="flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-blue-500 to-cyan-500 py-3 text-sm font-semibold text-white hover:from-blue-600 hover:to-cyan-600"
           >
             <ArrowLeftRight className="w-4 h-4" />
-            Substitute
+            {isOnBench ? "Move to starting XI" : "Substitute"}
           </button>
         </div>
       </SheetContent>

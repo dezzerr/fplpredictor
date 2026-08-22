@@ -86,11 +86,18 @@ export const BENCH_DEF_MAX = 2;
 // RATING THRESHOLDS
 // ============================================================================
 
-/** Points per slot for 100% team rating */
-export const TEAM_RATING_BENCHMARK = 8.5;
+/**
+ * Expected points per effective slot for a 100% team rating.
+ *
+ * The previous 8.5 benchmark implied a 102-point gameweek as the ordinary
+ * 100% reference, which made healthy teams look artificially weak beside
+ * standard FPL projection tools. A 5.6 benchmark calibrates the rating to the
+ * 55-60 point projected range used by the squad view and comparable planners.
+ */
+export const TEAM_RATING_BENCHMARK = 5.6;
 
-/** Points per starter for 100% GW rating */
-export const GW_RATING_BENCHMARK = 7.5;
+/** Expected points per starter for a 100% gameweek rating. */
+export const GW_RATING_BENCHMARK = 5.2;
 
 // ============================================================================
 // FPL API MAPPINGS

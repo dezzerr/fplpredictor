@@ -9,9 +9,10 @@ import { parseGameweek, resolveSelectedGameweek } from '@/lib/gameweek'
 interface GwInfoBarProps {
   currentGw?: number | null
   gwOffset?: number
+  centerOffset?: number
 }
 
-export function GwInfoBar({ currentGw: propGw, gwOffset = 0 }: GwInfoBarProps) {
+export function GwInfoBar({ currentGw: propGw, gwOffset = 0, centerOffset }: GwInfoBarProps) {
   const [mounted, setMounted] = useState(false)
   const [deadline, setDeadline] = useState<Date>(getMockDeadline())
   const [eventName, setEventName] = useState<string>('Gameweek')
@@ -42,7 +43,10 @@ export function GwInfoBar({ currentGw: propGw, gwOffset = 0 }: GwInfoBarProps) {
     <div className="bg-slate-800 border-b border-slate-700/50" suppressHydrationWarning>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-center py-1.5">
-          <p className="text-xs font-medium text-slate-300 flex items-center gap-2">
+          <p
+            className="flex items-center gap-2 text-xs font-medium text-slate-300"
+            style={centerOffset !== undefined ? { transform: "translateX(" + centerOffset + "px)" } : undefined}
+          >
             <span suppressHydrationWarning>
               {typeof selectedGameweek === 'number' ? `Gameweek ${selectedGameweek}` : 'Gameweek loading'}
             </span>

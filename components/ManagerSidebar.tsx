@@ -90,8 +90,8 @@ export function ManagerSidebar() {
             <Shield className="w-7 h-7 text-violet-400" />
           </div>
           <div>
-            <h2 className="font-bold text-white">{data.teamName}</h2>
-            <p className="text-sm text-slate-400 flex items-center gap-1">
+            <h2 className="font-bold text-slate-800">{data.teamName}</h2>
+            <p className="flex items-center gap-1 text-sm text-slate-600">
               {data.playerName}
               {data.regionIso && (
                 <span className="text-xs">
@@ -105,31 +105,31 @@ export function ManagerSidebar() {
         {/* Points & Rankings */}
         <div className="space-y-1">
           <div className="flex items-center justify-between">
-            <h3 className="font-semibold text-slate-200 text-sm flex items-center gap-2">
+            <h3 className="flex items-center gap-2 text-sm font-semibold text-slate-800">
               Points & Rankings
               {isLive && <LiveBadge />}
             </h3>
-            <button className="text-xs bg-surface-2 hover:bg-surface-border text-slate-400 px-2 py-1 rounded flex items-center gap-1 transition-colors">
+            <button className="flex items-center gap-1 rounded bg-slate-100 px-2 py-1 text-xs text-slate-700 transition-colors hover:bg-slate-200">
               History
               <ChevronRight className="w-3 h-3" />
             </button>
           </div>
           
           <div className="space-y-1 mt-2">
-            <div className="flex justify-between items-center py-1.5 border-b border-surface-border">
-              <span className="text-slate-400 text-sm">Overall points</span>
-              <span className="font-bold text-white">{formatNumber(data.overallPoints)}</span>
+            <div className="flex items-center justify-between border-b border-slate-200 py-1.5">
+              <span className="text-sm text-slate-600">Overall points</span>
+              <span className="font-bold text-slate-900">{formatNumber(data.overallPoints)}</span>
             </div>
-            <div className="flex justify-between items-center py-1.5 border-b border-surface-border">
-              <span className="text-slate-400 text-sm">Overall rank</span>
-              <span className="font-bold text-white">{formatNumber(data.overallRank)}</span>
+            <div className="flex items-center justify-between border-b border-slate-200 py-1.5">
+              <span className="text-sm text-slate-600">Overall rank</span>
+              <span className="font-bold text-slate-900">{formatNumber(data.overallRank)}</span>
             </div>
-            <div className="flex justify-between items-center py-1.5 border-b border-surface-border">
-              <span className="text-slate-400 text-sm">Total players</span>
-              <span className="font-bold text-white">{formatNumber(data.totalPlayers)}</span>
+            <div className="flex items-center justify-between border-b border-slate-200 py-1.5">
+              <span className="text-sm text-slate-600">Total players</span>
+              <span className="font-bold text-slate-900">{formatNumber(data.totalPlayers)}</span>
             </div>
-            <div className="flex justify-between items-center py-1.5">
-              <span className="text-slate-400 text-sm">
+            <div className="flex items-center justify-between py-1.5">
+              <span className="text-sm text-slate-600">
                 {isLive ? "Live GW points" : "Gameweek points"}
               </span>
               {isLive && managerLivePoints !== null ? (
@@ -141,7 +141,7 @@ export function ManagerSidebar() {
                   {formatNumber(managerLivePoints)}
                 </span>
               ) : (
-                <span className="font-bold text-violet-400">{formatNumber(data.gwPoints)}</span>
+                <span className="font-bold text-violet-700">{formatNumber(data.gwPoints)}</span>
               )}
             </div>
           </div>
