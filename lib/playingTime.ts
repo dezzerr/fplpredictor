@@ -10,6 +10,8 @@ export type UsageSnapshot = {
   teamMatchesPlayed: number;
   startsTotal: number;
   minutesTotal: number;
+  totalPoints?: number;
+  pointsPerAppearance?: number;
 };
 
 export type AvailabilitySignal = {
@@ -71,6 +73,22 @@ function recentUsage(snapshots: UsageSnapshot[], current: UsageSnapshot): Recent
   const byGameweek = new Map<number, UsageSnapshot>();
   for (const snapshot of snapshots) {
     if (snapshot.team === current.team) byGameweek.set(snapshot.completedGameweek, snapshot);
+  }
+
+  const preseason = byGameweek.get(0);
+  const countersReset = !!preseason && current.teamMatchesPlayed > 0 &&
+    (current.startsTotal < preseason.startsTotal || current.minutesTotal < preseason.minutesTotal);
+  if (countersReset) {
+    // GW0 is a prior-season observation, not the zero point for reset
+    // current-season counters. A synthetic zero baseline lets the live
+    // bootstrap contribute immediately before the next scheduled capture.
+    byGameweek.set(0, {
+      completedGameweek: 0,
+      team: current.team,
+      teamMatchesPlayed: 0,
+      startsTotal: 0,
+      minutesTotal: 0,
+    });
   }
 
   // The live bootstrap is a synthetic newest observation. If the scheduled

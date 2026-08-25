@@ -3,6 +3,7 @@ import { buildPlayerUsageCapture } from '../../lib/playerUsageCapture';
 import { getConfiguredSupabaseServiceKey } from '../../lib/supabase/service-key';
 
 const FPL_BOOTSTRAP_URL = 'https://fantasy.premierleague.com/api/bootstrap-static/';
+const FPL_FIXTURES_URL = 'https://fantasy.premierleague.com/api/fixtures/';
 const UPSERT_BATCH_SIZE = 500;
 
 export default async (): Promise<Response> => {
@@ -12,12 +13,16 @@ export default async (): Promise<Response> => {
     return Response.json({ skipped: true, reason: 'supabase_not_configured' });
   }
 
-  const response = await fetch(FPL_BOOTSTRAP_URL, { cache: 'no-store' });
-  if (!response.ok) {
-    return Response.json({ error: `FPL bootstrap returned HTTP ${response.status}` }, { status: 502 });
+  const [bootstrapResponse, fixturesResponse] = await Promise.all([
+    fetch(FPL_BOOTSTRAP_URL, { cache: 'no-store' }),
+    fetch(FPL_FIXTURES_URL, { cache: 'no-store' }),
+  ]);
+  if (!bootstrapResponse.ok) {
+    return Response.json({ error: `FPL bootstrap returned HTTP ${bootstrapResponse.status}` }, { status: 502 });
   }
 
-  const capture = buildPlayerUsageCapture(await response.json());
+  const fixtures = fixturesResponse.ok ? await fixturesResponse.json() : [];
+  const capture = buildPlayerUsageCapture(await bootstrapResponse.json(), fixtures);
   if (capture.skipReason) {
     return Response.json({
       skipped: true,

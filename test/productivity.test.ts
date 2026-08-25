@@ -6,9 +6,11 @@ import { estimatePlayingTime } from '@/lib/playingTime'
 test('GW1 blends conservative official EP with reliable prior-season scoring', () => {
   const base = estimateProjectionBase({
     officialExpectedPoints: 4,
-    pointsPerAppearance: 6.8,
-    starts: 34,
-    minutes: 2_953,
+    currentPointsPerAppearance: 0,
+    currentMatchesPlayed: 0,
+    historicalPointsPerAppearance: 6.8,
+    historicalStarts: 34,
+    historicalMinutes: 2_953,
     teamMatchesPlayed: 0,
     fixtureFactor: 1.16,
     fixtureCount: 1,
@@ -30,9 +32,11 @@ test('GW1 blends conservative official EP with reliable prior-season scoring', (
 test('a low-usage player stays low even when prior points per appearance were useful', () => {
   const base = estimateProjectionBase({
     officialExpectedPoints: 2.3,
-    pointsPerAppearance: 3,
-    starts: 7,
-    minutes: 577,
+    currentPointsPerAppearance: 0,
+    currentMatchesPlayed: 0,
+    historicalPointsPerAppearance: 3,
+    historicalStarts: 7,
+    historicalMinutes: 577,
     teamMatchesPlayed: 0,
     fixtureFactor: 1.33,
     fixtureCount: 1,
@@ -50,31 +54,32 @@ test('a low-usage player stays low even when prior points per appearance were us
   assert.ok(base.points * playingTime.factor < 1)
 })
 
-test('current-season EP is not blended backwards and blanks remain zero', () => {
+test('current-season scoring is combined with the prior and blanks remain zero', () => {
   const currentSeason = estimateProjectionBase({
-    officialExpectedPoints: 5.1,
-    pointsPerAppearance: 8,
-    starts: 2,
-    minutes: 180,
-    teamMatchesPlayed: 2,
+    officialExpectedPoints: 4,
+    currentPointsPerAppearance: 2,
+    currentMatchesPlayed: 1,
+    historicalPointsPerAppearance: 6.8,
+    historicalStarts: 34,
+    historicalMinutes: 2_953,
+    teamMatchesPlayed: 1,
     fixtureFactor: 1.2,
     fixtureCount: 1,
   })
   const blank = estimateProjectionBase({
     officialExpectedPoints: 5.1,
-    pointsPerAppearance: 8,
-    starts: 30,
-    minutes: 2_700,
+    currentPointsPerAppearance: 0,
+    currentMatchesPlayed: 0,
+    historicalPointsPerAppearance: 8,
+    historicalStarts: 30,
+    historicalMinutes: 2_700,
     teamMatchesPlayed: 0,
     fixtureFactor: 1.2,
     fixtureCount: 0,
   })
 
-  assert.deepEqual(currentSeason, {
-    points: 5.1,
-    source: 'official-ep',
-    historicalWeight: 0,
-    historicalFixturePoints: 0,
-  })
+  assert.equal(currentSeason.source, 'season-blend')
+  assert.ok(currentSeason.points > 5)
+  assert.ok(currentSeason.blendedPointsPerAppearance > 6)
   assert.equal(blank.points, 0)
 })

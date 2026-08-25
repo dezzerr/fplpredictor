@@ -9,6 +9,8 @@ type UsageSnapshotRow = {
   team_matches_played: number;
   starts_total: number;
   minutes_total: number;
+  total_points: number | string | null;
+  points_per_appearance: number | string | null;
 };
 
 /**
@@ -31,7 +33,7 @@ export async function fetchPlayerUsageHistory(
     const minimumGameweek = Math.max(0, planningGameweek - 8);
     const { data, error } = await supabase
       .from('player_usage_snapshots')
-      .select('completed_gameweek,player_id,team,team_matches_played,starts_total,minutes_total')
+      .select('completed_gameweek,player_id,team,team_matches_played,starts_total,minutes_total,total_points,points_per_appearance')
       .eq('season_key', seasonKey)
       .gte('completed_gameweek', minimumGameweek)
       .order('completed_gameweek', { ascending: true });
@@ -45,6 +47,10 @@ export async function fetchPlayerUsageHistory(
         teamMatchesPlayed: row.team_matches_played,
         startsTotal: row.starts_total,
         minutesTotal: row.minutes_total,
+        totalPoints: row.total_points == null ? undefined : Number(row.total_points),
+        pointsPerAppearance: row.points_per_appearance == null
+          ? undefined
+          : Number(row.points_per_appearance),
       });
       result.set(row.player_id, snapshots);
     }

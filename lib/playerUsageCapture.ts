@@ -1,4 +1,5 @@
 import { seasonKeyFromEvents } from '@/lib/fplSeason';
+import { completedTeamMatchCounts, type CompletedFixture } from '@/lib/teamMatches';
 
 type RawEvent = {
   id?: number;
@@ -17,6 +18,8 @@ type RawElement = {
   team?: number;
   starts?: number | string;
   minutes?: number | string;
+  total_points?: number | string;
+  points_per_game?: number | string;
 };
 
 export type PlayerUsageCaptureRow = {
@@ -27,6 +30,8 @@ export type PlayerUsageCaptureRow = {
   team_matches_played: number;
   starts_total: number;
   minutes_total: number;
+  total_points: number;
+  points_per_appearance: number;
   captured_at: string;
 };
 
@@ -42,9 +47,15 @@ const nonNegativeInt = (value: unknown) => {
   return Number.isFinite(parsed) ? Math.max(0, Math.floor(parsed)) : 0;
 };
 
+const nonNegativeNumber = (value: unknown) => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? Math.max(0, parsed) : 0;
+};
+
 /** Build an idempotent, fully-completed-GW snapshot from the official feed. */
 export function buildPlayerUsageCapture(
   bootstrap: { events?: RawEvent[]; teams?: RawTeam[]; elements?: RawElement[] },
+  fixtures: CompletedFixture[] = [],
   now = new Date(),
 ): UsageCaptureResult {
   const events = Array.isArray(bootstrap.events) ? bootstrap.events : [];
@@ -72,6 +83,10 @@ export function buildPlayerUsageCapture(
       )
       .map((team) => [team.id, team]),
   );
+  const fixtureMatchCounts = completedTeamMatchCounts(fixtures, completedGameweek);
+  const hasCompletedFixtureData = completedGameweek === 0 || fixtures.some((fixture) =>
+    Number(fixture.event) <= completedGameweek && (fixture.finished || fixture.finished_provisional)
+  );
   const capturedAt = now.toISOString();
   const rows = (Array.isArray(bootstrap.elements) ? bootstrap.elements : [])
     .filter((element) => typeof element.id === 'number' && typeof element.team === 'number' && teams.has(element.team))
@@ -82,9 +97,13 @@ export function buildPlayerUsageCapture(
         completed_gameweek: completedGameweek,
         player_id: String(element.id),
         team: team.short_name,
-        team_matches_played: nonNegativeInt(team.played),
+        team_matches_played: hasCompletedFixtureData
+          ? fixtureMatchCounts.get(team.id) || 0
+          : nonNegativeInt(team.played),
         starts_total: nonNegativeInt(element.starts),
         minutes_total: nonNegativeInt(element.minutes),
+        total_points: nonNegativeInt(element.total_points),
+        points_per_appearance: nonNegativeNumber(element.points_per_game),
         captured_at: capturedAt,
       };
     });

@@ -40,10 +40,11 @@ export type ExpExplain = {
   // Core calculation factors
   base: number;
   officialBase?: number;
-  projectionBaseSource?: 'official-ep' | 'preseason-blend';
+  projectionBaseSource?: 'official-ep' | 'preseason-blend' | 'season-blend';
   historicalPointsPerGame?: number;
   historicalWeight?: number;
   historicalFixturePoints?: number;
+  blendedPointsPerAppearance?: number;
   minutesProb: number;
   minutesFactor: number;
   /** @deprecated Availability is already included in usage-v2 playing time. */

@@ -116,6 +116,26 @@ test('recent starts raise an old substitute and repeated benchings lower an esta
   assert.ok(promotedSubstitute.startProbability > oldSubstituteHistory.startProbability)
 })
 
+test('a reset current-season start contributes immediately against the GW0 prior', () => {
+  const priorOnly = estimate(8, 694)
+  const afterCurrentStart = estimate(1, 90, {
+    team: 'LIV',
+    teamMatchesPlayed: 1,
+    snapshots: [{
+      completedGameweek: 0,
+      team: 'LIV',
+      teamMatchesPlayed: 0,
+      startsTotal: 8,
+      minutesTotal: 694,
+    }],
+  })
+
+  assert.equal(afterCurrentStart.source, 'recent')
+  assert.equal(afterCurrentStart.recentMatches, 1)
+  assert.ok(afterCurrentStart.startProbability > priorOnly.startProbability)
+  assert.ok(afterCurrentStart.expectedMinutes > priorOnly.expectedMinutes)
+})
+
 test('reset, negative, and cross-team snapshot deltas do not become recent evidence', () => {
   const estimateWithBadDeltas = estimate(2, 150, {
     teamMatchesPlayed: 3,

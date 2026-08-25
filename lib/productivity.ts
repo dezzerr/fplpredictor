@@ -1,23 +1,27 @@
-export type ProjectionBaseSource = 'official-ep' | 'preseason-blend';
+export type ProjectionBaseSource = 'official-ep' | 'preseason-blend' | 'season-blend';
 
 export type ProjectionBaseEstimate = {
   points: number;
   source: ProjectionBaseSource;
   historicalWeight: number;
   historicalFixturePoints: number;
+  blendedPointsPerAppearance: number;
 };
 
 export type ProjectionBaseInput = {
   officialExpectedPoints: number;
-  pointsPerAppearance: number;
-  starts: number;
-  minutes: number;
+  currentPointsPerAppearance: number;
+  currentMatchesPlayed: number;
+  historicalPointsPerAppearance: number;
+  historicalStarts: number;
+  historicalMinutes: number;
   teamMatchesPlayed: number;
   fixtureFactor: number;
   fixtureCount: number;
 };
 
 const PRIOR_SEASON_MATCHES = 38;
+const PRODUCTIVITY_PRIOR_STRENGTH = 6;
 const MAX_HISTORICAL_WEIGHT = 0.6;
 
 const clamp = (value: number, min: number, max: number) =>
@@ -27,11 +31,11 @@ const nonNegative = (value: number) =>
   Number.isFinite(value) ? Math.max(0, value) : 0;
 
 /**
- * FPL's preseason ep_next values are deliberately conservative and can sit
- * well below a proven player's prior scoring rate. At GW1 only, blend that
- * official estimate with prior-season points per appearance, adjusted for the
- * next fixture. Usage-v2 is applied later, so a strong historical scorer who
- * is now a substitute still receives a suitably small final projection.
+ * FPL's ep_next values are deliberately conservative early in a season and
+ * can sit well below a proven player's scoring rate. Blend that estimate with
+ * a six-match prior plus current-season productivity, adjusted for the next
+ * fixture. Usage-v2 is applied later, so a strong historical scorer who is now
+ * a substitute still receives a suitably small final projection.
  */
 export function estimateProjectionBase(input: ProjectionBaseInput): ProjectionBaseEstimate {
   const officialExpectedPoints = nonNegative(input.officialExpectedPoints);
@@ -43,38 +47,58 @@ export function estimateProjectionBase(input: ProjectionBaseInput): ProjectionBa
       source: 'official-ep',
       historicalWeight: 0,
       historicalFixturePoints: 0,
+      blendedPointsPerAppearance: 0,
     };
   }
 
-  const pointsPerAppearance = nonNegative(input.pointsPerAppearance);
-  const starts = nonNegative(input.starts);
-  const minutes = nonNegative(input.minutes);
+  const historicalPointsPerAppearance = nonNegative(input.historicalPointsPerAppearance);
+  const currentPointsPerAppearance = nonNegative(input.currentPointsPerAppearance);
+  const historicalStarts = nonNegative(input.historicalStarts);
+  const historicalMinutes = nonNegative(input.historicalMinutes);
   const teamMatchesPlayed = Math.floor(nonNegative(input.teamMatchesPlayed));
-  const hasPriorSeasonEvidence = pointsPerAppearance > 0 && (starts > 0 || minutes > 0);
+  const currentMatchesPlayed = Math.min(
+    teamMatchesPlayed,
+    Math.floor(nonNegative(input.currentMatchesPlayed)),
+  );
+  const hasPriorSeasonEvidence = historicalPointsPerAppearance > 0 &&
+    (historicalStarts > 0 || historicalMinutes > 0);
+  const hasCurrentEvidence = currentPointsPerAppearance > 0 && currentMatchesPlayed > 0;
 
-  // Once the season begins, ep_next and form contain current-season evidence;
-  // the prior-season blend must no longer pull the projection backwards.
-  if (teamMatchesPlayed > 0 || !hasPriorSeasonEvidence) {
+  if (!hasPriorSeasonEvidence && !hasCurrentEvidence) {
     return {
       points: officialExpectedPoints,
       source: 'official-ep',
       historicalWeight: 0,
       historicalFixturePoints: 0,
+      blendedPointsPerAppearance: 0,
     };
   }
 
-  const fullMatchEquivalents = Math.max(starts, minutes / 90);
-  const evidenceShare = clamp(fullMatchEquivalents / PRIOR_SEASON_MATCHES, 0, 1);
+  const historicalFullMatchEquivalents = Math.max(historicalStarts, historicalMinutes / 90);
+  const historicalEvidenceShare = hasPriorSeasonEvidence
+    ? clamp(historicalFullMatchEquivalents / PRIOR_SEASON_MATCHES, 0, 1)
+    : 0;
+  const currentEvidenceShare = hasCurrentEvidence
+    ? clamp(currentMatchesPlayed / PRODUCTIVITY_PRIOR_STRENGTH, 0, 1)
+    : 0;
+  const evidenceShare = Math.max(historicalEvidenceShare, currentEvidenceShare);
   const historicalWeight = MAX_HISTORICAL_WEIGHT * evidenceShare;
+
+  const priorWeight = hasPriorSeasonEvidence ? PRODUCTIVITY_PRIOR_STRENGTH : 0;
+  const currentWeight = hasCurrentEvidence ? currentMatchesPlayed : 0;
+  const blendedPointsPerAppearance = (
+    historicalPointsPerAppearance * priorWeight + currentPointsPerAppearance * currentWeight
+  ) / Math.max(1, priorWeight + currentWeight);
   const fixtureFactor = clamp(nonNegative(input.fixtureFactor) || 1, 0.7, 1.35);
-  const historicalFixturePoints = pointsPerAppearance * fixtureFactor * fixtureCount;
+  const historicalFixturePoints = blendedPointsPerAppearance * fixtureFactor * fixtureCount;
   const points = officialExpectedPoints * (1 - historicalWeight) +
     historicalFixturePoints * historicalWeight;
 
   return {
     points,
-    source: 'preseason-blend',
+    source: teamMatchesPlayed > 0 ? 'season-blend' : 'preseason-blend',
     historicalWeight,
     historicalFixturePoints,
+    blendedPointsPerAppearance,
   };
 }

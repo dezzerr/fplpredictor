@@ -9,6 +9,7 @@ import { estimatePlayingTime, isPlayingTimeSignal, performanceSignalMultiplier }
 import { estimateProjectionBase } from '@/lib/productivity';
 import { fetchPlayerUsageHistory } from '@/lib/playerUsage';
 import { getConfiguredSupabaseServiceKey } from '@/lib/supabase/service-key';
+import { completedTeamMatchCounts } from '@/lib/teamMatches';
 
 /** Cached signals for the current request (avoid repeated DB calls) */
 type SignalRow = {
@@ -99,7 +100,6 @@ export async function fetchFplPlayers(preset?: CalPresetName | string | null): P
   const events: Array<any> = bootstrap.events || [];
   const live = await getLiveEvent(events);
   let nextEvent: any = null;
-  const gwIsLive = !!live;
   if (live) {
     nextEvent = live.event;
   } else {
@@ -107,17 +107,19 @@ export async function fetchFplPlayers(preset?: CalPresetName | string | null): P
   }
   const nextEventId: number | undefined = nextEvent?.id;
   const seasonKey = seasonKeyFromEvents(events);
+  const completedGameweek = events
+    .filter((event) => event.finished && typeof event.id === 'number')
+    .reduce((latest, event) => Math.max(latest, event.id), 0);
 
-  // Fetch fixtures best-effort (tolerate failures by using empty list)
-  // When GW is live, fetch ALL fixtures so current GW opponents appear on player tiles
+  // Fetch all fixtures best-effort. Completed rows are the reliable source of
+  // team match counts; bootstrap teams[].played remains zero during the season.
   let fixtures: any[] = [];
+  let fixtureFeedAvailable = false;
   try {
-    const fixturesUrl = gwIsLive
-      ? "https://fantasy.premierleague.com/api/fixtures/"
-      : "https://fantasy.premierleague.com/api/fixtures/?future=1";
-    const fixturesRes = await fetch(fixturesUrl, { next: { revalidate: 900 } });
+    const fixturesRes = await fetch("https://fantasy.premierleague.com/api/fixtures/", { next: { revalidate: 900 } });
     if (fixturesRes.ok) {
       fixtures = await fixturesRes.json();
+      fixtureFeedAvailable = Array.isArray(fixtures);
     } else {
       // eslint-disable-next-line no-console
       console.warn("FPL fixtures fetch not ok, proceeding without fixtures:", fixturesRes.status);
@@ -126,6 +128,9 @@ export async function fetchFplPlayers(preset?: CalPresetName | string | null): P
     // eslint-disable-next-line no-console
     console.warn("FPL fixtures fetch failed, proceeding without fixtures:", (err as Error).message);
   }
+  const completedMatchesByTeam = completedTeamMatchCounts(fixtures, completedGameweek);
+  const hasReliableFixtureHistory = fixtureFeedAvailable &&
+    (completedGameweek === 0 || completedMatchesByTeam.size > 0);
   
   console.log('[FPL] Current/Next Event ID:', nextEventId, 'Total events:', events.length);
   console.log('[FPL] Next event details:', nextEvent ? { id: nextEvent.id, name: nextEvent.name, deadline: nextEvent.deadline_time } : 'None');
@@ -183,12 +188,16 @@ export async function fetchFplPlayers(preset?: CalPresetName | string | null): P
     
     const recentMinutes = parseInt(el.minutes ?? "0") || 0;
     const starts = parseInt(el.starts ?? "0") || 0;
-    const teamMatchesPlayed = Math.max(0, Number(teamById.get(teamId)?.played) || 0);
+    const bootstrapMatchesPlayed = Math.max(0, Number(teamById.get(teamId)?.played) || 0);
+    const teamMatchesPlayed = hasReliableFixtureHistory
+      ? completedMatchesByTeam.get(teamId) || 0
+      : bootstrapMatchesPlayed || completedGameweek;
     const ownPct = parseFloat(el.selected_by_percent ?? "0") || 0;
     const statsMatches = teamMatchesPlayed > 0
       ? teamMatchesPlayed
       : (starts > 0 || recentMinutes > 0 ? 38 : 1);
     const playerSignals = signalsMap.get(String(el.id)) || [];
+    const playerUsageHistory = usageHistory.get(String(el.id)) || [];
     const playingTime = estimatePlayingTime({
       team,
       starts,
@@ -196,7 +205,7 @@ export async function fetchFplPlayers(preset?: CalPresetName | string | null): P
       teamMatchesPlayed,
       statusCode,
       chanceOfPlaying: chance,
-      snapshots: usageHistory.get(String(el.id)) || [],
+      snapshots: playerUsageHistory,
       signals: playerSignals,
     });
     const minutesProb = playingTime.sixtyMinuteProbability;
@@ -205,6 +214,13 @@ export async function fetchFplPlayers(preset?: CalPresetName | string | null): P
     const totalPoints = parseFloat(el.total_points ?? "0") || 0;
     const officialPointsPerGame = parseFloat(el.points_per_game ?? "0") || 0;
     const pointsPerGame = officialPointsPerGame || totalPoints / Math.max(1, statsMatches);
+    const preseasonUsage = playerUsageHistory.find((snapshot) =>
+      snapshot.completedGameweek === 0 && snapshot.team === team
+    );
+    const historicalPointsPerAppearance = preseasonUsage?.pointsPerAppearance ||
+      (teamMatchesPlayed === 0 ? officialPointsPerGame : 0);
+    const historicalStarts = preseasonUsage?.startsTotal ?? (teamMatchesPlayed === 0 ? starts : 0);
+    const historicalMinutes = preseasonUsage?.minutesTotal ?? (teamMatchesPlayed === 0 ? recentMinutes : 0);
     
     // Get team strength and form
     const teamStrength = teamStrengthById[teamId] || 3;
@@ -312,9 +328,11 @@ export async function fetchFplPlayers(preset?: CalPresetName | string | null): P
 
     const projectionBase = estimateProjectionBase({
       officialExpectedPoints: baseExp,
-      pointsPerAppearance: officialPointsPerGame,
-      starts,
-      minutes: recentMinutes,
+      currentPointsPerAppearance: officialPointsPerGame,
+      currentMatchesPlayed: teamMatchesPlayed,
+      historicalPointsPerAppearance,
+      historicalStarts,
+      historicalMinutes,
       teamMatchesPlayed,
       fixtureFactor: nextWeekFactor,
       fixtureCount: nextEventFixtureCount ?? (nextFixtures.length > 0 ? 1 : 0),
@@ -352,7 +370,7 @@ export async function fetchFplPlayers(preset?: CalPresetName | string | null): P
     // Once we have actual minutes, starts, snapshots, or explicit lineup news,
     // usage-v2 becomes an evidence-backed adjustment and is applied once.
     const hasUsageEvidence = teamMatchesPlayed > 0 || starts > 0 || recentMinutes > 0 ||
-      (usageHistory.get(String(el.id))?.length ?? 0) > 0 ||
+      playerUsageHistory.length > 0 ||
       playerSignals.some((signal) => isPlayingTimeSignal(signal.signal));
     const minutesFactor = hasUsageEvidence ? playingTime.factor : 1;
 
@@ -426,9 +444,10 @@ export async function fetchFplPlayers(preset?: CalPresetName | string | null): P
         base: projectionBase.points,
         officialBase: baseExp,
         projectionBaseSource: projectionBase.source,
-        historicalPointsPerGame: officialPointsPerGame || undefined,
+        historicalPointsPerGame: historicalPointsPerAppearance || undefined,
         historicalWeight: projectionBase.historicalWeight || undefined,
         historicalFixturePoints: projectionBase.historicalFixturePoints || undefined,
+        blendedPointsPerAppearance: projectionBase.blendedPointsPerAppearance || undefined,
         minutesProb,
         minutesFactor,
         injuryPenalty: 1,
