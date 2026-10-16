@@ -18,6 +18,8 @@ export interface ArticleSource {
   type: 'article';
   label: string;
   feedUrl: string;
+  /** RSS/Atom by default; use html for a maintained page with article markup. */
+  format?: 'rss' | 'html';
 }
 
 export interface TwitterSource {
@@ -43,6 +45,17 @@ export const ARTICLE_SOURCES: ArticleSource[] = [
     type: 'article',
     label: 'Fantasy Football Scout',
     feedUrl: 'https://www.fantasyfootballscout.co.uk/feed/',
+  },
+  {
+    type: 'article',
+    label: 'All About FPL',
+    feedUrl: 'https://allaboutfpl.com/feed/',
+  },
+  {
+    type: 'article',
+    label: 'Premier League suspension tracker',
+    feedUrl: 'https://www.premierleague.com/en/news/4425344/which-players-are-suspended-or-close-to-a-ban-in-fantasy',
+    format: 'html',
   },
 ];
 

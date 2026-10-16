@@ -48,7 +48,8 @@ function confidenceWeight(confidence?: string | null): number {
 
 export function isPlayingTimeSignal(signal: string): boolean {
   return signal === 'starts' || signal === 'benched' || signal === 'injured' ||
-    signal === 'returning' || signal === 'rotation_risk';
+    signal === 'returning' || signal === 'suspended' || signal === 'rotation_risk' ||
+    signal === 'minutes_risk';
 }
 
 export function performanceSignalMultiplier(signals: AvailabilitySignal[]): number {
@@ -168,13 +169,21 @@ function applySignals(
       forcedOut = true;
       continue;
     }
+    if (confidence === 'high' && signal.signal === 'suspended') {
+      start = 0;
+      minutes = 0;
+      forcedOut = true;
+      continue;
+    }
     if (confidence === 'high' && signal.signal === 'returning') {
       start = Math.max(start, 0.6);
       minutes = Math.max(minutes, 55);
       continue;
     }
-    if (signal.signal === 'rotation_risk') {
-      const factor = confidence === 'high' ? 0.75 : confidence === 'medium' ? 0.85 : 0.93;
+    if (signal.signal === 'rotation_risk' || signal.signal === 'minutes_risk') {
+      const factor = signal.signal === 'minutes_risk'
+        ? confidence === 'high' ? 0.7 : confidence === 'medium' ? 0.82 : 0.92
+        : confidence === 'high' ? 0.75 : confidence === 'medium' ? 0.85 : 0.93;
       start *= factor;
       minutes *= factor;
       continue;

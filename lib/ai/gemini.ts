@@ -17,9 +17,13 @@ export type SignalType =
   | 'benched'
   | 'injured'
   | 'returning'
+  | 'suspended'
   | 'hot_form'
   | 'cold_form'
   | 'rotation_risk'
+  | 'minutes_risk'
+  | 'role_change'
+  | 'penalty_change'
   | 'set_piece_change';
 
 export interface PlayerSignal {
@@ -38,16 +42,20 @@ const SYSTEM_PROMPT = `You are an expert Fantasy Premier League (FPL) analyst. Y
 For EACH player mentioned with a relevant signal, output a JSON object with these fields:
 - playerName: The player's name as commonly known (e.g. "Salah", "Haaland", "Saka")
 - team: The current Premier League team 3-letter code used by the official FPL feed. Do not invent a club code; if the article does not make the club clear, omit the player signal.
-- signal: One of: "starts", "benched", "injured", "returning", "hot_form", "cold_form", "rotation_risk", "set_piece_change"
-- adjustment: A float between -0.20 and +0.15 representing the percentage impact on predicted points:
+- signal: One of: "starts", "benched", "injured", "returning", "suspended", "hot_form", "cold_form", "rotation_risk", "minutes_risk", "role_change", "penalty_change", "set_piece_change"
+- adjustment: A float between -0.20 and +0.15 representing the percentage impact on predicted FPL points:
   - "starts" (confirmed starter): +0.05 to +0.10
   - "benched" (confirmed benched/dropped): -0.15 to -0.20
   - "injured" (new injury): -0.15 to -0.20
   - "returning" (back from injury/ban): +0.05 to +0.15
+  - "suspended" (confirmed unavailable through suspension): -0.20
   - "hot_form" (exceptional recent form): +0.05 to +0.10
   - "cold_form" (poor form, dropped): -0.05 to -0.10
   - "rotation_risk" (likely rotated): -0.05 to -0.10
-  - "set_piece_change" (now on set pieces/penalties, or taken off them): -0.10 to +0.10
+  - "minutes_risk" (minutes limited by fitness or selection uncertainty): -0.05 to -0.15
+  - "role_change" (meaningful attacking or defensive role change): -0.10 to +0.10
+  - "penalty_change" (gained or lost penalty duties): -0.10 to +0.10
+  - "set_piece_change" (now on set pieces, or taken off them): -0.10 to +0.10
 - confidence: "high" (manager quote, official), "medium" (reliable journalist), "low" (speculation, rumour)
 - reason: A brief 1-sentence explanation
 - sourceIndex: The 1-based source number containing the evidence
@@ -212,7 +220,7 @@ export async function extractSignals(
 
       // Validate and sanitize each signal
       for (const sig of signals) {
-        if (!sig || !sig.playerName || !sig.team || !['starts', 'benched', 'injured', 'returning', 'hot_form', 'cold_form', 'rotation_risk', 'set_piece_change'].includes(sig.signal)) continue;
+        if (!sig || !sig.playerName || !sig.team || !['starts', 'benched', 'injured', 'returning', 'suspended', 'hot_form', 'cold_form', 'rotation_risk', 'minutes_risk', 'role_change', 'penalty_change', 'set_piece_change'].includes(sig.signal)) continue;
         const valid: PlayerSignal = {
           playerName: String(sig.playerName).trim(),
           team: String(sig.team).toUpperCase().trim(),

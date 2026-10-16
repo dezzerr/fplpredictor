@@ -7,7 +7,9 @@ The repository now has a standalone signal scanner that runs independently of a 
 - `scripts/run-signal-scan.ts` collects configured sources, extracts player signals, matches them to official FPL players and upserts `player_signals` in Supabase.
 - `npm run signals:scan` runs the scanner locally or in CI.
 - `.github/workflows/fpl-signal-scan.yml` supports manual runs and a six-hour schedule.
-- Fantasy Football Scout's verified RSS feed is configured as the first source.
+- Fantasy Football Scout RSS
+- All About FPL RSS
+- Premier League suspension tracker page, parsed only when its dated article is still fresh
 
 The deployed application reads the stored signals. New scans do not require a Netlify deployment.
 
@@ -64,9 +66,20 @@ The manual workflow also offers a `dry_run` checkbox. Leave it unchecked for a p
 
 The scheduled workflow runs every six hours in UTC. A deadline-specific schedule should be added only after the first manual production run has been verified.
 
+The scanner now also recognises these additional signal types:
+
+- `suspended`, which forces high-confidence unavailable players to zero minutes
+- `minutes_risk`, which reduces expected starts and minutes
+- `role_change`, which adjusts attacking or defensive productivity
+- `penalty_change`, which adjusts expected output when penalty duties change
+
+The first release still stores the supporting quote and URL in the existing signal record. A later schema migration can promote evidence, publication time and expiry into separate columns once the source set is stable.
+
 ## Current limitation
 
-The first version uses public RSS collection only. Persistent-browser enrichment is not part of the GitHub runner because the runner cannot access the local Brave or Chrome profile. Browser-assisted research should run as a separate local coordinator and submit a verified research pack to the same processing path.
+The GitHub runner currently uses public RSS and dated public article pages. Persistent-browser enrichment is not part of the GitHub runner because the runner cannot access the local Brave or Chrome profile. Browser-assisted research should run as a separate local coordinator and submit a verified research pack to the same processing path.
+
+The BBC football RSS feed was tested but is not enabled because its live feed was returning stale items outside the scanner's seven-day freshness window. It should be reconsidered only after a fresh, FPL-relevant feed is verified.
 
 ## Verification checklist
 
