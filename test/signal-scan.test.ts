@@ -66,3 +66,11 @@ test('HTML article sources preserve current official suspension tables', async (
     assert.equal(items[0].url, 'https://example.com/suspensions');
   } finally { globalThis.fetch = original; }
 });
+
+test('browser evidence persists through the existing article source constraint', () => {
+  const content = [{ source: 'BBC Sport FPL', sourceType: 'browser' as const, text: 'The manager confirmed the player is fit and available for the next Premier League match.', date: '2026-10-16', url: 'https://www.bbc.co.uk/sport/football/articles/example' }];
+  const matched: MatchedSignal = { ...signal('Salah', 'LIV'), playerId: '4', sourceIndex: 1, evidence: 'The manager confirmed the player is fit and available for the next Premier League match.' };
+  const rows = prepareSignalRows([matched], content, 7);
+  assert.equal(rows[0].source_type, 'article');
+  assert.match(rows[0].source_label, /^BBC Sport FPL \| https:\/\/www\.bbc\.co\.uk/);
+});

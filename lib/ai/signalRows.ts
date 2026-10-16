@@ -27,10 +27,13 @@ export function prepareSignalRows(signals: MatchedSignal[], content: ScrapedCont
     const key = `${signal.playerId}|${signal.signal}`;
     const existing = rows.get(key);
     if (existing && ranks[existing.confidence] >= ranks[signal.confidence]) continue;
+    const persistedSourceType = source.sourceType === 'browser' ? 'article' : source.sourceType;
     rows.set(key, {
       player_name: signal.playerName, player_id: signal.playerId, team: signal.team, gameweek,
       signal: signal.signal, adjustment: signal.adjustment, confidence: signal.confidence, reason: signal.reason,
-      source_type: source.sourceType, source_label: `${source.source}${source.url ? ` | ${source.url}` : ''}`,
+      // The existing production check constraint stores rendered browser news as article evidence.
+      source_type: persistedSourceType,
+      source_label: `${source.source}${source.url ? ` | ${source.url}` : ''}`,
     });
   }
   return [...rows.values()];
