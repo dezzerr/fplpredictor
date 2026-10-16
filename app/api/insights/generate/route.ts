@@ -858,10 +858,16 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  const serverPlayerById = new Map(universePlayers.map((player) => [player.id, player]));
   const summary = squadPlayers
     .map((p) => {
       const fText = fixtureText(inputFixtures(p));
-      return `${p.name} | ${p.position} | ${p.team} | £${toNum(p.price, 0).toFixed(1)}m | EP ${toNum(p.expPoints, 0).toFixed(1)} | xMins ${playerExpectedMinutes(p).toFixed(0)} | P60 ${Math.round(sixtyMinuteChance(p) * 100)}% | Own ${toNum(p.ownership, 0).toFixed(1)}% | ${fText}`;
+      const serverPlayer = p.id ? serverPlayerById.get(p.id) : undefined;
+      const signals = serverPlayer?.expExplain?.signals || [];
+      const signalText = signals.length
+        ? ` | News signals: ${signals.map((signal) => `${signal.signal} (${signal.confidence}): ${signal.reason}`).join(' | ')}`
+        : '';
+      return `${p.name} | ${p.position} | ${p.team} | £${toNum(p.price, 0).toFixed(1)}m | EP ${toNum(p.expPoints, 0).toFixed(1)} | xMins ${playerExpectedMinutes(p).toFixed(0)} | P60 ${Math.round(sixtyMinuteChance(p) * 100)}% | Own ${toNum(p.ownership, 0).toFixed(1)}% | ${fText}${signalText}`;
     })
     .join('\n');
 
