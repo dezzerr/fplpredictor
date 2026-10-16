@@ -63,6 +63,12 @@ test('availability and lineup news alter playing time once', () => {
   const returning = estimate(0, 100, {
     signals: [{ signal: 'returning', confidence: 'high' }],
   })
+  const suspended = estimate(30, 2_700, {
+    signals: [{ signal: 'suspended', confidence: 'high' }],
+  })
+  const minutesRisk = estimate(30, 2_700, {
+    signals: [{ signal: 'minutes_risk', confidence: 'high' }],
+  })
 
   assert.ok(Math.abs(doubtful.startProbability - healthy.startProbability * 0.75) < 1e-10)
   assert.ok(Math.abs(numericChance.startProbability - healthy.startProbability * 0.5) < 1e-10)
@@ -74,6 +80,9 @@ test('availability and lineup news alter playing time once', () => {
   assert.ok(confirmedBench.expectedMinutes <= 25)
   assert.ok(returning.startProbability >= 0.6)
   assert.ok(returning.expectedMinutes >= 55)
+  assert.equal(suspended.expectedMinutes, 0)
+  assert.equal(suspended.factor, 0)
+  assert.ok(minutesRisk.expectedMinutes < healthy.expectedMinutes)
 })
 
 test('recent starts raise an old substitute and repeated benchings lower an established starter', () => {

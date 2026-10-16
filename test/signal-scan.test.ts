@@ -46,3 +46,23 @@ test('RSS collection keeps title context and skips stale, undated or malformed i
     assert.match(items[0].text, /^Salah injury news/);
   } finally { globalThis.fetch = original; }
 });
+
+test('HTML article sources preserve current official suspension tables', async () => {
+  const original = globalThis.fetch;
+  globalThis.fetch = async () => new Response(`
+    <html><h1>Suspension tracker</h1>
+    <time datetime="2026-10-16">16 Oct 2026</time>
+    <div data-flatplan-body><p>Players suspended</p><table><tr><th>Player</th></tr><tr><th>Example Player</th><td>LIV</td><td>GW7</td></tr></table></div>
+    </html>`);
+  try {
+    const items = await fetchArticles({
+      type: 'article',
+      label: 'Premier League suspension tracker',
+      feedUrl: 'https://example.com/suspensions',
+      format: 'html',
+    });
+    assert.equal(items.length, 1);
+    assert.match(items[0].text, /Example Player/);
+    assert.equal(items[0].url, 'https://example.com/suspensions');
+  } finally { globalThis.fetch = original; }
+});
