@@ -90,6 +90,7 @@ export function InsightPanel({ gameweek, players, bank, className }: InsightPane
     setLoading(true);
     try {
       const payload = players.map((p) => ({
+        id: p.id,
         name: p.name,
         team: p.team,
         position: p.position,
