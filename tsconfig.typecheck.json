@@ -12,6 +12,7 @@
     "lib/**/*.tsx",
     "store/**/*.ts",
     "store/**/*.tsx",
+    "scripts/run-signal-scan.ts",
     "test/**/*.ts"
   ],
   "exclude": [

@@ -107,6 +107,7 @@ export async function fetchArticles(source: ArticleSource): Promise<ScrapedConte
     const res = await fetch(source.feedUrl, {
       cache: 'no-store',
       headers: { 'User-Agent': 'FPLCompanion/1.0' },
+      signal: AbortSignal.timeout(30_000),
     });
     if (!res.ok) {
       console.warn('[Scraper] Article feed failed:', source.label, res.status);
@@ -128,12 +129,12 @@ export async function fetchArticles(source: ArticleSource): Promise<ScrapedConte
     for (const item of itemList) {
       const pubDate = item.pubDate || item.published || item.updated || '';
       const date = pubDate ? new Date(pubDate) : new Date();
-      if (date < cutoff) continue;
+      if (!Number.isFinite(date.getTime()) || !pubDate || date < cutoff || date.getTime() > Date.now() + 300_000) continue;
 
       // Extract text content — prefer content:encoded, then description, then summary
       let text = item['content:encoded'] || item.description || item.summary || item.content || '';
       // Strip HTML tags for clean text
-      text = stripHtml(text);
+      text = `${stripHtml(String(item.title || ''))}\n${stripHtml(String(text))}`;
       if (text.length < 30) continue;
 
       const link = typeof item.link === 'string'

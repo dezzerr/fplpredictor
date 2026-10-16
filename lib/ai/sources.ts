@@ -39,7 +39,11 @@ export const YOUTUBE_SOURCES: YouTubeSource[] = [
 ];
 
 export const ARTICLE_SOURCES: ArticleSource[] = [
-  // Example: { type: 'article', label: 'Fantasy Football Scout', feedUrl: 'https://www.fantasyfootballscout.co.uk/feed/' },
+  {
+    type: 'article',
+    label: 'Fantasy Football Scout',
+    feedUrl: 'https://www.fantasyfootballscout.co.uk/feed/',
+  },
 ];
 
 export const TWITTER_SOURCES: TwitterSource[] = [
