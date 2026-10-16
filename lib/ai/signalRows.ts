@@ -3,13 +3,22 @@ import type { ScrapedContent } from './scrapers';
 
 const normalize = (value: string) => value.replace(/\s+/g, ' ').trim().toLowerCase();
 
+export interface PreparedSignalRow {
+  player_name: string;
+  player_id: string;
+  team: string;
+  gameweek: number;
+  signal: string;
+  adjustment: number;
+  confidence: string;
+  reason: string;
+  source_type: string;
+  source_label: string;
+}
+
 /** Require a real supporting quote and preserve its source instead of guessing provenance. */
 export function prepareSignalRows(signals: MatchedSignal[], content: ScrapedContent[], gameweek: number) {
-  const rows = new Map<string, {
-    player_name: string; player_id: string; team: string; gameweek: number;
-    signal: string; adjustment: number; confidence: string; reason: string;
-    source_type: string; source_label: string;
-  }>();
+  const rows = new Map<string, PreparedSignalRow>();
   const ranks: Record<string, number> = { high: 3, medium: 2, low: 1 };
   for (const signal of signals) {
     const source = content[(signal.sourceIndex ?? 0) - 1];

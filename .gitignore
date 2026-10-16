@@ -37,10 +37,11 @@ coverage/
 .vscode/
 .idea/
 
-# Build tools / caches
+# Build tools and caches
 .turbo/
 .cache/
 supabase/.temp/
+output/browser-news/
 
 # Misc
 *.swp

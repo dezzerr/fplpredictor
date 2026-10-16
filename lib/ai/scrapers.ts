@@ -13,7 +13,7 @@ import {
 
 export interface ScrapedContent {
   source: string;      // label of the source
-  sourceType: 'youtube' | 'article' | 'twitter';
+  sourceType: 'youtube' | 'article' | 'twitter' | 'browser';
   text: string;        // extracted content
   date: string;        // ISO date string
   url?: string;        // original URL if available

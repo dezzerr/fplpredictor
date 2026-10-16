@@ -1,0 +1,69 @@
+{
+  "profile": "Fpl",
+  "cdpUrl": "http://127.0.0.1:9222",
+  "sources": [
+    {
+      "id": "bbc-fpl-hub",
+      "label": "BBC Sport FPL",
+      "startUrl": "https://www.bbc.co.uk/sport/football/fantasy-football",
+      "allowedHosts": ["www.bbc.co.uk", "bbc.co.uk"],
+      "allowedPathPrefixes": ["/sport/football/"]
+    },
+    {
+      "id": "premier-league-injuries",
+      "label": "Premier League injury hub",
+      "startUrl": "https://www.premierleague.com/en/latest-player-injuries",
+      "allowedHosts": ["www.premierleague.com"],
+      "allowedPathPrefixes": ["/en/"]
+    },
+    {
+      "id": "premier-league-suspensions",
+      "label": "Premier League suspension tracker",
+      "startUrl": "https://www.premierleague.com/en/news/4425344/which-players-are-suspended-or-close-to-a-ban-in-fantasy",
+      "allowedHosts": ["www.premierleague.com"],
+      "allowedPathPrefixes": ["/en/"]
+    },
+    {
+      "id": "fantasy-football-scout",
+      "label": "Fantasy Football Scout",
+      "startUrl": "https://www.fantasyfootballscout.co.uk/",
+      "allowedHosts": ["www.fantasyfootballscout.co.uk"],
+      "allowedPathPrefixes": ["/"]
+    },
+    {
+      "id": "all-about-fpl",
+      "label": "All About FPL",
+      "startUrl": "https://allaboutfpl.com/",
+      "allowedHosts": ["allaboutfpl.com", "www.allaboutfpl.com"],
+      "allowedPathPrefixes": ["/"]
+    },
+    {
+      "id": "arsenal-news",
+      "label": "Arsenal official news",
+      "startUrl": "https://www.arsenal.com/news",
+      "allowedHosts": ["www.arsenal.com"],
+      "allowedPathPrefixes": ["/news"]
+    },
+    {
+      "id": "chelsea-news",
+      "label": "Chelsea official news",
+      "startUrl": "https://www.chelseafc.com/en/news",
+      "allowedHosts": ["www.chelseafc.com"],
+      "allowedPathPrefixes": ["/en/news"]
+    },
+    {
+      "id": "liverpool-news",
+      "label": "Liverpool official news",
+      "startUrl": "https://www.liverpoolfc.com/news",
+      "allowedHosts": ["www.liverpoolfc.com"],
+      "allowedPathPrefixes": ["/news"]
+    },
+    {
+      "id": "man-utd-news",
+      "label": "Manchester United official news",
+      "startUrl": "https://www.manutd.com/en/news",
+      "allowedHosts": ["www.manutd.com"],
+      "allowedPathPrefixes": ["/en/news"]
+    }
+  ]
+}
