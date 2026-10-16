@@ -28,7 +28,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           # Immutable scanner release; main contains an older application.
-          ref: 00d17cbf6c561fc63273074b61af8049173fad3d
+          ref: 68cf0ddd83792e6cbf34a8beacfbdef8b6656639
           persist-credentials: false
 
       - name: Set up Node.js
