@@ -77,9 +77,9 @@ The first release still stores the supporting quote and URL in the existing sign
 
 ## Current limitation
 
-The GitHub runner currently uses public RSS and dated public article pages. Persistent-browser enrichment is not part of the GitHub runner because the runner cannot access the local Brave or Chrome profile. Browser-assisted research should run as a separate local coordinator and submit a verified research pack to the same processing path.
+The GitHub runner currently uses public RSS and dated public article pages. Persistent-browser enrichment is not part of the GitHub runner because the runner cannot access the local Brave or Chrome profile. Browser-assisted research runs as a separate local coordinator and submits a verified research pack to the same processing path. See `docs/BROWSER_NEWS_SCANNER.md`.
 
-The BBC football RSS feed was tested but is not enabled because its live feed was returning stale items outside the scanner's seven-day freshness window. It should be reconsidered only after a fresh, FPL-relevant feed is verified.
+The BBC football RSS feed was tested but is not enabled because its live feed was returning stale items outside the scanner's seven-day freshness window. The browser FPL source replaces that unreliable feed for current BBC content.
 
 ## Verification checklist
 

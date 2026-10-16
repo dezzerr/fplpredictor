@@ -27,6 +27,8 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
         with:
+          # Immutable scanner release; main contains an older application.
+          ref: d9a77b819d8ceb02087f269a5f542e355b60ce99
           persist-credentials: false
 
       - name: Set up Node.js
