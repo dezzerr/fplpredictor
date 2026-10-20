@@ -1,5 +1,7 @@
+# FPL Companion
+
 A sleek, modern Fantasy Premier League (FPL) companion app built with **Next.js 14**, **TypeScript**, **Tailwind CSS**, and **shadcn/ui**.  
-Designed to help you manage your fantasy team with real-time stats, expected points models, and transfer/captaincy optimisation.
+Designed to help you manage your fantasy team with AI-powered predictions, real-time stats, and smart squad optimization.
 
 ---
 

@@ -1,4 +1,4 @@
-import type { TeamOdds, GoalscorerOdds } from "@/lib/odds";
+import type { TeamOdds } from "@/lib/odds";
 import type { Position } from "@/lib/data";
 
 // Derive team goal intensities (Poisson lambdas) from team-level markets.
@@ -26,14 +26,14 @@ export function cleanSheetFromLambdas(lambdaForOpp: number): number {
 export function lambdaGFromAnytime(pAnytime: number): number {
   const p = clamp01(pAnytime);
   if (p <= 0) return 0;
-  if (p >= 1) return 10; // huge
-  return -Math.log(1 - p);
+  if (p >= 1) return 1.4;
+  return Math.min(-Math.log(1 - p), 1.4);
 }
 
 // Placeholder assist intensity estimator. If you have xA90, prefer it.
 // As a fallback, relate λa to λg with a mild factor.
 export function estimateLambdaA(lambdaG: number, pos: Position): number {
-  const f = pos === 'FWD' ? 0.5 : pos === 'MID' ? 0.8 : 0.3;
+  const f = pos === 'FWD' ? 0.35 : pos === 'MID' ? 0.45 : 0.2;
   return Math.max(lambdaG * f, 0);
 }
 
@@ -42,6 +42,37 @@ export function expectedCsPoints(pos: Position, lambdaOpp: number): number {
   const pCS = cleanSheetFromLambdas(lambdaOpp);
   const pts = pos === 'GK' || pos === 'DEF' ? 4 : pos === 'MID' ? 1 : 0;
   return pCS * pts;
+}
+
+export function expectedPlayerMarketPoints({
+  position,
+  appearanceProbability,
+  sixtyMinuteProbability,
+  expectedMinutes,
+  lambdaGoal,
+  lambdaAssist,
+  lambdaOpp,
+  scale = 0.88,
+}: {
+  position: Position;
+  appearanceProbability: number;
+  sixtyMinuteProbability: number;
+  expectedMinutes: number;
+  lambdaGoal: number;
+  lambdaAssist: number;
+  lambdaOpp: number;
+  scale?: number;
+}): number {
+  const goalPoints: Record<Position, number> = { GK: 6, DEF: 6, MID: 5, FWD: 4 };
+  const pAppearance = clamp01(appearanceProbability);
+  const p60 = Math.min(pAppearance, clamp01(sixtyMinuteProbability));
+  const minutesShare = clamp01(expectedMinutes / 90);
+  const appearancePoints = pAppearance + p60;
+  const attackingPoints = minutesShare * (
+    Math.max(0, lambdaGoal) * goalPoints[position] + Math.max(0, lambdaAssist) * 3
+  );
+  const cleanSheetPoints = p60 * expectedCsPoints(position, lambdaOpp);
+  return Math.max(0, (appearancePoints + attackingPoints + cleanSheetPoints) * Math.max(0, scale));
 }
 
 // Utility helpers

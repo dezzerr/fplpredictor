@@ -35,6 +35,9 @@
       ],
       "@/app/*": [
         "app/*"
+      ],
+      "@/hooks/*": [
+        "hooks/*"
       ]
     },
     "types": [
@@ -46,9 +49,14 @@
     "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
+    "test/**/*.ts",
     ".next/types/**/*.ts"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "Homepage",
+    ".netlify",
+    "studio-fpl-companion",
+    "output"
   ]
 }

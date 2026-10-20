@@ -9,10 +9,11 @@ export function getMockDeadline(): Date {
   return d;
 }
 
-export function formatDeadline(d: Date): string {
+export function formatDeadline(d: Date, eventName?: string): string {
   const day = d.toLocaleDateString(undefined, { weekday: 'short' });
   const dayNum = d.getDate();
   const month = d.toLocaleDateString(undefined, { month: 'short' });
   const time = d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: false });
-  return `Deadline: ${day} ${dayNum} ${month} ${time}`;
+  const prefix = eventName ? `${eventName} Deadline` : 'Deadline';
+  return `${prefix}: ${day} ${dayNum} ${month} ${time}`;
 }

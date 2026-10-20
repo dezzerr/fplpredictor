@@ -12,6 +12,7 @@ pnpm-debug.log*
 .next/
 out/
 .vercel/
+.netlify/
 
 # Env files
 .env*
@@ -36,10 +37,16 @@ coverage/
 .vscode/
 .idea/
 
-# Build tools / caches
+# Build tools and caches
 .turbo/
 .cache/
+supabase/.temp/
+output/browser-news/
 
 # Misc
 *.swp
 *.swo
+.vercel
+
+# Separate projects
+Homepage/

@@ -1,0 +1,25 @@
+{
+  "extends": "./tsconfig.json",
+  "include": [
+    "next-env.d.ts",
+    "app/**/*.ts",
+    "app/**/*.tsx",
+    "components/**/*.ts",
+    "components/**/*.tsx",
+    "hooks/**/*.ts",
+    "hooks/**/*.tsx",
+    "lib/**/*.ts",
+    "lib/**/*.tsx",
+    "store/**/*.ts",
+    "store/**/*.tsx",
+    "scripts/run-signal-scan.ts",
+    "test/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "Homepage",
+    ".netlify",
+    ".next",
+    "studio-fpl-companion"
+  ]
+}
