@@ -96,7 +96,9 @@ export async function fetchYouTubeTranscripts(source: YouTubeSource): Promise<Sc
 // Articles (RSS/Atom)
 // ---------------------------------------------------------------------------
 
-/** Fetch recent entries from an RSS/Atom feed or maintained article page. */
+/**
+ * Fetch recent articles from an RSS/Atom feed.
+ */
 export async function fetchArticles(source: ArticleSource): Promise<ScrapedContent[]> {
   const cutoff = new Date();
   cutoff.setDate(cutoff.getDate() - MAX_CONTENT_AGE_DAYS);
@@ -117,7 +119,6 @@ export async function fetchArticles(source: ArticleSource): Promise<ScrapedConte
       const page = parseHtmlArticle(source, xml, cutoff);
       return page ? [page] : [];
     }
-
     const parsed = xmlParser.parse(xml);
 
     // Handle both RSS 2.0 and Atom formats
@@ -134,14 +135,20 @@ export async function fetchArticles(source: ArticleSource): Promise<ScrapedConte
       const date = pubDate ? new Date(pubDate) : new Date();
       if (!Number.isFinite(date.getTime()) || !pubDate || date < cutoff || date.getTime() > Date.now() + 300_000) continue;
 
-      // Extract text content, including the title because feeds often omit article bodies.
+      // Extract text content — prefer content:encoded, then description, then summary
       let text = item['content:encoded'] || item.description || item.summary || item.content || '';
+      // Strip HTML tags for clean text
       text = `${stripHtml(String(item.title || ''))}\n${stripHtml(String(text))}`;
       if (text.length < 30) continue;
 
       const link = typeof item.link === 'string'
         ? item.link
         : item.link?.['@_href'] || '';
+
+      if (source.fetchArticleBody && link) {
+        const body = await fetchArticleBody(link);
+        if (body) text = `${stripHtml(String(item.title || ''))}\n${body}`;
+      }
 
       results.push({
         source: source.label,
@@ -159,35 +166,54 @@ export async function fetchArticles(source: ArticleSource): Promise<ScrapedConte
   }
 }
 
+// ---------------------------------------------------------------------------
+// HTML article pages
+// ---------------------------------------------------------------------------
+
+async function fetchArticleBody(url: string): Promise<string | null> {
+  try {
+    const response = await fetch(url, {
+      cache: 'no-store',
+      headers: { 'User-Agent': 'FPLCompanion/1.0' },
+      signal: AbortSignal.timeout(30_000),
+    });
+    if (!response.ok) {
+      console.warn('[Scraper] Article page failed:', response.status, url);
+      return null;
+    }
+    const html = await response.text();
+    return extractArticleText(html);
+  } catch (error) {
+    console.warn('[Scraper] Article page fetch failed:', url, (error as Error).message);
+    return null;
+  }
+}
+
 function parseHtmlArticle(source: ArticleSource, html: string, cutoff: Date): ScrapedContent | null {
-  const titleMatch = html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i) || html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
-  const dateMatch = html.match(/<time[^>]+datetime=["']([^"']+)["'][^>]*>/i);
+  const titleMatch = html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i);
   const title = titleMatch ? stripHtml(titleMatch[1]) : source.label;
-  const dateText = dateMatch?.[1] || '';
-  const date = dateText ? new Date(dateText) : new Date(Number.NaN);
+  const dateMatch = html.match(/<time[^>]+datetime=["']([^"']+)["'][^>]*>/i);
+  const date = dateMatch ? new Date(dateMatch[1]) : new Date();
   if (!Number.isFinite(date.getTime()) || date < cutoff || date.getTime() > Date.now() + 300_000) {
     console.warn('[Scraper] HTML article is stale or undated:', source.label);
     return null;
   }
-
-  const contentStart = html.search(/<div[^>]+data-flatplan-body[^>]*>/i);
-  const contentEnd = contentStart >= 0
-    ? html.slice(contentStart).search(/<\/main>|<\/article>/i)
-    : -1;
-  const rawBody = contentStart >= 0
-    ? html.slice(contentStart, contentEnd > 0 ? contentStart + contentEnd : undefined)
-    : html;
-  const body = stripHtml(rawBody.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>|<noscript[\s\S]*?<\/noscript>/gi, ' '));
+  const body = extractArticleText(html);
   const text = `${title}\n${body}`.slice(0, 15000);
   if (text.length < 50) return null;
+  return { source: source.label, sourceType: 'article', text, date: date.toISOString(), url: source.feedUrl };
+}
 
-  return {
-    source: source.label,
-    sourceType: 'article',
-    text,
-    date: date.toISOString(),
-    url: source.feedUrl,
-  };
+function extractArticleText(html: string): string {
+  const withoutNoise = html.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>|<noscript[\s\S]*?<\/noscript>/gi, ' ');
+  const contentStart = withoutNoise.search(/<[^>]+data-flatplan-body(?:=["'][^"']*["'])?[^>]*>/i);
+  const contentEnd = contentStart >= 0
+    ? withoutNoise.slice(contentStart).search(/<\/main>|<\/article>/i)
+    : -1;
+  const rawBody = contentStart >= 0
+    ? withoutNoise.slice(contentStart, contentEnd > 0 ? contentStart + contentEnd : undefined)
+    : withoutNoise;
+  return stripHtml(rawBody).slice(0, 14000);
 }
 
 // ---------------------------------------------------------------------------
@@ -257,8 +283,6 @@ function stripHtml(html: string): string {
     .replace(/&gt;/g, '>')
     .replace(/&quot;/g, '"')
     .replace(/&#39;/g, "'")
-    .replace(/&#(\d+);/g, (_, code: string) => String.fromCodePoint(Number(code)))
-    .replace(/&#x([0-9a-f]+);/gi, (_, code: string) => String.fromCodePoint(parseInt(code, 16)))
     .replace(/&nbsp;/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();

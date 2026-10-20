@@ -47,30 +47,30 @@ test('RSS collection keeps title context and skips stale, undated or malformed i
   } finally { globalThis.fetch = original; }
 });
 
-test('HTML article sources preserve current official suspension tables', async () => {
+test('RSS sources can hydrate linked article bodies server-side', async () => {
   const original = globalThis.fetch;
-  globalThis.fetch = async () => new Response(`
-    <html><h1>Suspension tracker</h1>
-    <time datetime="2026-10-16">16 Oct 2026</time>
-    <div data-flatplan-body><p>Players suspended</p><table><tr><th>Player</th></tr><tr><th>Example Player</th><td>LIV</td><td>GW7</td></tr></table></div>
-    </html>`);
+  let call = 0;
+  globalThis.fetch = async () => {
+    call += 1;
+    if (call === 1) {
+      return new Response(`<rss><channel><item><title>Friday presser updates</title><pubDate>${new Date().toUTCString()}</pubDate><link>https://www.fantasyfootballscout.co.uk/news/presser</link><description>Short feed teaser.</description></item></channel></rss>`);
+    }
+    return new Response('<main><article><h1>Friday presser updates</h1><p>The manager confirmed the midfielder is available.</p></article></main>');
+  };
   try {
-    const items = await fetchArticles({
-      type: 'article',
-      label: 'Premier League suspension tracker',
-      feedUrl: 'https://example.com/suspensions',
-      format: 'html',
-    });
+    const items = await fetchArticles({ type: 'article', label: 'Scout', feedUrl: 'https://example.com/feed', fetchArticleBody: true });
     assert.equal(items.length, 1);
-    assert.match(items[0].text, /Example Player/);
-    assert.equal(items[0].url, 'https://example.com/suspensions');
+    assert.match(items[0].text, /manager confirmed the midfielder is available/);
+    assert.doesNotMatch(items[0].text, /Short feed teaser/);
   } finally { globalThis.fetch = original; }
 });
 
-test('browser evidence persists through the existing article source constraint', () => {
-  const content = [{ source: 'BBC Sport FPL', sourceType: 'browser' as const, text: 'The manager confirmed the player is fit and available for the next Premier League match.', date: '2026-10-16', url: 'https://www.bbc.co.uk/sport/football/articles/example' }];
-  const matched: MatchedSignal = { ...signal('Salah', 'LIV'), playerId: '4', sourceIndex: 1, evidence: 'The manager confirmed the player is fit and available for the next Premier League match.' };
-  const rows = prepareSignalRows([matched], content, 7);
-  assert.equal(rows[0].source_type, 'article');
-  assert.match(rows[0].source_label, /^BBC Sport FPL \| https:\/\/www\.bbc\.co\.uk/);
+test('HTML sources accept maintained full-page content without a machine date', async () => {
+  const original = globalThis.fetch;
+  globalThis.fetch = async () => new Response('<main><article><h1>Latest Injury News</h1><div data-flatplan-body><p>All current Premier League club injury updates are listed here for FPL managers.</p></div></article></main>');
+  try {
+    const items = await fetchArticles({ type: 'article', label: 'Premier League injury hub', feedUrl: 'https://www.premierleague.com/en/latest-player-injuries', format: 'html' });
+    assert.equal(items.length, 1);
+    assert.match(items[0].text, /All current Premier League club injury updates/);
+  } finally { globalThis.fetch = original; }
 });

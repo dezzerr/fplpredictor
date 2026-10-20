@@ -20,6 +20,8 @@ export interface ArticleSource {
   feedUrl: string;
   /** RSS/Atom by default; use html for a maintained page with article markup. */
   format?: 'rss' | 'html';
+  /** Fetch each linked article page when the feed only contains an excerpt. */
+  fetchArticleBody?: boolean;
 }
 
 export interface TwitterSource {
@@ -45,6 +47,7 @@ export const ARTICLE_SOURCES: ArticleSource[] = [
     type: 'article',
     label: 'Fantasy Football Scout',
     feedUrl: 'https://www.fantasyfootballscout.co.uk/feed/',
+    fetchArticleBody: true,
   },
   {
     type: 'article',
@@ -55,6 +58,12 @@ export const ARTICLE_SOURCES: ArticleSource[] = [
     type: 'article',
     label: 'Premier League suspension tracker',
     feedUrl: 'https://www.premierleague.com/en/news/4425344/which-players-are-suspended-or-close-to-a-ban-in-fantasy',
+    format: 'html',
+  },
+  {
+    type: 'article',
+    label: 'Premier League injury hub',
+    feedUrl: 'https://www.premierleague.com/en/latest-player-injuries',
     format: 'html',
   },
 ];
